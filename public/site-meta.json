@@ -1,7 +1,11 @@
 {
   "document": "FOLDOK-WEB-001",
-  "revision": "C",
+  "revision": "D",
   "date": "auto",
-  "languages": ["no", "en"],
-  "default_language": "en"
+  "languages": [
+    "no",
+    "en"
+  ],
+  "default_language": "en",
+  "version": "0.73.0"
 }

@@ -7,6 +7,13 @@ Versioning rules (semver, honestly applied):
   Templates carry their own `version` field (already in schema).
   The zip filename always carries the version: foldok-engine-vX.Y.Z.zip.
 
+## 0.73.0 — Document box editor (foldok_boxes)
+- Vendored `foldok_boxes` — 12-col grid layout, pins (user > template > engine)
+- Demo: `/boxes-demo.html` · APIs `/api/layout/session`, `/api/layout/session/intent`
+- Workbench Tools → Layout opens box editor reference
+- Account panel: fix first-open on marketing/Vercel (forceOpen); marketing stubs for guest/demo
+- `public/index.html` synced from workbench UI
+
 ## 0.72.0 — Diagram Studio + foldok_diagram integration
 - **Diagram Studio** (`web/diagram.html`) — edit wiring/piping fixtures; save to project; insert into document sections
 - `foldok_diagram` — pins-not-geometry engine, validation, jurisdiction gate on export

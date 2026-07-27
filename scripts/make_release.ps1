@@ -52,7 +52,8 @@ $grepRoots = @(
   (Join-Path $staging "artifact_engine"),
   (Join-Path $staging "foldok_index"),
   (Join-Path $staging "foldok_gaps"),
-  (Join-Path $staging "foldok_diagram")
+  (Join-Path $staging "foldok_diagram"),
+  (Join-Path $staging "foldok_boxes")
 )
 $grepFiles = @()
 foreach ($dir in $grepRoots) {

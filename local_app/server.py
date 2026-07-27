@@ -2519,6 +2519,29 @@ class Handler(BaseHTTPRequestHandler):
             if page.exists():
                 return self._send(200, page.read_bytes(), "text/html; charset=utf-8")
 
+        if path == "/boxes-demo.html":
+            page = ROOT / "web" / "boxes-demo.html"
+            if page.exists():
+                return self._send(200, page.read_bytes(), "text/html; charset=utf-8")
+
+        if path == "/foldok-box-editor.js":
+            js = ROOT / "web" / "foldok-box-editor.js"
+            if not js.exists():
+                js = ROOT / "foldok_boxes" / "editor" / "foldok-box-editor.js"
+            if js.exists():
+                return self._send(200, js.read_bytes(), "application/javascript; charset=utf-8")
+
+        if path == "/api/layout/session":
+            sid = (params.get("id") or "").strip()
+            try:
+                import box_sessions as bses
+
+                if sid and bses.get_session(sid):
+                    return self._send(200, bses.session_payload(sid))
+                return self._send(200, bses.create_session())
+            except Exception as e:
+                return self._send(500, {"error": str(e)})
+
         if path == "/electrical-dummy.html":
             self.send_response(302)
             self.send_header("Location", "/diagram.html")
@@ -2938,6 +2961,29 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         body = self._json_body()
         path = self.path.split("?")[0].rstrip("/") or "/"
+
+        # ── Box layout (foldok_boxes · WO 0.73) ───────────────────────
+        if path == "/api/layout/session":
+            try:
+                import box_sessions as bses
+
+                return self._send(200, bses.create_session())
+            except Exception as e:
+                return self._send(500, {"error": str(e)})
+
+        if path == "/api/layout/session/intent":
+            try:
+                import box_sessions as bses
+
+                sid = (body.get("id") or body.get("session_id") or "").strip()
+                if not sid:
+                    return self._send(400, {"error": "session id required"})
+                intent = body.get("intent") if isinstance(body.get("intent"), dict) else body
+                return self._send(200, bses.apply(sid, intent))
+            except KeyError:
+                return self._send(404, {"error": "unknown layout session"})
+            except Exception as e:
+                return self._send(500, {"error": str(e)})
 
         # ── Diagram canvas (foldok_diagram · pins not geometry) ───────
         if path == "/api/diagram/save":

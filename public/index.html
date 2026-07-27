@@ -92,7 +92,10 @@
   @media (max-width:900px) {
     header .doc-meta { margin-left:0; padding-left:0; border-left:none; width:100%; order:3; }
   }
-  header .right { margin-left:auto; font-family:"IBM Plex Mono",monospace; font-size:11px; color:#c8ccd2; }
+  header .right {
+    margin-left:auto; font-family:"IBM Plex Mono",monospace; font-size:11px; color:#c8ccd2;
+    position:relative; z-index:90; flex-shrink:0;
+  }
   main { max-width:960px; margin:0 auto; padding:28px 20px 80px; }
   /* Project page: same column / type scale as the hub landing */
   main.editor-mode {
@@ -1146,10 +1149,10 @@
   .acct-btn:hover .acct-label { color:var(--signal); }
   .acct-btn:hover .acct-burger { color:#fff; }
   .acct-panel {
-    position:fixed; top:48px; right:12px; width:min(400px,94vw); max-height:min(80vh,640px);
+    position:fixed; top:52px; right:12px; width:min(400px,94vw); max-height:min(80vh,640px);
     overflow:auto; background:var(--sheet,#fff); color:var(--ink,#111);
     border:1px solid var(--line,#ddd); border-radius:10px; box-shadow:0 8px 28px rgba(0,0,0,.18);
-    z-index:80; display:none; padding:12px;
+    z-index:200; display:none; padding:12px;
     -webkit-user-select:text; user-select:text;
   }
   .acct-panel.open { display:block; }
@@ -1594,7 +1597,7 @@ async function renderAccountPanel(opts = {}) {
         onclick="accountDummySignIn()">Dummy-konto (workbench) →</button>
       <p style="font-size:11px;color:var(--steel);margin:10px 0 0">${L("Ingen passord.", "No password.")} ${fmtMoney(a.free_credit_eur || 2)} ${L("gratis ved ny konto.", "free on new account.")}</p>
     `;
-    if (keepOpen && wasOpen) pan.classList.add("open");
+    if (keepOpen && (wasOpen || opts.forceOpen)) pan.classList.add("open");
     return;
   }
   if (a.guest && !a.signed_in) {
@@ -1608,13 +1611,13 @@ async function renderAccountPanel(opts = {}) {
       <p style="font-size:11px;color:var(--steel)">${esc(a.privacy_line || "")}</p>
       ${accountProjectsBlock()}
       <button type="button" class="btn" style="width:100%;justify-content:center;margin-top:8px"
-        onclick="BOOT.account={mode:'signed_out',signed_in:false,guest:false,free_credit_eur:2,privacy_line:BOOT.account?.privacy_line||''};renderAccountPanel({keepOpen:true})">Opprett konto</button>
+        onclick="BOOT.account={mode:'signed_out',signed_in:false,guest:false,free_credit_eur:2,privacy_line:BOOT.account?.privacy_line||''};renderAccountPanel({keepOpen:true,forceOpen:true})">Opprett konto</button>
       <button type="button" class="btn ghost" style="width:100%;justify-content:center;margin-top:6px"
         onclick="accountDummySignIn()">Dummy-konto (workbench) →</button>
       <button type="button" class="btn ghost" style="width:100%;justify-content:center;margin-top:6px"
         onclick="accountSignOut()">Avslutt gjest</button>
     `;
-    if (keepOpen && wasOpen) pan.classList.add("open");
+    if (keepOpen && (wasOpen || opts.forceOpen)) pan.classList.add("open");
     return;
   }
   const tabs = [
@@ -1799,6 +1802,15 @@ async function fillAccountTab() {
 async function accountMagicLink() {
   const email = $("#acct-email")?.value?.trim();
   if (!email) return alert("Skriv e-post");
+  if (BOOT?.marketing) {
+    $("#acct-magic-step").style.display = "block";
+    $("#acct-stub-code").textContent = L(
+      "Markedsføringsside — konto-API krever lokal arbeidsbenk (workbench.ps1).",
+      "Marketing site — account API needs the local workbench (workbench.ps1)."
+    );
+    window._acctEmail = email;
+    return;
+  }
   try {
     const r = await api("/api/account/magic-link", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -1814,6 +1826,13 @@ async function accountMagicLink() {
 }
 
 async function accountVerify() {
+  if (BOOT?.marketing) {
+    alert(L(
+      "Konto krever lokal arbeidsbenk: .\\scripts\\workbench.ps1 → http://127.0.0.1:8766/",
+      "Accounts require the local workbench: .\\scripts\\workbench.ps1 → http://127.0.0.1:8766/"
+    ));
+    return;
+  }
   const email = window._acctEmail || $("#acct-email")?.value?.trim();
   const code = $("#acct-code")?.value?.trim();
   try {
@@ -1832,6 +1851,23 @@ async function accountVerify() {
 
 async function accountDummySignIn() {
   /* One-click workbench login — restores projects under the chat. */
+  if (BOOT?.marketing) {
+    BOOT.account = {
+      mode: "signed_in",
+      signed_in: true,
+      guest: false,
+      account: { name: "Demo (marketing)", balance_eur: 2, email: "demo@foldok.local" },
+      privacy_line: L(
+        "Dette er markedsføringssiden — prosjekter krever lokal arbeidsbenk.",
+        "This is the marketing site — projects need the local workbench."
+      ),
+    };
+    ACCT_USAGE = null;
+    renderAccountHeader();
+    ACCT_TAB = "prosjekter";
+    renderAccountPanel({ keepOpen: true, forceOpen: true });
+    return;
+  }
   const email = "demo@foldok.local";
   try {
     const r = await api("/api/account/magic-link", {
@@ -1857,9 +1893,25 @@ async function accountDummySignIn() {
 }
 
 async function accountGuest() {
+  if (BOOT?.marketing) {
+    BOOT.account = {
+      mode: "guest",
+      signed_in: false,
+      guest: true,
+      account: { balance_eur: 2 },
+      privacy_line: L(
+        "Gjest på markedsføringssiden — kjøring skjer lokalt.",
+        "Guest on the marketing site — run the product locally."
+      ),
+      free_credit_eur: 2,
+    };
+    renderAccountHeader();
+    renderAccountPanel({ keepOpen: true, forceOpen: true });
+    return;
+  }
   BOOT.account = await api("/api/account/guest", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
   renderAccountHeader();
-  renderAccountPanel();
+  renderAccountPanel({ keepOpen: true, forceOpen: true });
 }
 
 async function accountSignOut() {
@@ -5897,6 +5949,9 @@ function renderEditorRail() {
         <button type="button" class="tool-btn" onclick="refreshFigures()">
           Figurer<small>Oppdater illustrasjoner fra kilder</small>
         </button>
+        <button type="button" class="tool-btn" onclick="toolsOpenBoxesDemo()">
+          Layout<small>Grid boxes · drag / resize · WO 0.73</small>
+        </button>
         <button type="button" class="tool-btn" onclick="toolsOpenDiagramStudio()">
           Diagrammer<small>Rediger og legg inn i dokument</small>
         </button>
@@ -7065,6 +7120,10 @@ function toolsOpenDiagramStudio() {
   const q = new URLSearchParams({ project: PROJECT.id });
   if (ACTIVE_DOC) q.set("template", ACTIVE_DOC);
   window.open("/diagram.html?" + q.toString(), "_blank", "noopener");
+}
+
+function toolsOpenBoxesDemo() {
+  window.open("/boxes-demo.html", "_blank", "noopener");
 }
 
 function toolsOpenElectricalDemo() {
