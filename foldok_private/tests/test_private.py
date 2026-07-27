@@ -110,7 +110,7 @@ def test_tokens_are_stable_across_sessions():
 
 def test_the_vault_persists_and_reloads(tmp_path):
     v = vault()
-    path = v.save(tmp_path / "vault.jsonl")
+    path = v.save(tmp_path / "vault.jsonl", allow_plaintext=True)
     again = EntityVault.load(path)
     assert len(again) == len(v)
     assert again.mask(TEXT).text == v.mask(TEXT).text
@@ -126,15 +126,18 @@ def test_real_values_come_back_exactly():
 
 def test_an_entity_the_model_invented_is_reported_not_passed_through():
     v = vault()
-    u = v.unmask("CLIENT_A approved it, and so did CLIENT_Z.")
-    assert "CLIENT_Z" in u.unknown_tokens
+    real = v.of_value("Equinor ASA").token
+    ghost = f"{v.salt}_CLIENT_Z"
+    u = v.unmask(f"{real} approved it, and so did {ghost}.")
+    assert ghost in u.unknown_tokens
     assert not u.ok
 
 
 def test_a_token_that_never_came_back_is_reported():
     v = vault()
     m = v.mask(TEXT)
-    u = v.unmask("CLIENT_A only.", sent=[e.token for e in m.entities])
+    u = v.unmask(f"{v.of_value('Equinor ASA').token} only.",
+                 sent=[e.token for e in m.entities])
     assert u.missing_tokens
 
 
@@ -225,7 +228,7 @@ def test_offline_policy_sends_nothing():
 
 
 def test_a_policy_can_require_human_approval_per_call():
-    c = client(policy=Policy(require_preview=True))
+    c = client(policy=Policy(require_approval=True))
     env = c.prepare("index_file", "hello")
     with pytest.raises(CallRefused):
         c.send(env)
@@ -241,7 +244,8 @@ def test_the_model_never_sees_a_real_identifier_but_the_caller_gets_one_back():
 
         def send(self, envelope):
             seen.append(envelope.text)
-            return "CLIENT_A confirmed the delivery for PROJECT_A."
+            # echo the tokens back, the way a model would
+            return " ".join(envelope.tokens_used) + " confirmed the delivery."
 
     c = PrivateClient(transport=Spy(), vault=EntityVault(), model="test")
     result = c.call("generate_section_prose", TEXT, facts=FACTS)
@@ -287,11 +291,11 @@ def test_bring_your_own_endpoint_is_a_transport_swap_and_nothing_else():
         id = "equinor-azure"
 
         def send(self, envelope):
-            return "CLIENT_A signed."
+            return envelope.tokens_used[0] + " signed."
 
     c = enterprise(CustomerEndpoint(), vault=EntityVault(), model="customer")
     result = c.call("generate_section_prose", TEXT, facts=FACTS)
-    assert result.text.startswith("Equinor ASA")
+    assert "Equinor ASA" in result.text or "Aker Solutions AS" in result.text
     assert c.summary()["transport"] == "equinor-azure"
 
 
@@ -316,3 +320,121 @@ def test_summary_is_safe_to_show_an_it_department():
     blob = str(c.summary())
     for secret in ("Equinor", "Johan", "Jan Rune"):
         assert secret not in blob
+
+
+# --- 0.76 hardening ------------------------------------------------------
+def test_a_document_containing_a_token_shape_is_refused_not_corrupted():
+    """Without a salt this injected a client name that was never in the text —
+    fabricated content in a compliance document."""
+    v = EntityVault(project_id="job-114")
+    v.add("Equinor", "client")
+    with pytest.raises(LeakRefused) as exc:
+        v.mask(f"The unit {v.salt}_CLIENT_A was tested.")
+    assert "would be replaced by a real value" in str(exc.value)
+
+
+def test_tokens_are_namespaced_per_project():
+    a = EntityVault(project_id="job-114")
+    b = EntityVault(project_id="job-115")
+    assert a.salt != b.salt
+    a.add("Equinor", "client")
+    b.add("Statkraft", "client")
+    # one project's token is never restored by another's vault
+    assert b.unmask(a.entities()[0].token).text == a.entities()[0].token
+
+
+def test_mixing_two_projects_into_one_vault_is_refused():
+    v = EntityVault(project_id="job-114")
+    v.add("Equinor", "client")
+    with pytest.raises(ValueError) as exc:
+        v.bind("job-115")
+    assert "separate vault" in str(exc.value)
+
+
+@pytest.mark.parametrize("mangle", [
+    lambda t: f"**{t}**",
+    lambda t: t.replace("_", " _ "),
+    lambda t: t.lower(),
+    lambda t: t.replace("_", "-"),
+    lambda t: t.replace("_", "_ "),
+])
+def test_models_mangling_a_token_does_not_lose_the_value(mangle):
+    v = vault()
+    token = v.of_value("Equinor ASA").token
+    u = v.unmask(f"{mangle(token)} signed it.")
+    assert "Equinor ASA" in u.text
+
+
+def test_policy_returns_a_decision_the_ui_can_render():
+    c = client()
+    env = c.prepare("index_file", "routine description of the cabinet")
+    d = c.decide(env)
+    assert d.allowed and d.verdict == "allowed"
+    assert d.summary() == "Allowed"
+
+
+def test_findings_language_asks_a_person_rather_than_silently_sending():
+    """Masking removes names, not findings. 'CLIENT_A's weld failed' is fully
+    anonymised and still the sensitive part of the document."""
+    c = client()
+    env = c.prepare("generate_section_prose",
+                    "The weld failed inspection at 3 of 12 joints and the vendor disputes it.")
+    d = c.decide(env)
+    assert d.needs_approval
+    assert {f.code for f in d.flags} & {"failure", "dispute"}
+    with pytest.raises(CallRefused):
+        c.send(env)
+    assert c.send(env, approved=True).ok
+
+
+def test_a_blocked_decision_names_the_rule_and_the_fix():
+    c = client(policy=Policy(max_bytes=20))
+    env = c.prepare("index_file", "x" * 400)
+    d = c.decide(env)
+    assert d.blocked
+    assert any(r.code == "over_budget" and r.fix for r in d.reasons)
+
+
+def test_the_strict_preset_is_shippable_for_an_enterprise_demo():
+    from foldok_private.policy import STRICT
+
+    c = client(policy=STRICT)
+    env = c.prepare("index_file", "routine text", facts=FACTS)
+    assert c.decide(env).needs_approval
+    assert not STRICT.allow_images and STRICT.max_bytes < 20_000
+
+
+def test_gap_fill_code_refuses_free_project_text():
+    """The purpose name reads like arbitrary code execution; it may carry only a
+    descriptor the engine built."""
+    c = client()
+    env = c.prepare("gap_fill_code", "here is the whole source file ...")
+    assert c.decide(env).blocked
+    ok = c.prepare("gap_fill_code", '{"gap": "missing_insulation_test"}', structured=True)
+    assert c.decide(ok).allowed
+
+
+def test_the_vault_refuses_to_save_without_a_decision_about_encryption(tmp_path):
+    with pytest.raises(ValueError) as exc:
+        vault().save(tmp_path / "v.vault")
+    assert "passphrase" in str(exc.value)
+
+
+def test_an_encrypted_vault_round_trips_and_is_not_readable_on_disk(tmp_path):
+    v = vault()
+    path = v.save(tmp_path / "v.vault", passphrase="correct horse battery")
+    raw = path.read_bytes()
+    assert b"Equinor" not in raw and b"Johan" not in raw
+    again = EntityVault.load(path, passphrase="correct horse battery")
+    assert len(again) == len(v)
+    assert again.of_value("Equinor ASA") is not None
+
+
+def test_the_vault_can_never_be_included_in_an_export(tmp_path):
+    from foldok_private.atrest import ExportRefused, assert_exportable, filter_exportable
+
+    bundle = [tmp_path / "report.pdf", tmp_path / "job.vault", tmp_path / "vault.jsonl"]
+    with pytest.raises(ExportRefused) as exc:
+        assert_exportable(bundle)
+    assert "stays on this machine" in str(exc.value)
+    assert [p.name for p in filter_exportable(bundle)] == ["report.pdf"]

@@ -7,6 +7,12 @@ Versioning rules (semver, honestly applied):
   Templates carry their own `version` field (already in schema).
   The zip filename always carries the version: foldok-engine-vX.Y.Z.zip.
 
+## 0.76.0 — Private calls hardened (policy + at-rest)
+- Updated `foldok_private` — Policy returns renderable `Decision` (allowed / needs_approval / blocked)
+- Findings language flagged for human judgement (masking ≠ findings protection)
+- Token repair for mangled model tokens; Fernet encryption at rest; export denylist for vaults
+- STRICT / OPEN / OFFLINE presets; 48 package tests green
+
 ## 0.75.0 — Private calls (foldok_private)
 - Vendored `foldok_private` — model works on masked text; EntityVault holds ground truth locally
 - Leak guard refuses any payload that still contains known real values

@@ -24,42 +24,17 @@ rather than something a user has to configure first.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Iterable, Protocol, Sequence, runtime_checkable
 
 from .detect import populate
 from .envelope import PURPOSES, AuditLog, Envelope, ImageRef
+from .policy import DEFAULT, OFFLINE, OPEN, STRICT, Decision, Policy, preset
 from .vault import EntityVault, LeakRefused, UnmaskResult
 
 
 class CallRefused(Exception):
     """The call was not sent, with the reason the user should see."""
-
-
-@dataclass(frozen=True)
-class Policy:
-    """Defaults chosen so that the safe thing happens when nobody is looking."""
-
-    allow_images: bool = False               # images cannot be masked
-    max_bytes: int = 60_000                  # per call
-    max_entities_unmasked: int = 0           # leaks tolerated: none
-    allowed_purposes: tuple[str, ...] = PURPOSES
-    require_preview: bool = False            # True = a human must approve each call
-    strict_masking: bool = True
-    redact_uncertain: bool = False           # mask ambiguous tags too
-
-    def describe(self) -> str:
-        bits = [
-            f"images {'allowed' if self.allow_images else 'blocked'}",
-            f"max {self.max_bytes} bytes/call",
-            f"masking {'strict' if self.strict_masking else 'best effort'}",
-        ]
-        if self.require_preview:
-            bits.append("every call approved by a human")
-        return " · ".join(bits)
-
-
-OFFLINE = Policy(allowed_purposes=())        # nothing may be sent at all
 
 
 @runtime_checkable
@@ -111,18 +86,19 @@ class PrivateClient:
         self,
         transport: Transport,
         vault: EntityVault | None = None,
-        policy: Policy | None = None,
+        policy: Policy | str | None = None,
         audit: AuditLog | None = None,
         model: str = "",
         clock=time.time,
     ) -> None:
         self.transport = transport
         self.vault = vault or EntityVault()
-        self.policy = policy or Policy()
+        self.policy = preset(policy) if isinstance(policy, str) else (policy or DEFAULT)
         self.audit = audit or AuditLog(clock=clock)
         self.model = model
         self._clock = clock
         self.pending: Envelope | None = None
+        self.last_decision: Decision | None = None
 
     # -- preparing --------------------------------------------------------
     def prepare(
@@ -133,8 +109,18 @@ class PrivateClient:
         facts: Iterable[dict] = (),
         images: Sequence[ImageRef] = (),
         meta: dict[str, Any] | None = None,
+        structured: bool = False,
     ) -> Envelope:
-        """Everything up to the point of sending.  Call this to render the panel."""
+        """Everything up to the point of sending.  Call this to render the panel.
+
+        ``structured=True`` declares that the payload is a descriptor the engine
+        built (a gap record), not free project text. Some purposes accept
+        nothing else — ``gap_fill_code`` in particular, whose name reads like
+        arbitrary code and must never carry project source.
+        """
+        meta = dict(meta or {})
+        if structured:
+            meta["structured"] = True
         if purpose not in PURPOSES:
             raise CallRefused(
                 f"'{purpose}' is not one of the four purposes the engine calls a model for "
@@ -157,47 +143,38 @@ class PrivateClient:
         self.pending = envelope
         return envelope
 
-    def check(self, envelope: Envelope) -> None:
-        """Policy.  Raises with the reason a user should read."""
-        if envelope.purpose not in self.policy.allowed_purposes:
-            raise CallRefused(
-                f"'{envelope.purpose}' is not permitted by the current policy "
-                f"({self.policy.describe()})"
-            )
-        unapproved = [i for i in envelope.images if not i.approved]
-        if unapproved and not self.policy.allow_images:
-            raise CallRefused(
-                f"{len(unapproved)} image(s) were not sent. A photograph cannot be masked — "
-                "a nameplate carries the serial number, the client's logo and sometimes a "
-                "face. Approve each image individually if you want it analysed."
-            )
-        if envelope.bytes > self.policy.max_bytes:
-            raise CallRefused(
-                f"{envelope.bytes} bytes exceeds the {self.policy.max_bytes} byte budget for "
-                "one call. Split the passage, or raise the budget deliberately."
-            )
-        if envelope.text.strip() == "" and not envelope.images:
-            raise CallRefused("nothing to send")
+    def decide(self, envelope: Envelope) -> Decision:
+        """Policy as data, so the UI can render it.
+
+        A verdict of ``needs_approval`` is not a failure — it is the product
+        asking a person to look at what is about to leave. That is the whole
+        point of the panel, and it cannot be drawn from a stack trace.
+        """
+        policy = self.policy
+        if not policy.allowed_purposes:
+            policy = replace(policy, allowed_purposes=PURPOSES)
+        return policy.decide(envelope)
 
     # -- sending -----------------------------------------------------------
     def send(self, envelope: Envelope, *, approved: bool = False) -> CallResult:
-        if self.policy.require_preview and not approved:
+        decision = self.decide(envelope)
+        self.last_decision = decision
+        if decision.blocked:
+            self.audit.add(envelope, "refused", decision.summary())
+            raise CallRefused(decision.summary())
+        if decision.needs_approval and not approved:
+            self.audit.add(envelope, "refused", decision.summary())
             raise CallRefused(
-                "this policy requires a person to approve each call — show the preview and "
-                "pass approved=True"
+                decision.summary()
+                + " — show the preview and pass approved=True once a person has read it"
             )
-        try:
-            self.check(envelope)
-        except CallRefused as exc:
-            self.audit.add(envelope, "refused", str(exc))
-            raise
         try:
             raw = self.transport.send(envelope)
         except Exception as exc:  # noqa: BLE001
             self.audit.add(envelope, "failed", f"{type(exc).__name__}: {exc}")
             raise
         result = self.vault.unmask(raw, sent=envelope.tokens_used)
-        self.audit.add(envelope, "sent")
+        self.audit.add(envelope, "sent", decision.summary() if decision.reasons else "")
         self.pending = None
         return CallResult(text=result.text, envelope=envelope, unmask=result, raw=raw)
 
@@ -209,10 +186,12 @@ class PrivateClient:
         facts: Iterable[dict] = (),
         images: Sequence[ImageRef] = (),
         meta: dict[str, Any] | None = None,
+        structured: bool = False,
         approved: bool = False,
     ) -> CallResult:
         return self.send(
-            self.prepare(purpose, text, facts=facts, images=images, meta=meta),
+            self.prepare(purpose, text, facts=facts, images=images, meta=meta,
+                         structured=structured),
             approved=approved,
         )
 

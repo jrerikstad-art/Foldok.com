@@ -10,15 +10,36 @@ Everything else in Foldok â€” indexing, gaps, layout, diagrams, tables, export â
 runs with the network off. Only four purposes ever reach a model.
 """
 
+from .atrest import (
+    Cipher,
+    ExportRefused,
+    FernetCipher,
+    NullCipher,
+    assert_exportable,
+    filter_exportable,
+    is_local_only,
+    repair,
+)
 from .client import (
-    OFFLINE,
     CallRefused,
     CallResult,
     EchoTransport,
-    Policy,
     PrivateClient,
     Transport,
     enterprise,
+)
+from .policy import (
+    DEFAULT,
+    OFFLINE,
+    OPEN,
+    PRESETS,
+    STRICT,
+    Decision,
+    Flag,
+    Policy,
+    Reason,
+    content_flags,
+    preset,
 )
 from .detect import Candidate, detect, from_facts, populate, review
 from .envelope import PURPOSES, AuditLog, Envelope, ImageRef, Record
@@ -32,10 +53,13 @@ from .vault import (
 )
 
 __all__ = [
-    "AuditLog", "CallRefused", "CallResult", "Candidate", "EchoTransport", "Entity",
-    "EntityKind", "EntityVault", "Envelope", "ImageRef", "LeakRefused", "MaskResult",
-    "OFFLINE", "PURPOSES", "Policy", "PrivateClient", "Record", "Transport",
-    "UnmaskResult", "detect", "enterprise", "from_facts", "populate", "review",
+    "AuditLog", "CallRefused", "CallResult", "Candidate", "Cipher", "DEFAULT",
+    "Decision", "EchoTransport", "Entity", "EntityKind", "EntityVault", "Envelope",
+    "ExportRefused", "FernetCipher", "Flag", "ImageRef", "LeakRefused", "MaskResult",
+    "NullCipher", "OFFLINE", "OPEN", "PRESETS", "PURPOSES", "Policy", "PrivateClient",
+    "Reason", "Record", "STRICT", "Transport", "UnmaskResult", "assert_exportable",
+    "content_flags", "detect", "enterprise", "filter_exportable", "from_facts",
+    "is_local_only", "populate", "preset", "repair", "review",
 ]
 
-__version__ = "0.75.0"
+__version__ = "0.76.0"

@@ -31,6 +31,7 @@ be uploaded, synced, or included in a support bundle.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import unicodedata
@@ -51,7 +52,17 @@ PREFIX: dict[str, str] = {
     "url": "URL", "path": "PATH", "other": "ENTITY",
 }
 
-TOKEN_RE = re.compile(r"\b([A-Z]{3,8})_([A-Z0-9]{1,4})\b")
+# Tokens carry a per-project salt: FDK7X_CLIENT_A. Without it, a document that
+# legitimately contains "CLIENT_A" would have a real client name injected into
+# it on restoration — fabricated content in a compliance document.
+TOKEN_RE = re.compile(r"(?<![A-Za-z0-9])(FDK[A-Z0-9]{2,4})_([A-Z]{3,8})_([A-Z0-9]{1,4})(?![A-Za-z0-9])")
+SALT_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+def salt_for(project_id: str) -> str:
+    """Deterministic, short, stable for the life of a project."""
+    digest = hashlib.blake2b((project_id or "default").encode("utf-8"), digest_size=4).digest()
+    return "FDK" + "".join(SALT_ALPHABET[b % len(SALT_ALPHABET)] for b in digest[:2])
 LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
@@ -126,6 +137,7 @@ class UnmaskResult:
     restored: int = 0
     unknown_tokens: tuple[str, ...] = ()   # the model invented an entity
     missing_tokens: tuple[str, ...] = ()   # a token we sent never came back
+    repaired: int = 0                      # tokens the model mangled and we fixed
 
     @property
     def ok(self) -> bool:
@@ -139,19 +151,38 @@ class LeakRefused(Exception):
 class EntityVault:
     """Local, per-project, never uploaded."""
 
-    def __init__(self, entities: Iterable[Entity] | None = None) -> None:
+    def __init__(
+        self,
+        entities: Iterable[Entity] | None = None,
+        project_id: str = "default",
+    ) -> None:
         self._by_token: dict[str, Entity] = {}
         self._by_fold: dict[str, Entity] = {}
         self._counters: dict[str, int] = {}
+        self.project_id = project_id
+        self.salt = salt_for(project_id)
         for e in entities or ():
             self._install(e)
+
+    def bind(self, project_id: str) -> None:
+        """One vault per project.  Mixing two projects would give the same token
+        to two different clients, which is worse than not masking at all."""
+        if self._by_token and project_id != self.project_id:
+            raise ValueError(
+                f"this vault belongs to project '{self.project_id}' and already holds "
+                f"{len(self._by_token)} entity(ies); open a separate vault for "
+                f"'{project_id}' rather than mixing two jobs into one token space"
+            )
+        self.project_id = project_id
+        self.salt = salt_for(project_id)
 
     # -- building --------------------------------------------------------
     def _install(self, entity: Entity) -> Entity:
         self._by_token[entity.token] = entity
         for v in entity.variants():
             self._by_fold[_fold(v)] = entity
-        prefix, _, label = entity.token.rpartition("_")
+        parts = entity.token.split("_")
+        prefix, label = (parts[-2], parts[-1]) if len(parts) >= 3 else ("ENTITY", parts[-1])
         self._counters[prefix] = max(self._counters.get(prefix, 0), _index_of(label) + 1)
         return entity
 
@@ -177,7 +208,7 @@ class EntityVault:
                 self._install(existing)
             return existing
         prefix = PREFIX.get(kind, "ENTITY")
-        token = f"{prefix}_{_label(self._counters.get(prefix, 0))}"
+        token = f"{self.salt}_{prefix}_{_label(self._counters.get(prefix, 0))}"
         return self._install(
             Entity(token=token, kind=kind, value=value,
                    aliases=tuple(a for a in aliases if a), source=source, locked=locked)
@@ -209,6 +240,19 @@ class EntityVault:
     def mask(self, text: str, *, strict: bool = True) -> MaskResult:
         if not text:
             return MaskResult(text="", entities=(), replacements=0)
+
+        # If the source already contains something shaped like one of our
+        # tokens, restoration would inject a real value that was never there.
+        # The salt makes this vanishingly unlikely; refusing is the assertion.
+        from .atrest import looks_like_token
+
+        collisions = looks_like_token(text, self.salt)
+        if collisions and strict:
+            raise LeakRefused(
+                f"the source text already contains token-shaped string(s) "
+                f"{', '.join(collisions[:3])}, which would be replaced by a real value on "
+                "restoration. Rename them, or open the vault with a different project id."
+            )
         out = text
         used: list[Entity] = []
         count = 0
@@ -257,15 +301,27 @@ class EntityVault:
             raise LeakRefused(f"real value(s) present in outbound text: {', '.join(leaked[:5])}")
 
     # -- unmasking -------------------------------------------------------
-    def unmask(self, text: str, *, sent: Iterable[str] = ()) -> UnmaskResult:
-        """Put the real values back, and report anything the model invented."""
+    def unmask(self, text: str, *, sent: Iterable[str] = (), repair_mangled: bool = True) -> UnmaskResult:
+        """Put the real values back, and report anything the model invented.
+
+        Models mangle tokens — ``CLIENT_ A``, ``Client_A``, ``**CLIENT_A**``.
+        Each one is a value that silently fails to come back, so the known set
+        is normalised before restoration.
+        """
         restored = 0
         unknown: list[str] = []
         sent_tokens = set(sent)
+        repaired = 0
+        if repair_mangled:
+            from .atrest import repair
+
+            text, repaired = repair(text or "", self._by_token.keys())
 
         def repl(match: re.Match[str]) -> str:
             nonlocal restored
             token = match.group(0)
+            if match.group(1) != self.salt:
+                return token          # another project's token; not ours to restore
             entity = self._by_token.get(token)
             if entity is None:
                 unknown.append(token)
@@ -280,15 +336,39 @@ class EntityVault:
             restored=restored,
             unknown_tokens=tuple(sorted(set(unknown))),
             missing_tokens=tuple(missing),
+            repaired=repaired,
         )
 
     # -- persistence -----------------------------------------------------
     def to_jsonl(self) -> str:
         return "\n".join(json.dumps(e.to_dict(), ensure_ascii=False) for e in self.entities())
 
-    def save(self, path: str | Path) -> Path:
+    def save(
+        self,
+        path: str | Path,
+        *,
+        passphrase: str | None = None,
+        allow_plaintext: bool = False,
+    ) -> Path:
+        """Write the vault. Encryption is a decision the caller must make.
+
+        This file maps every token to a real client, project and person for the
+        whole job. Saving it in the clear is sometimes reasonable — a personal
+        laptop with full-disk encryption — but it should be said out loud rather
+        than defaulted into.
+        """
+        from .atrest import cipher_for
+
+        if not passphrase and not allow_plaintext:
+            raise ValueError(
+                "the vault holds every real identifier for this project. Pass a passphrase "
+                "to encrypt it, or allow_plaintext=True to say you accept storing it in the "
+                "clear on this machine."
+            )
+        cipher = cipher_for(passphrase)
         p = Path(path)
-        p.write_text(self.to_jsonl(), encoding="utf-8")
+        header = f"#foldok-vault v1 cipher={cipher.id} project={self.project_id}\n".encode()
+        p.write_bytes(header + cipher.encrypt(self.to_jsonl().encode("utf-8")))
         return p
 
     @staticmethod
@@ -308,9 +388,24 @@ class EntityVault:
         return vault
 
     @staticmethod
-    def load(path: str | Path) -> "EntityVault":
+    def load(path: str | Path, *, passphrase: str | None = None) -> "EntityVault":
+        from .atrest import cipher_for
+
         p = Path(path)
-        return EntityVault.from_jsonl(p.read_text(encoding="utf-8")) if p.exists() else EntityVault()
+        if not p.exists():
+            return EntityVault()
+        raw = p.read_bytes()
+        project = "default"
+        if raw.startswith(b"#foldok-vault"):
+            header, _, raw = raw.partition(b"\n")
+            for part in header.decode("utf-8", "replace").split():
+                if part.startswith("project="):
+                    project = part.split("=", 1)[1]
+        body = cipher_for(passphrase).decrypt(raw)
+        vault = EntityVault.from_jsonl(body.decode("utf-8"))
+        vault.project_id = project
+        vault.salt = salt_for(project)
+        return vault
 
 
 def _boundary(variant: str) -> str:
