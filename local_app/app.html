@@ -19,7 +19,7 @@
   "operatingSystem": "Windows, macOS, Linux",
   "description": "Engineering documentation operating system. Project folders become structured, cited, deliverable packages. Local-first; human confirmation before formal claims.",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
-  "softwareVersion": "0.73.0"
+  "softwareVersion": "0.74.0"
 }
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -1227,33 +1227,45 @@
 <main id="main">
   <!-- Static shell for crawlers / fetchers (replaced by JS when boot() runs) -->
   <article class="static-landing hub-shell" id="static-landing" style="max-width:960px;margin:0 auto;padding:28px 20px 80px">
-    <p style="font-family:IBM Plex Mono,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5A6472;margin:0 0 12px">Foldok · v0.73.0</p>
+    <p style="font-family:IBM Plex Mono,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5A6472;margin:0 0 12px">Foldok · v0.74.0</p>
     <h1 style="font-size:clamp(1.6rem,4vw,2.2rem);font-weight:900;letter-spacing:-0.03em;line-height:1.15;margin:0 0 14px">
-      Engineering documentation operating system
+      An operating system for engineering documentation — that runs on your machine
     </h1>
     <p style="font-size:17px;line-height:1.5;max-width:40em;margin:0 0 18px">
-      <strong>Foldok</strong> turns project folders into complete technical documentation packages.
-      Local-first. Sources stay on your machine. You confirm before anything is final.
+      <strong>Foldok is not a website you work in.</strong> The product is local software:
+      download, install, and point it at your project folder. Documentation is the primary workspace;
+      the project supplies sources, knowledge, requirements, diagrams, and delivery. AI is infrastructure.
+      You confirm before anything is final.
+    </p>
+    <p style="font-size:15px;line-height:1.55;max-width:42em;margin:0 0 18px;padding:12px 14px;border:1px solid #DCD9D0;background:#fff;border-radius:8px">
+      <strong>Local software required.</strong>
+      This website is marketing only. To use Foldok you must install the workbench
+      (Windows / macOS / Linux) from the
+      <a href="https://github.com/jrerikstad-art/Foldok.com/releases">GitHub release</a>,
+      then run <code>.\scripts\workbench.ps1</code> → <code>http://127.0.0.1:8766/</code>.
     </p>
     <p style="font-size:15px;line-height:1.55;max-width:42em;color:#5A6472;margin:0 0 28px">
-      Not a chat app. Not a PM tool. Documentation is the primary workspace —
-      with knowledge, requirements, evidence, diagrams, and versioned delivery around it.
+      Not a chat app. Not a PM tool. Projects organize documentation. Documentation delivers projects.
     </p>
+
+    <h2 style="font-size:1.15rem;font-weight:800;margin:28px 0 10px">1 — What this is</h2>
+    <p style="margin:0 0 10px;max-width:42em">Install locally → connect a project folder → edit documentation &amp; deliver a package.</p>
 
     <h2 style="font-size:1.15rem;font-weight:800;margin:28px 0 10px">What it does</h2>
     <ul style="margin:0;padding-left:1.2rem;line-height:1.6;max-width:40em">
       <li><strong>Understand sources</strong> — connect a job folder; index photos, PDFs, drawings, notes.</li>
       <li><strong>Build knowledge</strong> — facts and citations stay inspectable.</li>
-      <li><strong>Resolve gaps</strong> — missing evidence is listed with guided Fix / Link / Create / Ignore actions.</li>
-      <li><strong>Edit documents</strong> — structured sections, figures, and system diagrams in the workbench.</li>
-      <li><strong>Deliver</strong> — versioned packages (PDF / ZIP) with a clear claim boundary: structural profiles, not legal certification.</li>
+      <li><strong>Resolve gaps</strong> — missing evidence with guided Fix / Link / Create / Ignore actions.</li>
+      <li><strong>Edit documents</strong> — structured sections, figures, diagrams, and layout boxes.</li>
+      <li><strong>Deliver</strong> — versioned packages with a clear claim boundary: structural profiles, not legal certification.</li>
     </ul>
 
     <h2 style="font-size:1.15rem;font-weight:800;margin:28px 0 10px">Surfaces</h2>
     <p style="margin:0 0 8px;max-width:42em">Documents · Diagrams · Requirements · Sources · Compiler · Compliance · Deliver · Assets</p>
 
-    <h2 style="font-size:1.15rem;font-weight:800;margin:28px 0 10px">Run locally</h2>
-    <pre style="background:#fff;border:1px solid #DCD9D0;padding:14px 16px;font-family:IBM Plex Mono,monospace;font-size:12px;overflow:auto;max-width:42em">git clone https://github.com/jrerikstad-art/Foldok.com.git
+    <h2 style="font-size:1.15rem;font-weight:800;margin:28px 0 10px">Install &amp; run locally</h2>
+    <pre style="background:#fff;border:1px solid #DCD9D0;padding:14px 16px;font-family:IBM Plex Mono,monospace;font-size:12px;overflow:auto;max-width:42em"># Download release zip from GitHub, or:
+git clone https://github.com/jrerikstad-art/Foldok.com.git
 cd Foldok.com
 copy .env.example .env
 .\scripts\workbench.ps1
@@ -1261,13 +1273,12 @@ copy .env.example .env
 
     <p style="margin:24px 0 0;font-size:13px;color:#5A6472">
       Source: <a href="https://github.com/jrerikstad-art/Foldok.com">github.com/jrerikstad-art/Foldok.com</a>
-      · Releases: <a href="https://github.com/jrerikstad-art/Foldok.com/releases">v0.72.0</a>,
-      <a href="https://github.com/jrerikstad-art/Foldok.com/releases">v0.73.0</a>
+      · <a href="https://github.com/jrerikstad-art/Foldok.com/releases">Releases</a>
       · Claim boundary: structural profiles and evidence completeness — never “certified to …”
     </p>
     <noscript>
       <p style="margin-top:20px;padding:12px;border:1px solid #C74E19;background:#FDF0E8">
-        JavaScript is required for the interactive workbench. This page still describes Foldok without it.
+        This page describes Foldok without JavaScript. The product itself is local software — install from GitHub Releases.
       </p>
     </noscript>
   </article>
@@ -1359,7 +1370,7 @@ const UI_I18N = {
     ver: "Versjon", doc: "Dokument", rev: "Revisjon", date: "Dato", lang: "Språk",
     note: 'Denne nettsiden er kompilert av <strong>Foldok</strong>',
     brandTitle: "Foldok — hjem",
-    hubTag: "Teknisk dokumentasjon, kompilert.",
+    hubTag: "Teknisk dokumentasjon — lokal programvare.",
     hubPh: "Skriv her — eller slipp mappe / fil…",
     hubSend: "Send",
     hubAttach: "Legg ved fil",
@@ -1375,9 +1386,10 @@ const UI_I18N = {
     sources: "KILDER",
     uncited: "USITERTE VERDIER",
     s1k: "1 — Hva er dette",
-    s1h: "Prosjektmappe inn. Signerbar dokumentasjon ut.",
-    s1p: "Foldok er en lokal-først dokumentasjonsmotor. Pek den på foto, tegninger, PDF-er og notater — den indekserer fakta på din maskin, kompilerer strukturerte pakker og merker hvert hull. Du bekrefter før noe er endelig.",
-    s1a: "Din mappe", s1b: "Siterte fakta + mangler", s1c: "Ferdig pakke",
+    s1h: "Et operativsystem for teknisk dokumentasjon — som kjører lokalt hos deg.",
+    s1p: "Foldok er ikke en nettside du jobber i. Produktet er lokal programvare: last ned, installer og pek på prosjektmappen din. Der skjer arbeidet — dokumentasjon er hovedflaten; prosjektet gir kilder, kunnskap, krav, diagrammer og leveranse. AI er infrastruktur. Du bekrefter før noe er endelig.",
+    s1local: "Denne nettsiden er markedsføring. For å bruke Foldok må du installere arbeidsbenken lokalt (Windows / macOS / Linux) fra GitHub-utgivelsen — deretter: .\\scripts\\workbench.ps1 → http://127.0.0.1:8766/",
+    s1a: "Installer lokalt", s1b: "Koble prosjektmappe", s1c: "Dokumentasjon & leveranse",
     s2k: "2 — Problemet",
     s2h: "Dokumentasjonen skjer fortsatt etter at jobben er ferdig.",
     s2a: "Notater på telefon, håndskisser, sene erklæringer, ufullstendige manualer",
@@ -1389,17 +1401,17 @@ const UI_I18N = {
     s9k: "9 — Hvem det er for",
     s9h: "For dem som bygger samme dokumentasjon på nytt hver gang.",
     s15k: "15 — Kom i gang",
-    s15h: "Åpne et prosjekt. Eller prøv med din egen mappe.",
-    s15a: "Åpne et prosjekt →",
-    s15b: "Prøv med din egen mappe",
+    s15h: "Installer Foldok lokalt. Åpne så et prosjekt.",
+    s15a: "Last ned utgivelsen →",
+    s15b: "Spør Foldok",
     s15c: "Tilbake til historien",
-    s15r: "Ingen abonnement kreves for å starte.",
+    s15r: "Krever lokal installasjon. Ingen abonnement for å starte.",
   },
   en: {
     ver: "Version", doc: "Document", rev: "Revision", date: "Date", lang: "Language",
     note: 'This website was compiled by <strong>Foldok</strong>',
     brandTitle: "Foldok — home",
-    hubTag: "Engineering documentation, compiled.",
+    hubTag: "Engineering documentation — local software.",
     hubPh: "Write here — or drop a folder / file…",
     hubSend: "Send",
     hubAttach: "Attach file",
@@ -1415,9 +1427,10 @@ const UI_I18N = {
     sources: "SOURCES",
     uncited: "UNCITED VALUES",
     s1k: "1 — What this is",
-    s1h: "Project folder in. Signable documentation out.",
-    s1p: "Foldok is a local-first documentation engine. Point it at photos, drawings, PDFs, and notes — it indexes facts on your machine, compiles structured packages, and marks every gap. You confirm before anything is final.",
-    s1a: "Your folder", s1b: "Cited facts + gaps", s1c: "Finished package",
+    s1h: "An operating system for engineering documentation — that runs on your machine.",
+    s1p: "Foldok is not a website you work in. The product is local software: download, install, and point it at your project folder. That is where the work happens — documentation is the primary workspace; the project supplies sources, knowledge, requirements, diagrams, and delivery. AI is infrastructure. You confirm before anything is final.",
+    s1local: "This website is marketing only. To use Foldok you must install the local workbench (Windows / macOS / Linux) from the GitHub release — then: .\\scripts\\workbench.ps1 → http://127.0.0.1:8766/",
+    s1a: "Install locally", s1b: "Connect project folder", s1c: "Documentation & deliver",
     s2k: "2 — The problem",
     s2h: "Documentation still happens after the work is finished.",
     s2a: "Notes on phones, hand sketches, late declarations, incomplete manuals",
@@ -1429,11 +1442,11 @@ const UI_I18N = {
     s9k: "9 — Who it’s for",
     s9h: "For people who rebuild the same documentation from scratch.",
     s15k: "15 — Get started",
-    s15h: "Open a project. Or try with your own folder.",
-    s15a: "Open a project →",
-    s15b: "Try with your own folder",
+    s15h: "Install Foldok locally. Then open a project.",
+    s15a: "Download the release →",
+    s15b: "Ask Foldok",
     s15c: "Back to story",
-    s15r: "No subscription required to start.",
+    s15r: "Requires local install. No subscription to start.",
   },
 };
 
@@ -2113,11 +2126,20 @@ function focusHubChat(ev) {
 }
 
 function landingCtaOpenProject() {
+  // Marketing / Vercel: send people to the local install, not a fake account flow
+  if (BOOT?.marketing || !BOOT?.key_set) {
+    window.open("https://github.com/jrerikstad-art/Foldok.com/releases", "_blank", "noopener");
+    return;
+  }
   if (BOOT?.account?.signed_in) {
     openAccountForProjects();
     return;
   }
   accountDummySignIn();
+}
+
+function landingCtaInstall() {
+  window.open("https://github.com/jrerikstad-art/Foldok.com/releases", "_blank", "noopener");
 }
 
 function hubChatCardHtml(opts = {}) {
@@ -2205,6 +2227,11 @@ function landingStoryHtml(opts = {}) {
       <div class="story-kicker">${t("s1k")}</div>
       <h2>${t("s1h")}</h2>
       <p class="subline">${t("s1p")}</p>
+      <p class="story-note" style="padding:12px 14px;border:1px solid var(--line);background:var(--sheet);border-radius:8px;font-size:13.5px;line-height:1.45;max-width:42em">
+        <strong>${L("Lokal programvare kreves.", "Local software required.")}</strong>
+        ${t("s1local")}
+        <br><a href="https://github.com/jrerikstad-art/Foldok.com/releases" target="_blank" rel="noopener">${L("Last ned siste utgivelse →", "Download the latest release →")}</a>
+      </p>
       <div class="story-flow" aria-hidden="true">
         <span class="node">${t("s1a")}</span><span class="arrow">→</span>
         <span class="node">${t("s1b")}</span><span class="arrow">→</span>
@@ -2594,7 +2621,7 @@ function landingStoryHtml(opts = {}) {
       <div class="story-kicker">${t("s15k")}</div>
       <h2>${t("s15h")}</h2>
       <div class="story-cta-row">
-          <button type="button" class="btn" onclick="landingCtaOpenProject()">${t("s15a")}</button>
+          <button type="button" class="btn" onclick="landingCtaInstall()">${t("s15a")}</button>
           <button type="button" class="btn ghost" onclick="focusHubChat(event)">${t("s15b")}</button>
           <button type="button" class="btn ghost" onclick="document.getElementById('story-what')?.scrollIntoView({behavior:'smooth'})">${t("s15c")}</button>
         </div>

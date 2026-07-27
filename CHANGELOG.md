@@ -7,6 +7,12 @@ Versioning rules (semver, honestly applied):
   Templates carry their own `version` field (already in schema).
   The zip filename always carries the version: foldok-engine-vX.Y.Z.zip.
 
+## 0.74.0 — Asset library + vision landing (local install)
+- Vendored `foldok_assets` — one index over registries (127 assets / 11 kinds); seal() blocks unshippable packs
+- Landing §1 rewritten to PRODUCT_VISION: documentation OS; **this site is marketing** — install local workbench
+- Static HTML shell + CTAs point to GitHub Releases
+- Flow: Install locally → connect folder → documentation & deliver
+
 ## 0.73.0 — Document box editor (foldok_boxes)
 - Vendored `foldok_boxes` — 12-col grid layout, pins (user > template > engine)
 - Demo: `/boxes-demo.html` · APIs `/api/layout/session`, `/api/layout/session/intent`
