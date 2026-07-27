@@ -18,15 +18,37 @@ git push -u origin main
 
 Do **not** commit `.env`, `local_app/projects.json`, or cache folders (see `.gitignore`).
 
-## Vercel (marketing site)
-Static English page in `public/`.
+## Vercel (marketing site — [jrerikstad-arts](https://vercel.com/jrerikstad-arts))
 
-1. Import the GitHub repo in Vercel
-2. Framework preset: **Other**
-3. Output / root: Vercel serves `public/` automatically for static assets
-4. Deploy
+Static English landing in `public/`. The Python workbench is **not** deployed on Vercel.
 
-Local preview of the marketing page: open `public/index.html` or:
+### One-click import (recommended)
+
+1. Open [Import Git Repository](https://vercel.com/new/import?s=https://github.com/jrerikstad-art/Foldok.com)
+2. Sign in with GitHub if prompted
+3. **Team:** `jrerikstad-arts` (or your personal scope)
+4. **Project name:** `foldok` or `foldok-com`
+5. Framework preset: **Other**
+6. Root Directory: **leave empty** (repo root)
+7. Build Command: **empty**
+8. Output Directory: **`public`** (also set in `vercel.json`)
+9. Deploy
+
+`vercel.json` at repo root sets `outputDirectory: public` so dashboard import should pick this up automatically.
+
+### Custom domain (optional)
+
+After first deploy: Project → Settings → Domains → add `foldok.com` / `www.foldok.com` and follow DNS instructions.
+
+### CLI (after `vercel login`)
+
+```powershell
+cd feltdok-engine
+vercel link --project foldok-com
+vercel --prod
+```
+
+Local preview:
 
 ```powershell
 npx serve public

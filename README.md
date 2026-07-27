@@ -7,9 +7,10 @@ Folder-compiler: sources in → manuals, forms, diagrams, and evidence packages 
 **Vision:** `PRODUCT_VISION.md` · **Direction:** `PRODUCT_DIRECTION.md`  
 **Claim boundary:** `COMPLIANCE_POLICY.md` — structural profiles only; no legal compliance stamps.
 
-**Latest release zip:** `releases/foldok-engine-v0.72.0.zip` (same bytes as `foldok-engine-v0.72.0-full.zip`)  
+**Latest release zip:** `releases/foldok-engine-v0.72.0.zip` (build locally via `make_release.ps1`)  
 Build: `.\scripts\make_release.ps1`  
-**Surface PRDs:** `docs/prd/README.md`
+**Surface PRDs:** `docs/prd/README.md`  
+**Marketing deploy:** [Vercel import](https://vercel.com/new/import?s=https://github.com/jrerikstad-art/Foldok.com) · see `DEPLOY.md`
 
 ### Quick start (local workbench)
 
