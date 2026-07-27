@@ -7,6 +7,13 @@ Versioning rules (semver, honestly applied):
   Templates carry their own `version` field (already in schema).
   The zip filename always carries the version: foldok-engine-vX.Y.Z.zip.
 
+## 0.75.0 — Private calls (foldok_private)
+- Vendored `foldok_private` — model works on masked text; EntityVault holds ground truth locally
+- Leak guard refuses any payload that still contains known real values
+- Audit log is content-free (purpose, model, bytes, entity count, hash, outcome)
+- Images blocked by default; enterprise = transport swap only
+- 32 package tests green
+
 ## 0.74.0 — Asset library + vision landing (local install)
 - Vendored `foldok_assets` — one index over registries (127 assets / 11 kinds); seal() blocks unshippable packs
 - Landing §1 rewritten to PRODUCT_VISION: documentation OS; **this site is marketing** — install local workbench
