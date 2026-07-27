@@ -1,0 +1,20 @@
+id: fan
+domain: mechanical
+label: Fan
+svg: fan.svg
+default_rotation: 0
+ports:
+- id: drive
+  name: Drive
+  side: left
+  kind: mechanical
+  allowed_media:
+  - shaft
+  order: 1
+- id: air_out
+  name: Air out
+  side: right
+  kind: fluid
+  allowed_media:
+  - air
+  order: 1

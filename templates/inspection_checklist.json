@@ -1,0 +1,172 @@
+{
+  "template_key": "inspection_checklist",
+  "name": "Inspection Checklist",
+  "name_no": "Inspeksjonssjekkliste",
+  "description": "Flexible composition profile for inspection / verification (TEMPLATE_STANDARD). Shape only — agent relabels slots from sources. Domain forms (e.g. imported multipoint sheets) arrive via import, not as this default.",
+  "document_species": "form_fill",
+  "document_type": "inspection_report",
+  "purpose": "Record of an inspection, test or verification activity with results, deviations and sign-off.",
+  "adapt_policy": "agent_may_relabel_slots_from_sources",
+  "system_default": true,
+  "applies_to": ["inspection", "equipment", "installation", "vehicle", "machine", "tool", "system"],
+  "version": 2,
+  "language_default": "no",
+  "export_price_tier": "basic",
+  "writing_rules_global": {
+    "no_invented_values": true,
+    "ratings_never_auto_filled": true,
+    "citation_required_for_sourced_facts": true
+  },
+  "legend": [
+    "Kontrollert og OK",
+    "Kan kreve tiltak senere",
+    "Krever tiltak nå"
+  ],
+  "sections": [
+    {
+      "section_key": "identification",
+      "title": "Identification",
+      "title_no": "Identifikasjon",
+      "position": 1,
+      "required": true,
+      "role": "required",
+      "purpose": "Who / what / where / when — trade-agnostic subject identity.",
+      "gap_severity": "warning",
+      "block_type": "form_section",
+      "preferred_blocks": ["form_section"],
+      "columns": 2,
+      "adapt": "relabel_from_sources",
+      "field_slots": [
+        { "semantic": "subject_ref", "kind": "text", "required": true },
+        { "semantic": "subject_type", "kind": "text", "required": false },
+        { "semantic": "customer", "kind": "text", "required": true },
+        { "semantic": "location", "kind": "text", "required": false },
+        { "semantic": "inspection_date", "kind": "date", "required": true },
+        { "semantic": "usage_counter", "kind": "measure", "required": false }
+      ],
+      "fields": [
+        { "key": "subject_ref", "semantic": "subject_ref", "label": "Subject / ID", "label_no": "Objekt / ID", "type": "text", "required": true, "severity": "warning" },
+        { "key": "subject_type", "semantic": "subject_type", "label": "Type", "label_no": "Type", "type": "text", "required": false, "severity": "info" },
+        { "key": "customer_name", "semantic": "customer", "label": "Customer / owner", "label_no": "Kunde / eier", "type": "text", "required": true, "severity": "warning" },
+        { "key": "location", "semantic": "location", "label": "Location", "label_no": "Sted", "type": "text", "required": false, "severity": "info" },
+        { "key": "date", "semantic": "inspection_date", "label": "Date", "label_no": "Dato", "type": "date", "required": true, "severity": "warning" },
+        { "key": "usage_counter", "semantic": "usage_counter", "label": "Usage counter", "label_no": "Driftsmål (km / timer / sykluser)", "type": "measure", "unit": "", "required": false, "severity": "info" }
+      ]
+    },
+    {
+      "section_key": "scope",
+      "title": "Scope",
+      "title_no": "Omfang",
+      "position": 2,
+      "required": true,
+      "role": "required",
+      "purpose": "What was inspected and which method / standard applies.",
+      "gap_severity": "warning",
+      "block_type": "form_section",
+      "preferred_blocks": ["form_section", "Paragraph"],
+      "columns": 1,
+      "fields": [
+        { "key": "scope_text", "semantic": "scope", "label": "Scope", "label_no": "Hva ble kontrollert", "type": "text", "required": true, "severity": "warning" },
+        { "key": "method_ref", "semantic": "method", "label": "Method / standard", "label_no": "Metode / standard", "type": "text", "required": false, "severity": "info" }
+      ]
+    },
+    {
+      "section_key": "checklist",
+      "title": "Checklist",
+      "title_no": "Sjekkliste",
+      "position": 3,
+      "required": true,
+      "role": "required",
+      "purpose": "Status items — labels are hints; agent may rename from source checklist rows.",
+      "gap_severity": "warning",
+      "block_type": "form_section",
+      "preferred_blocks": ["form_section"],
+      "columns": 1,
+      "adapt": "relabel_or_add_status_items",
+      "field_slots": [
+        { "semantic": "status_item", "kind": "rating3", "count_hint": 8 }
+      ],
+      "fields": [
+        { "key": "check_01", "semantic": "status_item", "label": "Checkpoint 1", "label_no": "Kontrollpunkt 1", "type": "rating3", "options": ["ok", "attention", "immediate"], "required": true, "severity": "warning" },
+        { "key": "check_02", "semantic": "status_item", "label": "Checkpoint 2", "label_no": "Kontrollpunkt 2", "type": "rating3", "options": ["ok", "attention", "immediate"], "required": true, "severity": "warning" },
+        { "key": "check_03", "semantic": "status_item", "label": "Checkpoint 3", "label_no": "Kontrollpunkt 3", "type": "rating3", "options": ["ok", "attention", "immediate"], "required": true, "severity": "warning" },
+        { "key": "check_04", "semantic": "status_item", "label": "Checkpoint 4", "label_no": "Kontrollpunkt 4", "type": "rating3", "options": ["ok", "attention", "immediate"], "required": true, "severity": "warning" },
+        { "key": "check_05", "semantic": "status_item", "label": "Checkpoint 5", "label_no": "Kontrollpunkt 5", "type": "rating3", "options": ["ok", "attention", "immediate"], "required": false, "severity": "info" },
+        { "key": "check_06", "semantic": "status_item", "label": "Checkpoint 6", "label_no": "Kontrollpunkt 6", "type": "rating3", "options": ["ok", "attention", "immediate"], "required": false, "severity": "info" },
+        { "key": "check_07", "semantic": "status_item", "label": "Checkpoint 7", "label_no": "Kontrollpunkt 7", "type": "rating3", "options": ["ok", "attention", "immediate"], "required": false, "severity": "info" },
+        { "key": "check_08", "semantic": "status_item", "label": "Checkpoint 8", "label_no": "Kontrollpunkt 8", "type": "rating3", "options": ["ok", "attention", "immediate"], "required": false, "severity": "info" }
+      ]
+    },
+    {
+      "section_key": "measurements",
+      "title": "Measurements",
+      "title_no": "Måleverdier",
+      "position": 4,
+      "required": false,
+      "role": "recommended",
+      "purpose": "Numeric readings when the inspection produces measurements.",
+      "gap_severity": "info",
+      "block_type": "form_section",
+      "preferred_blocks": ["form_section", "EngineeringTable"],
+      "columns": 2,
+      "adapt": "relabel_or_skip_if_empty",
+      "fields": [
+        { "key": "measure_01", "semantic": "measurement", "label": "Measurement 1", "label_no": "Måling 1", "type": "measure", "unit": "", "required": false, "severity": "info" },
+        { "key": "measure_02", "semantic": "measurement", "label": "Measurement 2", "label_no": "Måling 2", "type": "measure", "unit": "", "required": false, "severity": "info" },
+        { "key": "measure_03", "semantic": "measurement", "label": "Measurement 3", "label_no": "Måling 3", "type": "measure", "unit": "", "required": false, "severity": "info" },
+        { "key": "measure_04", "semantic": "measurement", "label": "Measurement 4", "label_no": "Måling 4", "type": "measure", "unit": "", "required": false, "severity": "info" }
+      ]
+    },
+    {
+      "section_key": "deviations",
+      "title": "Deviations",
+      "title_no": "Avvik",
+      "position": 5,
+      "required": false,
+      "role": "recommended",
+      "purpose": "Record findings that need attention or immediate action.",
+      "gap_severity": "info",
+      "block_type": "form_section",
+      "preferred_blocks": ["form_section", "CalloutBox"],
+      "columns": 1,
+      "fields": [
+        { "key": "deviation_notes", "semantic": "deviation_notes", "label": "Deviations", "label_no": "Avvik / funn", "type": "text", "required": false, "severity": "info" }
+      ]
+    },
+    {
+      "section_key": "conclusion",
+      "title": "Conclusion",
+      "title_no": "Konklusjon",
+      "position": 6,
+      "required": true,
+      "role": "required",
+      "purpose": "Overall result and follow-up.",
+      "gap_severity": "warning",
+      "block_type": "form_section",
+      "preferred_blocks": ["form_section", "Paragraph"],
+      "columns": 1,
+      "fields": [
+        { "key": "overall_result", "semantic": "conclusion", "label": "Overall result", "label_no": "Samlet resultat", "type": "rating3", "options": ["ok", "attention", "immediate"], "required": true, "severity": "warning" },
+        { "key": "follow_up", "semantic": "follow_up", "label": "Follow-up", "label_no": "Oppfølging", "type": "text", "required": false, "severity": "info" }
+      ]
+    },
+    {
+      "section_key": "signature",
+      "title": "Signature",
+      "title_no": "Signatur",
+      "position": 7,
+      "required": true,
+      "role": "required",
+      "purpose": "Responsible inspector sign-off.",
+      "gap_severity": "warning",
+      "block_type": "form_section",
+      "preferred_blocks": ["form_section"],
+      "columns": 1,
+      "fields": [
+        { "key": "technician_name", "semantic": "inspector_name", "label": "Inspector", "label_no": "Kontrollør", "type": "text", "required": true, "severity": "warning" },
+        { "key": "technician_signature", "semantic": "signatory", "label": "Signature", "label_no": "Signatur", "type": "signature", "required": true, "severity": "warning" },
+        { "key": "inspection_date", "semantic": "sign_date", "label": "Signed date", "label_no": "Dato signert", "type": "date", "required": true, "severity": "warning" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+id: general_inspection
+regions: [eu, eea, uk, "no", us, international]
+domains: [general, construction, process, machinery, marine]
+label: General inspection (structural profile)
+description: Cross-industry inspection evidence profile.
+evidence_requirements:
+  - id: scope_defined
+    framework_ref: General-Inspection
+    clause_family: Scope
+    evidence_type: procedure
+    severity: blocking
+    description: Inspection scope defined
+    satisfied_by:
+      fact_keys: [scope]
+      document_sections: [scope]
+      media_roles: []
+  - id: checklist_or_method
+    framework_ref: General-Inspection
+    clause_family: Method
+    evidence_type: inspection_record
+    severity: blocking
+    description: Checklist or method recorded
+    satisfied_by:
+      fact_keys: []
+      document_sections: [checklist, method]
+      media_roles: []
+  - id: results_recorded
+    framework_ref: General-Inspection
+    clause_family: Results
+    evidence_type: test_record
+    severity: blocking
+    description: Results or findings recorded
+    satisfied_by:
+      fact_keys: [result, finding]
+      document_sections: [results, conclusion]
+      media_roles: [test_result, inspection]
+  - id: responsible_signoff
+    framework_ref: General-Inspection
+    clause_family: Sign-off
+    evidence_type: declaration
+    severity: warning
+    description: Responsible inspector / date recorded
+    satisfied_by:
+      fact_keys: [inspector, signature_date]
+      document_sections: [signature]
+      media_roles: []

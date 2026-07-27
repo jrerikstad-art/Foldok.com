@@ -1,0 +1,16 @@
+id: drain
+domain: piping
+label: Drain
+svg: drain.svg
+default_orientation: 0
+standard_hint: ISO-style
+ports:
+- id: in
+  name: In
+  side: top
+  kind: fluid
+  allowed_media:
+  - water
+  - oil
+  - fluid
+  order: 1

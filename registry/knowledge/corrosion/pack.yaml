@@ -1,0 +1,26 @@
+id: corrosion_materials
+version: "1.0"
+title: Corrosion and protection — structural knowledge
+status: profile
+domains: [construction, process, marine, general]
+disclaimer: >
+  Structural guidance only. Not a substitute for applicable standards,
+  project specifications, or competent material selection.
+  Final choice of material and protection remains with the user.
+legal_compliance_claimed: false
+
+includes:
+  - basics.yaml
+  - forms.yaml
+  - environments.yaml
+  - materials_and_protection.yaml
+  - galvanic.yaml
+  - selection_checklist.yaml
+  - report_block.yaml
+
+excludes:
+  - manufacturer names, product codes, or test-site branding
+  - lifetime guarantees or fixed-year claims
+  - full ISO/EN standard text
+  - automatic pass/fail against a legal code
+  - chemistry of process media (always project-specific)

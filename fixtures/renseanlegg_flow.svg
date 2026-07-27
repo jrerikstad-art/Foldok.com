@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 485.5 842.0" font-family="Arial,Helvetica,sans-serif" data-foldok="connection_spec" data-layout="process" data-graph="layered">
+<rect width="485.5" height="842.0" fill="#F2F0EA"/>
+<text x="28" y="34" font-size="17" font-weight="800" fill="#16181D">Renseanlegg — funksjonsdiagram</text>
+<rect x="28" y="42" width="150" height="4" fill="#F5C400"/>
+<path d="M218.0,136.0 L123.0,136.0 L123.0,262.0 L28.0,262.0" fill="none" stroke="#1450B4" stroke-width="2" data-from="inlet.ut" data-to="screen.inn" data-provenance="extracted" data-fact-id=""/>
+<circle cx="28.0" cy="262.0" r="3.4" fill="#1450B4"/>
+<text x="123.0" y="194.0" font-size="10" font-weight="700" fill="#1450B4" text-anchor="middle">råvann</text>
+<path d="M218.0,278.0 L123.0,278.0 L123.0,388.0 L28.0,388.0" fill="none" stroke="#1450B4" stroke-width="2" data-from="screen.ut" data-to="eq.inn" data-provenance="extracted" data-fact-id=""/>
+<circle cx="28.0" cy="388.0" r="3.4" fill="#1450B4"/>
+<text x="123.0" y="328.0" font-size="10" font-weight="700" fill="#1450B4" text-anchor="middle">silstrøm</text>
+<path d="M218.0,404.0 L123.0,404.0 L123.0,514.0 L28.0,514.0" fill="none" stroke="#C74E19" stroke-width="2" stroke-dasharray="6,4" data-from="eq.ut" data-to="bio.inn" data-provenance="reference" data-fact-id=""/>
+<circle cx="28.0" cy="514.0" r="3.4" fill="#C74E19"/>
+<text x="123.0" y="454.0" font-size="10" font-weight="700" fill="#C74E19" text-anchor="middle">jevn tilførsel</text>
+<path d="M218.0,530.0 L123.0,530.0 L123.0,640.0 L28.0,640.0" fill="none" stroke="#C74E19" stroke-width="2" stroke-dasharray="6,4" data-from="bio.ut" data-to="settle.inn" data-provenance="reference" data-fact-id=""/>
+<circle cx="28.0" cy="640.0" r="3.4" fill="#C74E19"/>
+<text x="123.0" y="580.0" font-size="10" font-weight="700" fill="#C74E19" text-anchor="middle">biomasse</text>
+<path d="M218.0,656.0 L123.0,656.0 L123.0,766.0 L28.0,766.0" fill="none" stroke="#1450B4" stroke-width="2" data-from="settle.klarvann" data-to="out.inn" data-provenance="extracted" data-fact-id=""/>
+<circle cx="28.0" cy="766.0" r="3.4" fill="#1450B4"/>
+<text x="123.0" y="706.0" font-size="10" font-weight="700" fill="#1450B4" text-anchor="middle">klarvann</text>
+<path d="M218.0,546.0 L242.75,546.0 L242.75,766.0 L267.5,766.0" fill="none" stroke="#C74E19" stroke-width="2" stroke-dasharray="6,4" data-from="bio.slam" data-to="sludge.inn" data-provenance="reference" data-fact-id=""/>
+<circle cx="267.5" cy="766.0" r="3.4" fill="#C74E19"/>
+<text x="242.75" y="651.0" font-size="10" font-weight="700" fill="#C74E19" text-anchor="middle">overskuddsslam</text>
+<path d="M218.0,672.0 L242.75,672.0 L242.75,766.0 L267.5,766.0" fill="none" stroke="#C74E19" stroke-width="2" stroke-dasharray="6,4" data-from="settle.slam" data-to="sludge.inn" data-provenance="reference" data-fact-id=""/>
+<circle cx="267.5" cy="766.0" r="3.4" fill="#C74E19"/>
+<text x="242.75" y="714.0" font-size="10" font-weight="700" fill="#C74E19" text-anchor="middle">bunnslam</text>
+<rect x="28.0" y="460.0" width="190" height="106.0" rx="8" fill="#FFFFFF" stroke="#DCD9D0" data-component="bio"/>
+<rect x="28.0" y="460.0" width="5" height="106.0" rx="2" fill="#F5C400"/>
+<text x="42.0" y="482.0" font-size="12.5" font-weight="800" fill="#16181D">Biologisk trinn</text>
+<text x="42.0" y="494.0" font-size="12.5" font-weight="800" fill="#16181D">(integrert modul)</text>
+<text x="42.0" y="530.0" font-size="9.5" font-family="monospace" fill="#5A6472">▸ inn</text>
+<text x="42.0" y="546.0" font-size="9.5" font-family="monospace" fill="#5A6472">▸ ut</text>
+<text x="42.0" y="562.0" font-size="9.5" font-family="monospace" fill="#5A6472">▸ slam</text>
+<rect x="28.0" y="334.0" width="190" height="78.0" rx="8" fill="#FFFFFF" stroke="#DCD9D0" data-component="eq"/>
+<rect x="28.0" y="334.0" width="5" height="78.0" rx="2" fill="#F5C400"/>
+<text x="42.0" y="356.0" font-size="12.5" font-weight="800" fill="#16181D">Utligningsbasseng</text>
+<text x="42.0" y="392.0" font-size="9.5" font-family="monospace" fill="#5A6472">▸ inn</text>
+<text x="42.0" y="408.0" font-size="9.5" font-family="monospace" fill="#5A6472">▸ ut</text>
+<rect x="28.0" y="82.0" width="190" height="74.0" rx="8" fill="#FFFFFF" stroke="#DCD9D0" data-component="inlet"/>
+<rect x="28.0" y="82.0" width="5" height="74.0" rx="2" fill="#F5C400"/>
+<text x="42.0" y="104.0" font-size="12.5" font-weight="800" fill="#16181D">Innkommende</text>
+<text x="42.0" y="116.0" font-size="12.5" font-weight="800" fill="#16181D">avløpsvann</text>
+<text x="42.0" y="152.0" font-size="9.5" font-family="monospace" fill="#5A6472">▸ ut</text>
+<rect x="28.0" y="712.0" width="190" height="62.0" rx="8" fill="#FFFFFF" stroke="#DCD9D0" data-component="out"/>
+<rect x="28.0" y="712.0" width="5" height="62.0" rx="2" fill="#F5C400"/>
+<text x="42.0" y="734.0" font-size="12.5" font-weight="800" fill="#16181D">Utløp til resipient</text>
+<text x="42.0" y="770.0" font-size="9.5" font-family="monospace" fill="#5A6472">▸ inn</text>
+<rect x="28.0" y="208.0" width="190" height="78.0" rx="8" fill="#FFFFFF" stroke="#DCD9D0" data-component="screen"/>
+<rect x="28.0" y="208.0" width="5" height="78.0" rx="2" fill="#F5C400"/>
+<text x="42.0" y="230.0" font-size="12.5" font-weight="800" fill="#16181D">Rist / sil</text>
+<text x="42.0" y="266.0" font-size="9.5" font-family="monospace" fill="#5A6472">▸ inn</text>
+<text x="42.0" y="282.0" font-size="9.5" font-family="monospace" fill="#5A6472">▸ ut</text>
+<rect x="28.0" y="586.0" width="190" height="94.0" rx="8" fill="#FFFFFF" stroke="#DCD9D0" data-component="settle"/>
+<rect x="28.0" y="586.0" width="5" height="94.0" rx="2" fill="#F5C400"/>
+<text x="42.0" y="608.0" font-size="12.5" font-weight="800" fill="#16181D">Sedimentering</text>
+<text x="42.0" y="644.0" font-size="9.5" font-family="monospace" fill="#5A6472">▸ inn</text>
+<text x="42.0" y="660.0" font-size="9.5" font-family="monospace" fill="#5A6472">▸ klarvann</text>
+<text x="42.0" y="676.0" font-size="9.5" font-family="monospace" fill="#5A6472">▸ slam</text>
+<rect x="267.5" y="712.0" width="190" height="62.0" rx="8" fill="#FFFFFF" stroke="#DCD9D0" data-component="sludge"/>
+<rect x="267.5" y="712.0" width="5" height="62.0" rx="2" fill="#F5C400"/>
+<text x="281.5" y="734.0" font-size="12.5" font-weight="800" fill="#16181D">Slamhåndtering</text>
+<text x="281.5" y="770.0" font-size="9.5" font-family="monospace" fill="#5A6472">▸ inn</text>
+<text x="28" y="816.0" font-size="10" font-weight="700" fill="#5A6472">Kanter:</text>
+<line x1="88" y1="812.0" x2="114" y2="812.0" stroke="#1450B4" stroke-width="2"/>
+<text x="120" y="816.0" font-size="10" fill="#16181D">sitert fra kilde</text>
+<line x1="278" y1="812.0" x2="304" y2="812.0" stroke="#1E7A46" stroke-width="2"/>
+<text x="310" y="816.0" font-size="10" fill="#16181D">bekreftet av bruker</text>
+<line x1="468" y1="812.0" x2="494" y2="812.0" stroke="#C74E19" stroke-width="2" stroke-dasharray="6,4"/>
+<text x="500" y="816.0" font-size="10" fill="#16181D">AI-foreslått — verifiser</text>
+</svg>

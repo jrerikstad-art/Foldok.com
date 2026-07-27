@@ -1,0 +1,21 @@
+id: lamp
+domain: electrical
+label: Lamp / luminaire
+svg: lamp.svg
+default_orientation: 0
+standard_hint: IEC-style
+ports:
+- id: l
+  name: L
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: n
+  name: N
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 2

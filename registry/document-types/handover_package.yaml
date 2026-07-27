@@ -1,0 +1,27 @@
+id: handover_package
+name: Handover / As-built Package
+aliases: ["handover package", "FDV", "OM package", "as-built package", "overleveringspakke"]
+industries: [construction, energy, maritime, process, manufacturing]
+regions: [eu, eea, uk, "no", us, international]
+domains: [electrical, machinery, construction, process, marine, general]
+obligation_types: [handover, installation, maintenance]
+evidence_types: [drawing, photo, procedure, declaration, inspection_record, material_certificate]
+description: >
+  As-built + FDV / O and M style handover package for project close-out.
+structure:
+  required: [identification, scope, as_built_documentation, operation, maintenance, revision_history]
+  recommended: [photo_evidence, spare_parts, declarations, attachments]
+  optional: [training, appendices]
+preferred_blocks:
+  as_built_documentation: [EngineeringTable, DiagramBlock, ImageBlock]
+  operation: [Procedure]
+  maintenance: [Procedure, EngineeringTable]
+  photo_evidence: [ImageBlock]
+compliance_notes:
+  - As-built drawings and identification are typically blocking for handover
+  - Declarations may be region-specific (user confirms)
+skills:
+  primary: [compliance-manager, technical-writer, force-blocks]
+  supporting: [lead-engineer, document-type-router]
+tools: [compose_document, run_qa]
+workbench_template: null

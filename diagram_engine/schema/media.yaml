@@ -1,0 +1,50 @@
+# Shared media / size styling for piping + mechanical connections.
+# Connection.attributes.media / size_class / dn resolve here.
+
+media:
+  water:
+    hex: "#1450B4"
+    label: "Water"
+  oil:
+    hex: "#8B5A2B"
+    label: "Oil"
+  air:
+    hex: "#5C6370"
+    label: "Air"
+  steam:
+    hex: "#C62828"
+    label: "Steam"
+  chemical:
+    hex: "#6A1B9A"
+    label: "Chemical"
+  drain:
+    hex: "#5C6370"
+    label: "Drain"
+  vent:
+    hex: "#6B7280"
+    label: "Vent"
+  shaft:
+    hex: "#16181D"
+    label: "Shaft / drive"
+    dash: "5 3"
+  belt:
+    hex: "#5C6370"
+    label: "Belt / chain"
+    dash: "2 4"
+  wire:
+    hex: "#16181D"
+    label: "Electrical"
+  DEFAULT:
+    hex: "#1450B4"
+    label: "Process"
+
+size_class:
+  small:
+    width: 1.5
+    label: "DN≤25"
+  medium:
+    width: 2.5
+    label: "DN32–80"
+  large:
+    width: 4.0
+    label: "DN≥100"

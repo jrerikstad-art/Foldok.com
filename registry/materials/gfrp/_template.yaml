@@ -1,0 +1,47 @@
+id: gfrp_template
+family: gfrp
+designation: "GFRP (user datasheet)"
+grade: "GFRP (datasheet)"
+standard_family: null
+status: user_defined
+version: "1.0"
+pack: gfrp_frp
+template: true
+datasheet_ref: null
+fact_keys: [GFRP, FRP, gfrp, composite]
+
+properties:
+  E1:  { value: null, unit: GPa, source: null, status: missing, note: "Longitudinal modulus" }
+  E2:  { value: null, unit: GPa, source: null, status: missing, note: "Transverse modulus" }
+  G12: { value: null, unit: GPa, source: null, status: missing }
+  nu12: { value: null, unit: "-", source: null, status: missing }
+
+  Xt:  { value: null, unit: MPa, source: null, status: missing, note: "Tensile longitudinal" }
+  Xc:  { value: null, unit: MPa, source: null, status: missing, note: "Compressive longitudinal" }
+  Yt:  { value: null, unit: MPa, source: null, status: missing }
+  Yc:  { value: null, unit: MPa, source: null, status: missing }
+  S12: { value: null, unit: MPa, source: null, status: missing, note: "In-plane shear" }
+
+  # Aliases kept for older binds / fact keys
+  ft1: { value: null, unit: MPa, source: null, status: missing, note: "Alias of Xt" }
+  fc1: { value: null, unit: MPa, source: null, status: missing, note: "Alias of Xc" }
+
+  density: { value: null, unit: kg/m3, source: null, status: missing }
+  fiber_volume_fraction: { value: null, unit: "-", source: null, status: missing }
+  fiber_type: { value: null, unit: "-", source: null, status: missing }
+  resin_system: { value: null, unit: "-", source: null, status: missing }
+  architecture: { value: null, unit: "-", source: null, status: missing }
+
+design_notes:
+  - "GFRP properties are anisotropic. Do not use a single fy like steel."
+  - "Bind values from manufacturer datasheet before running calculations."
+  - "Manufacturer design method and partial factors must be user-confirmed."
+  - "Composite — verify manufacturer design method."
+
+limits:
+  temperature_c: { min: null, max: null }
+  other:
+    - "Confirm UV, chemical, and moisture limits from datasheet."
+
+sources:
+  - { label: "Project datasheet (required)", kind: datasheet }

@@ -1,0 +1,42 @@
+id: generator
+domain: electrical
+label: Generator
+svg: generator.svg
+default_orientation: 0
+standard_hint: IEC-style
+ports:
+- id: l1
+  name: L1
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: l2
+  name: L2
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 2
+- id: l3
+  name: L3
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 3
+- id: n
+  name: N
+  side: bottom
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: pe
+  name: PE
+  side: bottom
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 2

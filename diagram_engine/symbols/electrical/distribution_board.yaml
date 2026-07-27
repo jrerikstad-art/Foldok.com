@@ -1,0 +1,35 @@
+id: distribution_board
+domain: electrical
+label: Distribution board
+svg: distribution_board.svg
+default_orientation: 0
+standard_hint: IEC-style
+ports:
+- id: in
+  name: Supply
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: c1
+  name: C1
+  side: bottom
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: c2
+  name: C2
+  side: bottom
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 2
+- id: c3
+  name: C3
+  side: bottom
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 3

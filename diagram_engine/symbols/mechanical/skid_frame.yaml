@@ -1,0 +1,6 @@
+id: skid_frame
+domain: mechanical
+label: Skid / frame
+svg: skid_frame.svg
+default_rotation: 0
+ports: []

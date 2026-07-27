@@ -1,0 +1,184 @@
+{
+  "$schema": "https://foldok.dev/schemas/user-manual-template-v1.json",
+  "name": "Professional User Manual",
+  "version": "1.0",
+  "profiles": {
+    "single_product": {
+      "description": "Deep manual for one product",
+      "required_sections": [
+        "cover",
+        "legal",
+        "symbols",
+        "summary",
+        "glossary",
+        "toc",
+        "product_description",
+        "technical_specifications",
+        "assembly",
+        "installation",
+        "operation",
+        "maintenance",
+        "transport_storage",
+        "identification",
+        "revision_history"
+      ]
+    },
+    "system": {
+      "description": "System / multi-component overview",
+      "required_sections": [
+        "cover",
+        "summary",
+        "system_overview",
+        "technical_specifications",
+        "identification"
+      ],
+      "recommended_sections": [
+        "interface",
+        "installation",
+        "operation",
+        "maintenance",
+        "revision_history"
+      ]
+    }
+  },
+
+  "sections": [
+    {
+      "id": "cover",
+      "title": "Cover",
+      "required": true,
+      "preferred_blocks": ["HeroBlock", "ImageBlock"],
+      "content_hints": ["product photo", "product name", "document type", "revision", "branding"]
+    },
+    {
+      "id": "legal",
+      "title": "Legal / Thank you / Standards",
+      "required": true,
+      "preferred_blocks": ["Paragraph", "CalloutBox"],
+      "content_hints": ["standards compliance", "copyright", "liability", "feedback invitation"]
+    },
+    {
+      "id": "symbols",
+      "title": "Symbols",
+      "required": true,
+      "preferred_blocks": ["CalloutBox"],
+      "content_hints": ["WARNING", "REQUIREMENT", "NOTE", "GO TO"]
+    },
+    {
+      "id": "summary",
+      "title": "Summary",
+      "required": true,
+      "preferred_blocks": ["Paragraph", "ImageBlock", "EngineeringTable"],
+      "content_hints": ["short description", "main components illustration", "part list table"]
+    },
+    {
+      "id": "glossary",
+      "title": "Abbreviations and Glossary",
+      "required": false,
+      "preferred_blocks": ["EngineeringTable"],
+      "content_hints": ["term | definition"]
+    },
+    {
+      "id": "toc",
+      "title": "Table of Contents",
+      "required": true,
+      "preferred_blocks": ["TableOfContents"],
+      "content_hints": ["auto-generated from sections"]
+    },
+    {
+      "id": "product_description",
+      "title": "Product Description",
+      "required": true,
+      "preferred_blocks": ["Paragraph", "ImageBlock", "EngineeringTable", "DiagramBlock"],
+      "content_hints": ["what it does", "key features", "exploded views", "part names table"]
+    },
+    {
+      "id": "system_overview",
+      "title": "System Overview",
+      "required": false,
+      "preferred_blocks": ["Paragraph", "FeatureGrid", "ImageBlock", "DiagramBlock"],
+      "content_hints": ["component callouts", "how the system fits together"]
+    },
+    {
+      "id": "technical_specifications",
+      "title": "Technical Specifications",
+      "required": true,
+      "preferred_blocks": ["EngineeringTable", "ParameterGrid"],
+      "content_hints": ["materials, weight, dimensions, capacity, lifespan, power", "comparison table if multiple variants"]
+    },
+    {
+      "id": "interface",
+      "title": "Interface with Other Products",
+      "required": false,
+      "preferred_blocks": ["Paragraph", "CalloutBox", "ImageBlock"],
+      "content_hints": ["compatibility", "connections", "safety notes when combining systems"]
+    },
+    {
+      "id": "assembly",
+      "title": "Assembly",
+      "required": false,
+      "preferred_blocks": ["Procedure", "ImageBlock", "DiagramBlock", "CalloutBox"],
+      "content_hints": ["step-by-step", "tools required", "torque values", "warnings"]
+    },
+    {
+      "id": "installation",
+      "title": "Installation",
+      "required": false,
+      "preferred_blocks": ["Procedure", "ImageBlock", "CalloutBox"],
+      "content_hints": ["lifting", "mounting", "connections", "function test", "positioning"]
+    },
+    {
+      "id": "operation",
+      "title": "Operation",
+      "required": false,
+      "preferred_blocks": ["Procedure", "Paragraph", "CalloutBox"],
+      "content_hints": ["normal use", "limits", "what not to do"]
+    },
+    {
+      "id": "maintenance",
+      "title": "Maintenance",
+      "required": false,
+      "preferred_blocks": ["Procedure", "EngineeringTable", "CalloutBox", "ImageBlock"],
+      "content_hints": ["cleaning", "re-tightening", "troubleshooting", "maintenance form / checklist"]
+    },
+    {
+      "id": "transport_storage",
+      "title": "Transport and Storage",
+      "required": false,
+      "preferred_blocks": ["Paragraph", "CalloutBox", "Procedure"],
+      "content_hints": ["handling", "storage conditions", "lifting points"]
+    },
+    {
+      "id": "identification",
+      "title": "Producer and Product Identification",
+      "required": true,
+      "preferred_blocks": ["EngineeringTable", "Paragraph"],
+      "content_hints": ["manufacturer", "model", "serial", "standards", "contact"]
+    },
+    {
+      "id": "revision_history",
+      "title": "Revision History",
+      "required": true,
+      "preferred_blocks": ["RevisionHistory"],
+      "content_hints": ["rev | date | description | author"]
+    },
+    {
+      "id": "missing_facts",
+      "title": "Information Still Required",
+      "required": false,
+      "preferred_blocks": ["EngineeringTable"],
+      "content_hints": ["auto-collected from gaps — never left in prose"]
+    }
+  ],
+
+  "global_rules": {
+    "no_mangel_in_prose": true,
+    "force_block_types": true,
+    "print_first": true,
+    "citation_required": true,
+    "agent_may_reorder_optional": true,
+    "agent_may_add_custom_sections": true,
+    "agent_may_skip_optional": true,
+    "agent_may_not_remove_required": true
+  }
+}

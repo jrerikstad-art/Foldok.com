@@ -1,0 +1,12 @@
+SAMSVARSERKLÆRING (UTKAST) — DEMO-HEIS-0042
+Verkstedveien 1, 4000 Demo
+
+Produkt: Elektrisk løfteheis 500 kg
+Serienr: DEMO-HEIS-0042
+
+Erklærer at produktet er i samsvar med Demo-direktiv 2006/42/DEMO.
+
+Ansvarlig: Demo Industri AS
+Kontakt: post@demo-lift.example (fiktiv)
+
+Signatur ansvarlig: [MANGLER: responsible_signature]

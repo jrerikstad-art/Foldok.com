@@ -1,0 +1,26 @@
+id: test_report_package
+name: Test Report Package
+aliases: ["test reports", "verification package", "testrapportpakke"]
+industries: [manufacturing, energy, process, maritime]
+regions: [eu, eea, uk, "no", us, international]
+domains: [electrical, machinery, pressure, process, general]
+obligation_types: [inspection, design]
+evidence_types: [test_record, inspection_record, photo, calculation]
+description: >
+  Grouped test and verification records for a product, installation, or system.
+structure:
+  required: [identification, scope, method, results, conclusion, signature]
+  recommended: [equipment, deviations, attachments, revision_history]
+  optional: [photo_evidence]
+preferred_blocks:
+  method: [Procedure]
+  results: [EngineeringTable]
+  deviations: [CalloutBox]
+compliance_notes:
+  - Test method and acceptance criteria must come from sources or user input
+  - Missing results are evidence gaps
+skills:
+  primary: [compliance-manager, lead-engineer]
+  supporting: [technical-writer, force-blocks]
+tools: [compose_document, run_qa]
+workbench_template: null

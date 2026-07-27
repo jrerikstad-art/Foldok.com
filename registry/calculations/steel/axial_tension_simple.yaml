@@ -1,0 +1,60 @@
+id: steel_axial_tension_simple
+name: Axial tension utilization (simple)
+label: Steel axial tension (simple, unfactored)
+profile: steel_axial_tension_simple
+version: "1.0"
+domains: [machinery, construction, general]
+material_pack: steel_structural
+safety_critical: true
+aliases: [steel_axial_tension]
+
+formula_latex: |
+  N_{Rd,simple} = A \cdot f_y
+  U = N_{Ed} / N_{Rd,simple}
+# A[mm²]·fy[MPa]/1000 → kN (unit bridge for report consistency)
+formula_code: "N_rd = A * fy / 1000; U = N_ed / N_rd"
+
+required:
+  material: [fy]
+  section: [A]
+  loads: [N_ed]
+
+binds:
+  fy: { from: material.fy, unit: MPa }
+  A: { from: section.A, unit: mm2 }
+
+inputs:
+  - key: fy
+    label: Yield strength
+    unit: MPa
+    required: true
+    fact_keys: [fy, f_y, yield]
+    quantity: { value: null, unit: MPa, source: null, status: missing }
+  - key: A
+    label: Cross-section area
+    unit: mm2
+    required: true
+    fact_keys: [A, area, section_area]
+    quantity: { value: null, unit: mm2, source: null, status: missing }
+  - key: N_ed
+    label: Design axial force (tension)
+    unit: kN
+    required: true
+    fact_keys: [N_ed, NEd, N_Ed, axial_force, design_force]
+    quantity: { value: null, unit: kN, source: null, status: missing }
+
+outputs:
+  - key: N_rd
+    label: Simple resistance (no factors)
+    unit: kN
+    quantity: { value: null, unit: kN, source: null, status: missing }
+  - key: U
+    label: Utilization (unfactored simple)
+    unit: "-"
+    quantity: { value: null, unit: "-", source: null, status: missing }
+
+assumptions:
+  - "No partial factors applied."
+  - "No net-section, shear lag, or connection reductions."
+  - "For report groundwork only — user must confirm design method."
+  - "Not a claim of Eurocode 3 automatic compliance."

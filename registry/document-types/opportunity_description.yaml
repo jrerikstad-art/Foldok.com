@@ -1,0 +1,176 @@
+id: opportunity_description
+name: Opportunity description
+aliases:
+  - opportunity analysis
+  - market description
+  - business case
+  - mulighetsbeskrivelse
+  - markedbeskrivelse
+version: "1.0"
+industries: [general, manufacturing, energy, process, construction, infrastructure]
+regions: [international]
+domains: [general, product, services]
+obligation_types: [project_admin, proposal]
+evidence_types: [analysis, narrative]
+
+purpose: >
+  Structured description of industry context, competition, and market
+  for a product or service opportunity. Supports business planning,
+  proposals, and internal go/no-go documentation.
+
+description: >
+  Industry → competition → market worksheet for business planning and proposals.
+  Analytical structure only — market claims should cite project sources.
+
+disclaimer: >
+  Analytical structure only. Claims about market size, growth, or
+  competitive position should be supported by cited sources in the project.
+
+legal_compliance_claimed: false
+
+structure:
+  required: [industry_background, competitive_analysis, market_analysis]
+  recommended: []
+  optional: []
+
+preferred_blocks:
+  industry_background: [Paragraph, EngineeringTable, CalloutBox]
+  competitive_analysis: [EvaluationMatrix, EngineeringTable, StakeholderCard]
+  market_analysis: [Paragraph, EngineeringTable, CalloutBox]
+
+sections:
+  - id: industry_background
+    title: Industry background
+    required: true
+    fields:
+      - key: existing_products_services
+        label: Existing products and services
+        type: textarea
+        required: true
+        prompt: Describe the industry and its range of products or services.
+      - key: industry_size_shape
+        label: Industry size and shape
+        type: textarea
+        required: true
+        prompt: Production capacity, unit sales, profitability, geography, distribution.
+      - key: industry_trends
+        label: Industry trends
+        type: textarea
+        required: true
+        prompt: Growth rate, growth drivers, competitive landscape, technology factors.
+      - key: barriers_to_entry
+        label: Potential barriers
+        type: textarea
+        required: true
+        prompt: Resources, skills, regulation, capital, other barriers.
+
+  - id: competitive_analysis
+    title: Competitive analysis
+    required: true
+    fields:
+      - key: competitors
+        label: Competitors
+        type: repeating_group
+        required: true
+        item_fields:
+          - key: name
+            label: Competitor
+            type: text
+          - key: offerings
+            label: Current offerings
+            type: textarea
+          - key: strengths
+            label: Strengths
+            type: textarea
+          - key: weaknesses
+            label: Weaknesses
+            type: textarea
+          - key: market_share_strategy
+            label: Market share and strategy
+            type: textarea
+          - key: key_success_factors
+            label: Key success factors
+            type: textarea
+      - key: differentiation
+        label: Differentiation
+        type: textarea
+        required: true
+        prompt: How the offering differs; how it addresses customer need in a new way.
+      - key: competitive_threats
+        label: Threats from competition
+        type: textarea
+        required: true
+        prompt: Brand, blocking entry, copying attributes, other threats per competitor.
+
+  - id: market_analysis
+    title: Market analysis
+    required: true
+    fields:
+      - key: market_size_growth
+        label: Market size and growth
+        type: textarea
+        required: true
+        prompt: Room in market, expansion potential, demand growth; support claims.
+      - key: target_market
+        label: Target market
+        type: textarea
+        required: true
+        prompt: Who, where, characteristics — geographic, demographic, behavioral.
+      - key: value_proposition
+        label: Value proposition
+        type: textarea
+        required: true
+        prompt: Unique benefits vs competitors if customers choose this offering.
+
+composition:
+  competitor_matrix:
+    block: EvaluationMatrix
+    section: competitive_analysis
+    rows: competitors
+    columns:
+      - offerings
+      - strengths
+      - weaknesses
+      - threat_level
+
+summary_block:
+  block_type: OpportunitySummary
+  fields:
+    industry_one_liner: string
+    primary_competitors: string[]
+    differentiation: string
+    target_market: string
+    value_proposition: string
+    sources: string[]
+    status: draft | confirmed
+
+gaps:
+  - id: industry_incomplete
+    severity: blocking
+    description: Industry background sections incomplete
+  - id: competitors_missing
+    severity: blocking
+    description: No competitors identified
+  - id: differentiation_missing
+    severity: blocking
+    description: Differentiation not stated
+  - id: market_size_unsupported
+    severity: warning
+    description: Market size/growth claims without cited sources
+  - id: target_market_missing
+    severity: blocking
+    description: Target market not defined
+  - id: value_proposition_missing
+    severity: blocking
+    description: Value proposition not articulated
+
+compliance_notes:
+  - Agent may draft from project notes; user edits and confirms
+  - Market size and growth claims need cited sources when used in formal output
+  - Feltdok does not verify market data or competitive intelligence
+
+skills:
+  primary: [document-type-router, technical-writer]
+  supporting: [research-assistant, force-blocks]
+tools: [compose_document, run_qa, get_document_type, materialise_template]
+workbench_template: null

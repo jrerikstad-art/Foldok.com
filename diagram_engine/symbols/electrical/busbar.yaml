@@ -1,0 +1,28 @@
+id: busbar
+domain: electrical
+label: Busbar
+svg: busbar.svg
+default_orientation: 0
+standard_hint: IEC-style
+ports:
+- id: in
+  name: In
+  side: left
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: out
+  name: Out
+  side: right
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: tap
+  name: Tap
+  side: bottom
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1

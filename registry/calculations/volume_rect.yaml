@@ -1,0 +1,29 @@
+id: volume_rect
+label: Rectangular volume
+domains: [general, construction]
+formula_latex: "Vol = L \\times W \\times H"
+formula_code: "L * W * H"
+description: Volume of a rectangular prism.
+safety_critical: false
+assumptions:
+  - Orthogonal box; no void deduction
+inputs:
+  - key: L
+    label: Length
+    unit: m
+    required: true
+    fact_keys: [length, L]
+  - key: W
+    label: Width
+    unit: m
+    required: true
+    fact_keys: [width, W]
+  - key: H
+    label: Height
+    unit: m
+    required: true
+    fact_keys: [height, H, depth]
+outputs:
+  - key: Vol
+    label: Volume
+    unit: m3

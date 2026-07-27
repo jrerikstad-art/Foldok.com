@@ -1,0 +1,482 @@
+{
+  "template_key": "design_basis",
+  "name": "Design Basis",
+  "name_no": "Designgrunnlag / prosjekteringsforutsetninger",
+  "description": "Establishes the inputs, codes, loads, materials, and assumptions governing a structural or mechanical design. Compiled from client specifications, standards, environmental/geotechnical reports, and decision records. Structure aligned with NORSOK N-001 / Eurocode project practice. The engine compiles and traces — engineering responsibility rests with the signing engineer.",
+  "applies_to": [
+    "structure",
+    "machine",
+    "equipment",
+    "installation",
+    "facility"
+  ],
+  "version": 1,
+  "language_default": "en",
+  "export_price_tier": "complex",
+  "sections": [
+    {
+      "section_key": "doc_control",
+      "title": "Document Control",
+      "title_no": "Dokumentkontroll",
+      "position": 1,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        {
+          "key": "project_title",
+          "fact_type": "identifier",
+          "severity": "blocking",
+          "label": "Project title",
+          "label_no": "Prosjekttittel"
+        },
+        {
+          "key": "doc_no",
+          "fact_type": "identifier",
+          "severity": "warning",
+          "label": "Document number",
+          "label_no": "Dokumentnummer"
+        },
+        {
+          "key": "revision",
+          "fact_type": "identifier",
+          "severity": "blocking",
+          "label": "Revision + status (IFR/IFD/IFC)",
+          "label_no": "Revisjon + status"
+        },
+        {
+          "key": "client_name",
+          "fact_type": "identifier",
+          "severity": "warning",
+          "label": "Client / project owner",
+          "label_no": "Oppdragsgiver"
+        }
+      ],
+      "required_media": {},
+      "required_content": [
+        "table_format",
+        "no_uncited_specs"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "required"
+      }
+    },
+    {
+      "section_key": "scope",
+      "title": "Scope & System Description",
+      "title_no": "Omfang og systembeskrivelse",
+      "position": 2,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        {
+          "key": "scope_statement",
+          "fact_type": "instruction",
+          "severity": "blocking",
+          "label": "Scope statement — what this basis covers and excludes",
+          "label_no": "Omfangsbeskrivelse — hva grunnlaget dekker og ikke dekker"
+        }
+      ],
+      "required_media": {
+        "min_photos": 1,
+        "preferred_roles": [
+          "drawing",
+          "site_plan",
+          "overview"
+        ]
+      },
+      "required_content": [
+        "explicit_exclusions",
+        "no_uncited_specs"
+      ],
+      "writing_rules": {
+        "voice": "descriptive",
+        "structure": "prose",
+        "max_words": 300,
+        "reading_level": "engineering",
+        "fact_citation": "required"
+      },
+      "notes": "Exclusions are as load-bearing as inclusions — 'explicit_exclusions' forces a battery-limits statement. Overview drawing or GA mapped here if present."
+    },
+    {
+      "section_key": "codes_standards",
+      "title": "Codes, Standards & Regulations",
+      "title_no": "Regelverk, koder og standarder",
+      "position": 3,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        {
+          "key": "governing_code",
+          "fact_type": "standard_ref",
+          "severity": "blocking",
+          "label": "Governing design code (e.g. NS-EN 1993, NORSOK N-004)",
+          "label_no": "Styrende prosjekteringsstandard"
+        },
+        {
+          "key": "standard_ref",
+          "fact_type": "standard_ref",
+          "severity": "warning",
+          "label": "Supporting standards with edition/year",
+          "label_no": "Understøttende standarder med utgave/år",
+          "cardinality": "one_or_more"
+        }
+      ],
+      "required_media": {},
+      "required_content": [
+        "table_format",
+        "edition_year_per_standard",
+        "hierarchy_statement",
+        "no_uncited_specs"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "required"
+      },
+      "notes": "'edition_year_per_standard': a standard cited without edition is a gap — verifiers reject undated references. 'hierarchy_statement': order of precedence when documents conflict (client spec vs code vs this basis)."
+    },
+    {
+      "section_key": "design_philosophy",
+      "title": "Design Life, Safety Philosophy & Criteria",
+      "title_no": "Levetid, sikkerhetsfilosofi og kriterier",
+      "position": 4,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        {
+          "key": "design_life",
+          "fact_type": "decision",
+          "severity": "blocking",
+          "label": "Design life (years)",
+          "label_no": "Dimensjonerende levetid (år)"
+        },
+        {
+          "key": "consequence_class",
+          "fact_type": "decision",
+          "severity": "warning",
+          "label": "Consequence / reliability class (CC/RC)",
+          "label_no": "Konsekvens-/pålitelighetsklasse"
+        },
+        {
+          "key": "criterion",
+          "fact_type": "criterion",
+          "severity": "blocking",
+          "label": "Acceptance criteria (UR limits, deflection limits)",
+          "label_no": "Akseptkriterier (utnyttelsesgrader, nedbøyningsgrenser)",
+          "cardinality": "one_or_more"
+        }
+      ],
+      "required_media": {},
+      "required_content": [
+        "table_format",
+        "no_uncited_specs"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "required"
+      },
+      "notes": "Every value here is a DECISION with a source — client spec clause, code requirement, or recorded engineering judgement (minutes). No source → [MISSING], because an unsourced safety factor is exactly what a verifier flags."
+    },
+    {
+      "section_key": "loads",
+      "title": "Loads & Load Cases",
+      "title_no": "Laster og lasttilfeller",
+      "position": 5,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        {
+          "key": "load",
+          "fact_type": "load",
+          "severity": "blocking",
+          "label": "At least one characteristic load defined (permanent, variable, environmental)",
+          "label_no": "Minst én karakteristisk last definert",
+          "cardinality": "one_or_more"
+        },
+        {
+          "key": "load_factor_set",
+          "fact_type": "decision",
+          "severity": "warning",
+          "label": "Load factor / combination scheme reference",
+          "label_no": "Lastfaktor-/kombinasjonsskjema"
+        }
+      ],
+      "required_media": {
+        "min_photos": 0,
+        "preferred_roles": [
+          "technical_data",
+          "test_result"
+        ]
+      },
+      "required_content": [
+        "table_format",
+        "units_si",
+        "no_uncited_specs",
+        "load_category_coverage"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "required"
+      },
+      "notes": "'load_category_coverage': gap check verifies each category (permanent / variable / environmental / accidental) is either specified or explicitly declared not applicable. Silence on a load category is a blocking gap — the classic design basis failure."
+    },
+    {
+      "section_key": "environment",
+      "title": "Environmental Conditions",
+      "title_no": "Miljøbetingelser",
+      "position": 6,
+      "required": true,
+      "condition": "artifact_type in ('structure','installation','facility')",
+      "gap_severity": "warning",
+      "required_facts": [
+        {
+          "key": "wind_basis",
+          "fact_type": "load",
+          "severity": "warning",
+          "label": "Wind (reference speed / zone)",
+          "label_no": "Vind (referansehastighet / sone)"
+        },
+        {
+          "key": "snow_basis",
+          "fact_type": "load",
+          "severity": "warning",
+          "label": "Snow load basis",
+          "label_no": "Snølastgrunnlag"
+        },
+        {
+          "key": "temperature_range",
+          "fact_type": "spec",
+          "severity": "info",
+          "label": "Design temperature range",
+          "label_no": "Dimensjonerende temperaturområde"
+        },
+        {
+          "key": "seismic_basis",
+          "fact_type": "load",
+          "severity": "info",
+          "label": "Seismic basis or N/A statement",
+          "label_no": "Seismisk grunnlag eller N/A"
+        }
+      ],
+      "required_media": {},
+      "required_content": [
+        "table_format",
+        "units_si",
+        "no_uncited_specs"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "required"
+      },
+      "notes": "Sources: metocean report, NS-EN 1991 national annex maps, site data. Offshore projects extend this with wave/current — extend the template, not the engine."
+    },
+    {
+      "section_key": "materials",
+      "title": "Materials",
+      "title_no": "Materialer",
+      "position": 7,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        {
+          "key": "material",
+          "fact_type": "material",
+          "severity": "blocking",
+          "label": "Material grades for primary members",
+          "label_no": "Materialkvaliteter for hovedbærende deler",
+          "cardinality": "one_or_more"
+        },
+        {
+          "key": "material_cert_req",
+          "fact_type": "decision",
+          "severity": "warning",
+          "label": "Certificate requirement (EN 10204 3.1/3.2)",
+          "label_no": "Sertifikatkrav (EN 10204 3.1/3.2)"
+        }
+      ],
+      "required_media": {
+        "min_photos": 0,
+        "preferred_roles": [
+          "certificate",
+          "technical_data"
+        ]
+      },
+      "required_content": [
+        "table_format",
+        "no_uncited_specs"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "required"
+      }
+    },
+    {
+      "section_key": "foundation",
+      "title": "Geotechnical / Foundation Basis",
+      "title_no": "Geoteknisk grunnlag / fundamentering",
+      "position": 8,
+      "required": false,
+      "condition": "artifact_type in ('structure','facility')",
+      "gap_severity": "warning",
+      "required_facts": [
+        {
+          "key": "bearing_capacity",
+          "fact_type": "spec",
+          "severity": "warning",
+          "label": "Allowable bearing capacity / pile capacity",
+          "label_no": "Tillatt grunntrykk / pelkapasitet"
+        },
+        {
+          "key": "geotech_report_ref",
+          "fact_type": "identifier",
+          "severity": "warning",
+          "label": "Geotechnical report reference",
+          "label_no": "Referanse geoteknisk rapport"
+        }
+      ],
+      "required_media": {},
+      "required_content": [
+        "no_uncited_specs",
+        "reference_source_documents"
+      ],
+      "writing_rules": {
+        "voice": "descriptive",
+        "structure": "prose",
+        "max_words": 250,
+        "fact_citation": "required"
+      }
+    },
+    {
+      "section_key": "assumptions",
+      "title": "Assumptions & Interfaces Register",
+      "title_no": "Forutsetnings- og grensesnittregister",
+      "position": 9,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [
+        {
+          "key": "assumption",
+          "fact_type": "assumption",
+          "severity": "warning",
+          "label": "Recorded assumptions",
+          "label_no": "Registrerte forutsetninger",
+          "cardinality": "one_or_more"
+        }
+      ],
+      "required_media": {},
+      "required_content": [
+        "table_format",
+        "assumption_source_and_owner",
+        "no_uncited_specs"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "required"
+      },
+      "notes": "Columns: assumption | source (spec §, minutes, judgement) | owner | to be verified by. Assembled automatically from every fact_type='assumption' in the index — meeting minutes and emails become a verifiable register instead of buried decisions. This section alone justifies the tool for design work."
+    },
+    {
+      "section_key": "drawings_register",
+      "title": "Drawings Register",
+      "title_no": "Tegningsliste",
+      "position": 10,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [
+        {
+          "key": "drawing_no",
+          "fact_type": "identifier",
+          "severity": "warning",
+          "label": "At least one referenced drawing",
+          "label_no": "Minst én referert tegning",
+          "cardinality": "one_or_more"
+        }
+      ],
+      "required_media": {
+        "min_photos": 1,
+        "preferred_roles": [
+          "drawing",
+          "site_plan",
+          "schematic"
+        ]
+      },
+      "required_content": [
+        "table_format",
+        "reference_source_documents"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "required"
+      },
+      "notes": "Auto-compiled from drawing-role files + their title-block facts: drawing no | title | rev | scale | source file. Code, zero tokens — the tegningsliste every real design document carries. Drawings without legible title blocks appear with [MANGLER] cells for the user to fill."
+    },
+    {
+      "section_key": "bom",
+      "title": "Bill of Materials",
+      "title_no": "Materialliste (BOM)",
+      "position": 11,
+      "required": false,
+      "gap_severity": "info",
+      "condition": "artifact_type in ('structure','building','bolig_tilbygg','tilbygg','machine','equipment','prototype','installation')",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["table_format", "no_uncited_specs"],
+      "writing_rules": {
+        "structure": "bom_table",
+        "fact_citation": "required"
+      },
+      "notes": "Code-rendered from element facts (bom_engine.aggregate_bom). Totals computed in code — never estimated."
+    },
+    {
+      "section_key": "source_register",
+      "title": "Source & Reference Register",
+      "title_no": "Kilde- og referanseregister",
+      "position": 12,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": [
+        "reference_source_documents",
+        "table_format"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "optional"
+      },
+      "notes": "Auto-generated from index by code, zero tokens: every source file, caption, and the sections citing it. The verifier's map."
+    },
+    {
+      "section_key": "signature",
+      "title": "Responsibility & Sign-off",
+      "title_no": "Ansvar og signering",
+      "position": 13,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        {
+          "key": "prepared_by",
+          "fact_type": "identifier",
+          "severity": "blocking",
+          "label": "Prepared by (engineer)",
+          "label_no": "Utarbeidet av"
+        },
+        {
+          "key": "checked_by",
+          "fact_type": "identifier",
+          "severity": "warning",
+          "label": "Checked by",
+          "label_no": "Kontrollert av"
+        }
+      ],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": {
+        "structure": "boilerplate"
+      },
+      "boilerplate": "This design basis was compiled from the source material listed in the Source & Reference Register; all stated values are traceable to the cited sources. The document assembles and traces project inputs — engineering evaluation, verification, and responsibility for the design basis rest with the undersigned.",
+      "boilerplate_no": "Dette designgrunnlaget er sammenstilt fra kildematerialet i kilde- og referanseregisteret; alle angitte verdier er sporbare til de siterte kildene. Dokumentet sammenstiller og sporer prosjektforutsetninger — faglig vurdering, verifikasjon og ansvar for designgrunnlaget påhviler undertegnede.",
+      "notes": "The liability posture in the document itself: compilation and traceability by the tool, engineering responsibility with the engineer. Prepared/Checked/Approved chain matches standard doc control."
+    }
+  ]
+}

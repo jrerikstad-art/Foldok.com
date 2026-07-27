@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Foldok — Diagram Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #16181D;
+      --paper: #E8ECEF;
+      --sheet: #FFFFFF;
+      --line: #C5CCD3;
+      --steel: #5A6472;
+      --signal: #F5C400;
+      --err: #B91C1C;
+      --warn: #B45309;
+      --ok: #166534;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Archivo, sans-serif;
+      color: var(--ink);
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse 80% 50% at 10% 0%, #d4dde6 0%, transparent 55%),
+        linear-gradient(165deg, #dfe5ea 0%, var(--paper) 40%, #cfd8e0 100%);
+    }
+    header {
+      display: flex; align-items: center; gap: 14px;
+      height: 52px; padding: 0 20px;
+      background: var(--ink); color: #fff;
+    }
+    header .logo {
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 700; font-size: 20px; letter-spacing: -0.06em;
+      color: var(--signal); text-decoration: none;
+    }
+    header b { font-size: 13px; letter-spacing: 0.04em; font-weight: 800; }
+    header .ver {
+      font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--signal);
+    }
+    header .right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+    header a.nav { color: #c8ccd2; font-size: 12px; text-decoration: none; }
+    header a.nav:hover { color: #fff; }
+
+    main { max-width: 1180px; margin: 0 auto; padding: 24px 20px 48px; }
+    .hero { margin-bottom: 16px; }
+    .hero h1 {
+      margin: 0 0 6px; font-size: clamp(1.35rem, 3vw, 1.75rem);
+      font-weight: 800; letter-spacing: -0.02em; line-height: 1.2;
+    }
+    .hero p { margin: 0; max-width: 48rem; color: var(--steel); font-size: 14px; line-height: 1.5; }
+
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px;
+    }
+    .toolbar label {
+      font-family: "IBM Plex Mono", monospace; font-size: 10px;
+      text-transform: uppercase; letter-spacing: 0.06em; color: var(--steel);
+    }
+    .chip, .btn, select {
+      border: 1px solid var(--ink); font-weight: 700; font-size: 12px;
+      padding: 8px 12px; cursor: pointer; background: transparent; color: var(--ink);
+    }
+    select { font-family: Archivo, sans-serif; cursor: pointer; }
+    .chip[aria-pressed="true"] { background: var(--ink); color: #fff; }
+    .btn { background: var(--signal); }
+    .btn.ghost { background: #fff; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .hint {
+      font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--steel);
+      width: 100%; margin-top: 2px;
+    }
+    .badge {
+      font-family: "IBM Plex Mono", monospace; font-size: 10px;
+      padding: 4px 8px; border: 1px solid var(--line); background: #f4f6f8;
+    }
+    .badge.err { border-color: var(--err); color: var(--err); }
+    .badge.warn { border-color: var(--warn); color: var(--warn); }
+    .badge.ok { border-color: var(--ok); color: var(--ok); }
+
+    .stage {
+      background: var(--sheet); border: 1px solid var(--line);
+      box-shadow: 0 12px 40px rgba(22, 24, 29, 0.08);
+      min-height: 440px; position: relative; overflow: hidden;
+      cursor: default; user-select: none;
+    }
+    .stage.dragging { cursor: grabbing; }
+    .stage .status {
+      position: absolute; top: 10px; right: 10px; z-index: 3;
+      font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--steel);
+      background: #f4f6f8; padding: 4px 8px; border: 1px solid var(--line);
+    }
+    .svg-host { padding: 8px; position: relative; }
+    .svg-host svg { max-width: 100%; height: auto; display: block; }
+
+    .meta {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;
+    }
+    @media (max-width: 860px) { .meta { grid-template-columns: 1fr; } }
+    .panel {
+      background: rgba(255,255,255,0.72); border: 1px solid var(--line); padding: 16px 18px;
+    }
+    .panel h2 {
+      margin: 0 0 10px; font-size: 12px; font-family: "IBM Plex Mono", monospace;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--steel); font-weight: 700;
+    }
+    .panel ul { margin: 0; padding-left: 1.1rem; font-size: 13px; line-height: 1.55; }
+    .issue {
+      font-size: 12px; line-height: 1.45; padding: 8px 10px; margin-bottom: 6px;
+      border: 1px solid var(--line); background: #fafbfc;
+    }
+    .issue.error { border-color: #fecaca; background: #fef2f2; }
+    .issue.warning { border-color: #fde68a; background: #fffbeb; }
+    .issue code { font-family: "IBM Plex Mono", monospace; font-size: 10px; }
+    pre.spec, pre.export {
+      margin: 0; max-height: 220px; overflow: auto;
+      font-family: "IBM Plex Mono", monospace; font-size: 10px; line-height: 1.4;
+      background: #f7f8fa; border: 1px solid var(--line); padding: 10px;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .export-preview {
+      margin-top: 10px; border: 1px dashed var(--line); padding: 8px; background: #fff;
+      max-height: 180px; overflow: auto;
+    }
+    .export-preview svg { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="logo" href="/">Fd</a>
+    <b>DIAGRAM STUDIO</b>
+    <span class="ver">v0.72 · foldok_diagram</span>
+    <div class="right">
+      <a class="nav" href="/">Workbench</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <h1>Editable system diagrams</h1>
+      <p>
+        Drag symbols on the SVG surface (<code>data-target</code> hit-test). Layout lives in pins —
+        graph JSON stays geometry-free. Validation and jurisdiction gate export.
+      </p>
+    </div>
+
+    <div class="toolbar">
+      <label>Fixture</label>
+      <button type="button" class="chip" data-fixture="water_heater" data-profile="wiring" aria-pressed="true">Water heater</button>
+      <button type="button" class="chip" data-fixture="water_heater" data-profile="single_line" aria-pressed="false">Single-line</button>
+      <button type="button" class="chip" data-fixture="plumbing_supply" data-profile="piping" aria-pressed="false">Piping</button>
+      <label>Project</label>
+      <select id="project">
+        <option value="">— select project —</option>
+      </select>
+      <label>Document</label>
+      <select id="doc-type">
+        <option value="installation_guide">Installation guide</option>
+        <option value="technical_file">Technical file</option>
+        <option value="samsvarserklaring">Samsvarserklæring</option>
+        <option value="inspection_report">Inspection</option>
+      </select>
+      <label>Jurisdiction</label>
+      <select id="jurisdiction">
+        <option value="">— unset —</option>
+        <option value="NO_IT_230">NO IT 230 V</option>
+        <option value="NO_TN_230_400">NO TN 230/400</option>
+        <option value="EU_TN_230_400">EU TN 230/400</option>
+        <option value="US_NEC_120_240">US NEC 120/240</option>
+      </select>
+      <button type="button" class="btn ghost" id="btn-reset">Reset layout</button>
+      <button type="button" class="btn ghost" id="btn-confirm-ai">Confirm AI</button>
+      <button type="button" class="btn ghost" id="btn-export">Export preview</button>
+      <button type="button" class="btn ghost" id="btn-save" disabled>Save to project</button>
+      <button type="button" class="btn" id="btn-insert" disabled>Insert into document</button>
+      <button type="button" class="btn ghost" id="btn-reload">Reload</button>
+      <span class="badge" id="val-badge">validation …</span>
+      <div class="hint" id="hint">Connect a project in Workbench, then edit and insert into your document.</div>
+    </div>
+
+    <div class="doc-bar" id="doc-bar" style="display:none;margin-bottom:12px;padding:10px 12px;border:1px solid var(--line);background:#fff;font-size:13px;"></div>
+
+    <div class="stage" id="stage">
+      <div class="status" id="status">loading…</div>
+      <div class="svg-host" id="svg-host"></div>
+    </div>
+
+    <div class="meta">
+      <div class="panel">
+        <h2>Validation</h2>
+        <div id="issues"></div>
+      </div>
+      <div class="panel">
+        <h2>Graph <span id="rev"></span></h2>
+        <pre class="spec" id="spec-json">…</pre>
+        <h2 style="margin-top:14px">Export</h2>
+        <div class="export-preview" id="export-preview"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const stage = document.getElementById("stage");
+    const host = document.getElementById("svg-host");
+    const status = document.getElementById("status");
+    const specEl = document.getElementById("spec-json");
+    const revEl = document.getElementById("rev");
+    const issuesEl = document.getElementById("issues");
+    const valBadge = document.getElementById("val-badge");
+    const exportPreview = document.getElementById("export-preview");
+    const jurisdictionSel = document.getElementById("jurisdiction");
+    const projectSel = document.getElementById("project");
+    const docTypeSel = document.getElementById("doc-type");
+    const docBar = document.getElementById("doc-bar");
+    const btnSave = document.getElementById("btn-save");
+    const btnInsert = document.getElementById("btn-insert");
+
+    let fixture = "water_heater";
+    let profile = "wiring";
+    let sessionId = null;
+    let projectId = "";
+    let svgEl = null;
+    let drag = null;
+    let lastPayload = null;
+
+    function setPressed(btn) {
+      document.querySelectorAll(".chip[data-fixture]").forEach((el) => {
+        const on = el === btn;
+        el.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    }
+
+    function syncProjectButtons() {
+      const ok = !!projectId && !!sessionId;
+      btnSave.disabled = !ok;
+      btnInsert.disabled = !ok || !!(lastPayload && lastPayload.export_blocked);
+    }
+
+    async function api(path, body) {
+      const res = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body || {}),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      return data;
+    }
+
+    async function apiGet(path) {
+      const res = await fetch(path);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      return data;
+    }
+
+    const urlParams = new URLSearchParams(location.search);
+
+    function mapTemplateToDocType(t) {
+      if (!t) return "";
+      const key = t.replace(/\.json$/i, "").toLowerCase().replace(/-/g, "_");
+      const map = {
+        installation_manual: "installation_guide",
+        technical_doc_package: "technical_file",
+        samsvarserklaering: "samsvarserklaring",
+        inspection_checklist: "inspection_report",
+      };
+      return map[key] || key;
+    }
+
+    async function loadProjects() {
+      const boot = await apiGet("/api/bootstrap");
+      const projects = boot.projects || [];
+      projectSel.innerHTML = '<option value="">— select project —</option>';
+      projects.forEach((p) => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name + (p.folders && p.folders[0] ? " · " + p.folders[0].split(/[/\\\\]/).pop() : "");
+        projectSel.appendChild(opt);
+      });
+      const urlProject = urlParams.get("project");
+      const urlTemplate = mapTemplateToDocType(urlParams.get("template") || "");
+      if (urlProject && projects.some((p) => p.id === urlProject)) {
+        projectSel.value = urlProject;
+        projectId = urlProject;
+      } else if (projects.length === 1) {
+        projectSel.value = projects[0].id;
+        projectId = projects[0].id;
+      } else {
+        const saved = localStorage.getItem("foldok_diagram_project");
+        if (saved && projects.some((p) => p.id === saved)) {
+          projectSel.value = saved;
+          projectId = saved;
+        }
+      }
+      if (urlTemplate && docTypeSel.querySelector(`option[value="${urlTemplate}"]`)) {
+        docTypeSel.value = urlTemplate;
+      }
+      if (!projects.length) {
+        status.textContent = "No projects — open Workbench and connect a folder";
+        document.getElementById("hint").textContent =
+          "Workbench → connect a customer project folder, then reopen Diagram Studio from Tools.";
+      }
+      syncProjectButtons();
+    }
+
+    function parseTarget(el) {
+      const raw = el && el.getAttribute("data-target");
+      if (!raw) return null;
+      const parts = raw.split(":");
+      if (parts[0] === "component" && parts[1]) return { kind: "component", id: parts[1] };
+      if (parts[0] === "connection" && parts[1]) return { kind: "connection", id: parts[1] };
+      return { kind: parts[0], id: parts.slice(1).join(":") };
+    }
+
+    function findTarget(ev) {
+      let el = ev.target;
+      while (el && el !== svgEl) {
+        const t = parseTarget(el);
+        if (t) return { el, target: t };
+        el = el.parentNode;
+      }
+      return null;
+    }
+
+    function clientToSvg(ev) {
+      if (!svgEl) return { x: 0, y: 0 };
+      const pt = svgEl.createSVGPoint();
+      pt.x = ev.clientX;
+      pt.y = ev.clientY;
+      const ctm = svgEl.getScreenCTM();
+      if (!ctm) return { x: 0, y: 0 };
+      const loc = pt.matrixTransform(ctm.inverse());
+      return { x: loc.x, y: loc.y };
+    }
+
+    function mountSvg(svgText) {
+      host.innerHTML = svgText || "";
+      svgEl = host.querySelector("svg");
+      if (!svgEl) return;
+      svgEl.style.pointerEvents = "auto";
+      svgEl.querySelectorAll("[data-target]").forEach((el) => {
+        const t = parseTarget(el);
+        if (t && t.kind === "component") {
+          el.style.cursor = "grab";
+          el.style.pointerEvents = "auto";
+        }
+      });
+      svgEl.addEventListener("pointerdown", onPointerDown);
+      svgEl.addEventListener("dblclick", onDblClick);
+    }
+
+    function renderIssues(data) {
+      const issues = data.issues || [];
+      issuesEl.innerHTML = "";
+      if (!issues.length) {
+        issuesEl.innerHTML = "<p class=\"hint ok\">No validation issues.</p>";
+      } else {
+        issues.forEach((i) => {
+          const div = document.createElement("div");
+          div.className = "issue " + (i.severity || "warning");
+          div.innerHTML = "<strong>" + (i.code || "") + "</strong> " + (i.message || "") +
+            (i.fix ? "<br><code>" + i.fix + "</code>" : "");
+          issuesEl.appendChild(div);
+        });
+      }
+      valBadge.className = "badge";
+      if (data.export_blocked) {
+        valBadge.classList.add("err");
+        valBadge.textContent = data.error_count + " error(s) — export blocked";
+      } else if (data.warning_count > 0) {
+        valBadge.classList.add("warn");
+        valBadge.textContent = data.warning_count + " warning(s)";
+      } else {
+        valBadge.classList.add("ok");
+        valBadge.textContent = "export OK";
+      }
+      document.getElementById("btn-export").disabled = !!data.export_blocked;
+      syncProjectButtons();
+    }
+
+    function applyPayload(data) {
+      lastPayload = data;
+      sessionId = data.session_id;
+      mountSvg(data.svg || "");
+      jurisdictionSel.value = data.jurisdiction || "";
+      const graph = data.graph || {};
+      specEl.textContent = JSON.stringify({
+        id: graph.id,
+        jurisdiction: graph.jurisdiction,
+        components: (graph.components || []).map((c) => ({
+          id: c.id, type: c.type, tag: c.tag,
+          provenance: (c.provenance || {}).source,
+        })),
+        connections: (graph.connections || []).map((e) => ({
+          id: e.id, designation: e.designation, medium: e.medium,
+        })),
+      }, null, 2);
+      revEl.textContent = "· " + (data.revision || "A");
+      status.textContent = (data.title || fixture) + " · " + (data.profile || profile) + " · " + (data.bytes || 0) + " B"
+        + (projectId ? " · project " + projectId : "");
+      renderIssues(data);
+      if (data.export_svg && !exportPreview.querySelector("svg")) {
+        exportPreview.innerHTML = data.export_svg;
+      }
+      syncProjectButtons();
+    }
+
+    function onPointerDown(ev) {
+      const hit = findTarget(ev);
+      if (!hit || hit.target.kind !== "component") return;
+      ev.preventDefault();
+      const pt = clientToSvg(ev);
+      drag = {
+        id: hit.target.id,
+        startX: pt.x,
+        startY: pt.y,
+        ox: pt.x,
+        oy: pt.y,
+        axisLock: ev.shiftKey ? "x" : null,
+      };
+      stage.classList.add("dragging");
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", onPointerUp);
+    }
+
+    function onPointerMove(ev) {
+      if (!drag) return;
+      if (ev.shiftKey) drag.axisLock = drag.axisLock || "x";
+      const pt = clientToSvg(ev);
+      drag.lastX = pt.x;
+      drag.lastY = pt.y;
+    }
+
+    async function onPointerUp() {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      stage.classList.remove("dragging");
+      if (!drag || !sessionId) { drag = null; return; }
+      const body = {
+        id: sessionId,
+        component_id: drag.id,
+        x: drag.lastX != null ? drag.lastX : drag.ox,
+        y: drag.lastY != null ? drag.lastY : drag.oy,
+      };
+      if (drag.axisLock === "x") body.y = undefined;
+      status.textContent = "routing…";
+      try {
+        applyPayload(await api("/api/diagram/session/move", body));
+      } catch (err) {
+        status.textContent = String(err.message || err);
+      }
+      drag = null;
+    }
+
+    async function onDblClick(ev) {
+      const hit = findTarget(ev);
+      if (!hit || !sessionId) return;
+      const target = hit.target.kind + ":" + hit.target.id;
+      try {
+        applyPayload(await api("/api/diagram/session/release", {
+          id: sessionId,
+          target,
+          prop: "position",
+        }));
+      } catch (err) {
+        status.textContent = String(err.message || err);
+      }
+    }
+
+    async function loadSession() {
+      status.textContent = "loading…";
+      exportPreview.innerHTML = "";
+      docBar.style.display = "none";
+      try {
+        const body = { fixture, profile, target_width_pt: 420 };
+        if (projectId) body.project_id = projectId;
+        const data = await api("/api/diagram/session", body);
+        applyPayload(data);
+        if (projectId && sessionId) {
+          try {
+            applyPayload(await api("/api/diagram/bind-project", {
+              id: sessionId,
+              project_id: projectId,
+            }));
+          } catch (_) { /* bind optional until insert */ }
+        }
+      } catch (err) {
+        status.textContent = "error";
+        specEl.textContent = String(err.message || err);
+      }
+    }
+
+    document.querySelectorAll(".chip[data-fixture]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        fixture = btn.dataset.fixture;
+        profile = btn.dataset.profile || "wiring";
+        setPressed(btn);
+        loadSession();
+      });
+    });
+
+    projectSel.addEventListener("change", async () => {
+      projectId = projectSel.value || "";
+      if (projectId) localStorage.setItem("foldok_diagram_project", projectId);
+      syncProjectButtons();
+      if (sessionId && projectId) {
+        try {
+          applyPayload(await api("/api/diagram/bind-project", {
+            id: sessionId,
+            project_id: projectId,
+          }));
+        } catch (err) {
+          status.textContent = String(err.message || err);
+        }
+      }
+    });
+
+    jurisdictionSel.addEventListener("change", async () => {
+      if (!sessionId) return;
+      try {
+        applyPayload(await api("/api/diagram/session/set_jurisdiction", {
+          id: sessionId,
+          jurisdiction: jurisdictionSel.value,
+        }));
+      } catch (err) {
+        status.textContent = String(err.message || err);
+      }
+    });
+
+    document.getElementById("btn-reload").addEventListener("click", loadSession);
+    document.getElementById("btn-reset").addEventListener("click", async () => {
+      if (!sessionId) return;
+      try {
+        applyPayload(await api("/api/diagram/session/reset_to_auto", { id: sessionId, force: true }));
+      } catch (err) {
+        status.textContent = String(err.message || err);
+      }
+    });
+    document.getElementById("btn-confirm-ai").addEventListener("click", async () => {
+      if (!sessionId) return;
+      try {
+        applyPayload(await api("/api/diagram/session/confirm_ai", { id: sessionId }));
+      } catch (err) {
+        status.textContent = String(err.message || err);
+      }
+    });
+    document.getElementById("btn-export").addEventListener("click", () => {
+      if (!lastPayload || lastPayload.export_blocked) return;
+      exportPreview.innerHTML = lastPayload.export_svg || "";
+    });
+
+    btnSave.addEventListener("click", async () => {
+      if (!sessionId || !projectId) return;
+      status.textContent = "saving…";
+      try {
+        await api("/api/diagram/bind-project", { id: sessionId, project_id: projectId });
+        const saved = await api("/api/diagram/save", { id: sessionId });
+        status.textContent = "saved · " + ((saved.paths && saved.paths.graph) || "ok");
+        docBar.style.display = "block";
+        docBar.textContent = "Saved diagram to project: " + JSON.stringify(saved.paths || {});
+      } catch (err) {
+        status.textContent = String(err.message || err);
+      }
+    });
+
+    btnInsert.addEventListener("click", async () => {
+      if (!sessionId || !projectId) return;
+      status.textContent = "inserting into document…";
+      try {
+        const result = await api("/api/diagram/insert-into-doc", {
+          session_id: sessionId,
+          project_id: projectId,
+          document_type: docTypeSel.value,
+          create_if_missing: true,
+          lang: "en",
+        });
+        status.textContent = "inserted · " + result.template + " / " + result.section_key;
+        docBar.style.display = "block";
+        docBar.innerHTML =
+          "<strong>Inserted into document.</strong> " +
+          (result.disclaimer || "") +
+          "<br>Template: <code>" + result.template + "</code> · Section: <code>" + result.section_key + "</code>" +
+          (result.open ? ' · <a href="' + result.open + '">Open in workbench</a>' : "");
+      } catch (err) {
+        status.textContent = String(err.message || err);
+        docBar.style.display = "block";
+        docBar.textContent = "Insert failed: " + (err.message || err);
+      }
+    });
+
+    (async () => {
+      try {
+        await loadProjects();
+      } catch (err) {
+        status.textContent = "bootstrap failed: " + (err.message || err);
+      }
+      await loadSession();
+    })();
+  </script>
+</body>
+</html>

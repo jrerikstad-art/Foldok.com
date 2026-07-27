@@ -1,0 +1,25 @@
+id: utilization
+label: Utilization ratio
+domains: [machinery, construction, general]
+formula_latex: "U = F_{ed} / F_{rd}"
+formula_code: "F_ed / F_rd"
+description: Utilization as design action over design resistance (when both exist).
+safety_critical: true
+assumptions:
+  - Both values must be comparable (same check, same units)
+  - Does not select the governing load case or capacity formula
+inputs:
+  - key: F_ed
+    label: Design action
+    unit: N
+    required: true
+    fact_keys: [F_ed, design_action, applied_force]
+  - key: F_rd
+    label: Design resistance
+    unit: N
+    required: true
+    fact_keys: [F_rd, design_resistance, capacity]
+outputs:
+  - key: U
+    label: Utilization
+    unit: "-"

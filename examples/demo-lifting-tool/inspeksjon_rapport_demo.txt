@@ -1,0 +1,11 @@
+INSPEKSJONSRAPPORT — DEMO-HEIS-0042
+Verkstedveien 1, 4000 Demo
+Dato: 2024-06-15
+Inspektør: O. Demo (fiktiv)
+
+Heis inspisert i henhold til Demo-standard DS-DEMO-2020.
+Resultat: Godkjent med merknad.
+
+Merknad: Inspeksjonsintervall skal fastsettes av ansvarlig — verdi ikke oppgitt i kildemateriale.
+
+Signatur inspektør: [MANGLER: inspector_signature]

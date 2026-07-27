@@ -1,0 +1,23 @@
+id: wind_dynamic_pressure
+label: Dynamic wind pressure (simple)
+domains: [construction, machinery, general]
+formula_latex: "q = 0.613 \\, V^{2}"
+formula_code: "0.613 * V ** 2"
+description: >
+  Simple dynamic pressure from wind speed (air density ~1.226 kg/m³ form).
+  Not a full wind design case — documentation groundwork only.
+safety_critical: true
+assumptions:
+  - Simple dynamic pressure only; not a full wind design case
+  - No height / terrain / directionality factors applied
+  - Coefficient 0.613 assumes standard air density (~1.226 kg/m³); verify jurisdiction
+inputs:
+  - key: V
+    label: Wind speed
+    unit: m/s
+    required: true
+    fact_keys: [wind_speed, V, design_wind]
+outputs:
+  - key: q
+    label: Dynamic pressure
+    unit: Pa

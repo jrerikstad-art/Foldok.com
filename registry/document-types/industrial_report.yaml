@@ -1,0 +1,72 @@
+id: industrial_report
+name: Industrial Report
+aliases:
+  - decision report
+  - technical evaluation
+  - compliance package
+  - monitoring report
+  - beslutningsgrunnlag
+  - teknisk vurdering
+industries: [construction, energy, maritime, process, manufacturing, infrastructure]
+description: >
+  High-quality professional report style for technical, compliance,
+  and decision-support documents. Flexible structure with strong
+  visual hierarchy, matrices, stakeholder views, and clear recommendations.
+
+regions: [eu, eea, uk, "no", us, international]
+domains: [general, construction, process, machinery]
+obligation_types: [design, handover]
+evidence_types: [drawing, risk_assessment, photo, procedure]
+
+structure:
+  required:
+    - cover
+    - executive_summary
+    - identification
+    - revision_history
+  recommended:
+    - problem_and_context
+    - stakeholders
+    - current_situation
+    - evaluation_or_impact
+    - proposed_approach
+    - comparison
+    - recommendations
+    - next_steps
+  optional:
+    - technical_details
+    - appendices
+    - location_map
+    - photo_evidence
+
+preferred_blocks:
+  stakeholders: [StakeholderCard, FeatureGrid]
+  evaluation_or_impact: [EvaluationMatrix]
+  comparison: [ComparisonTable]
+  recommendations: [CalloutBox, EngineeringTable]
+  problem_and_context: [CalloutBox, Paragraph]
+  current_situation: [Paragraph, EngineeringTable]
+  proposed_approach: [Paragraph, FeatureGrid]
+  next_steps: [Procedure, BulletList]
+  location_map: [ImageBlock]
+  photo_evidence: [ImageBlock, FeatureGrid]
+
+compliance_notes:
+  - Prefer short, scannable text
+  - Use matrices and tables for evaluation instead of long prose
+  - Every major claim should be visually structured
+  - Maintain strong visual hierarchy and generous section spacing
+  - Claims must cite sources; agent proposes, user confirms
+
+skills:
+  primary: [document-type-router, project-director, technical-writer]
+  supporting: [lead-engineer, compliance-manager, hybrid-knowledge, location-map]
+
+tools:
+  - list_document_types
+  - get_document_type
+  - materialise_template
+  - compose_document
+  - run_qa
+
+workbench_template: free_document.json

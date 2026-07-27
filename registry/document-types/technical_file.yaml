@@ -1,0 +1,39 @@
+id: technical_file
+name: Technical File / Technical Documentation Package
+aliases: ["technical file", "teknisk fil", "CE technical file", "technical documentation package"]
+industries: [manufacturing, energy, process, maritime]
+regions: [eu, eea, uk, "no", us, international]
+domains: [machinery, electrical, pressure, process, construction, general]
+obligation_types: [design, installation, inspection, handover]
+evidence_types:
+  - drawing
+  - calculation
+  - test_record
+  - inspection_record
+  - risk_assessment
+  - photo
+  - declaration
+  - procedure
+  - material_certificate
+description: >
+  Regulatory technical documentation package (CE / similar). Structure only —
+  customer brings or links licensed standards; engine tracks evidence completeness.
+structure:
+  required: [identification, scope, risk_assessment, design_documentation, verification, declaration, revision_history]
+  recommended: [standards, user_instructions, attachments, photo_evidence]
+  optional: [appendices, missing_facts]
+preferred_blocks:
+  risk_assessment: [EngineeringTable, CalloutBox]
+  design_documentation: [EngineeringTable, DiagramBlock, ImageBlock]
+  verification: [EngineeringTable, Procedure]
+  declaration: [Paragraph, CalloutBox]
+  revision_history: [RevisionHistory]
+compliance_notes:
+  - Engine proposes structure and missing evidence; user confirms legal sufficiency
+  - Do not invent full standard text or pass/fail legal conclusions
+  - Declaration and risk assessment are typically blocking for CE-style packages
+skills:
+  primary: [compliance-manager, force-blocks, lead-engineer]
+  supporting: [technical-writer, document-type-router]
+tools: [compose_document, run_qa, list_document_types]
+workbench_template: technical_doc_package.json

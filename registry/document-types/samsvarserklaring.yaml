@@ -1,0 +1,45 @@
+id: samsvarserklaring
+name: Samsvarserklæring
+aliases: ["declaration of conformity", "samsvar", "conformity declaration", "samsvarserklaering"]
+industries: [construction, electrical, manufacturing, energy]
+description: >
+  Formal declaration that an installation or product complies with applicable regulations and standards.
+
+regions: ["no", eea]
+domains: [electrical]
+obligation_types: [installation, handover]
+evidence_types: [declaration, test_record, inspection_record, drawing]
+
+structure:
+  required:
+    - identification
+    - scope
+    - standards
+    - declaration
+    - signature
+  recommended:
+    - references
+    - revision_history
+  optional:
+    - attachments
+
+preferred_blocks:
+  identification: [EngineeringTable]
+  standards: [EngineeringTable]
+  declaration: [Paragraph, CalloutBox]
+  signature: [Paragraph]
+
+compliance_notes:
+  - Must reference the correct regulations and standards
+  - Responsible person and date are mandatory
+  - Scope of the declaration must be unambiguous
+
+skills:
+  primary: [compliance-manager, force-blocks]
+  supporting: [technical-writer, lead-engineer]
+
+tools:
+  - compose_document
+  - run_qa
+
+workbench_template: samsvarserklaering.json

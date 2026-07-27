@@ -1,0 +1,27 @@
+id: risk_file
+name: Risk Assessment File
+aliases: ["risk file", "hazard file", "risk assessment", "risikoanalyse"]
+industries: [manufacturing, energy, process, maritime, construction]
+regions: [eu, eea, uk, "no", us, international]
+domains: [machinery, process, pressure, marine, general]
+obligation_types: [design, operation, handover]
+evidence_types: [risk_assessment, procedure, drawing, photo]
+description: >
+  Risk / hazard documentation package (structure only — methods from customer sources).
+structure:
+  required: [identification, scope, hazard_identification, risk_evaluation, residual_risk, revision_history]
+  recommended: [mitigations, standards, attachments]
+  optional: [appendices]
+preferred_blocks:
+  hazard_identification: [EngineeringTable, CalloutBox]
+  risk_evaluation: [EvaluationMatrix, EngineeringTable]
+  mitigations: [Procedure, CalloutBox]
+  residual_risk: [CalloutBox]
+compliance_notes:
+  - Do not invent residual-risk acceptance — flag missing assessment evidence
+  - Link mitigations to procedures or design evidence when present
+skills:
+  primary: [compliance-manager, lead-engineer]
+  supporting: [technical-writer, force-blocks]
+tools: [compose_document, run_qa]
+workbench_template: null

@@ -1,0 +1,21 @@
+id: bearing_block
+domain: mechanical
+label: Bearing block
+svg: bearing_block.svg
+default_rotation: 0
+# Through-shaft: shaft_l (left) + shaft_r (right) — same axis
+ports:
+- id: shaft_l
+  name: Shaft L
+  side: left
+  kind: mechanical
+  allowed_media:
+  - shaft
+  order: 1
+- id: shaft_r
+  name: Shaft R
+  side: right
+  kind: mechanical
+  allowed_media:
+  - shaft
+  order: 1

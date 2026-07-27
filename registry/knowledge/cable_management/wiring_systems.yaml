@@ -1,0 +1,53 @@
+wiring_system_types:
+  - conduits
+  - cable_ducting
+  - cable_trunking
+  - cable_tray
+  - cable_ladder
+  - busbar_trunking
+  - powertrack
+  - direct_buried_or_other
+
+selection_topics:
+  circuit_arrangement:
+    - single_circuit
+    - several_circuits_in_one_cable
+    - parallel_conductors
+    - flexible_cables_use_reviewed
+  external_influences:
+    - ambient_temperature
+    - external_heat
+    - water_or_humidity
+    - solid_foreign_bodies
+    - corrosive_or_polluting
+    - impact
+    - vibration
+    - other_mechanical_stress
+    - flora_mould
+    - fauna
+    - solar_uv
+    - seismic
+    - wind
+    - processed_or_stored_materials
+    - building_design_constraints
+  current_carrying:
+    - method_of_installation_ref
+    - grouping_factor_considered
+    - loaded_conductor_count
+    - parallel_paths_reviewed
+    - installation_condition_changes_along_route
+  conductors:
+    - cross_section_phase
+    - cross_section_neutral
+    - voltage_drop_reviewed
+  connections:
+    - connection_method
+    - fine_strand_termination_reviewed
+  fire_spread:
+    - compartment_precautions
+    - penetration_sealing
+  proximity:
+    - other_electrical_services
+    - non_electrical_services
+  maintainability:
+    - access_for_inspection_cleaning

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Foldok — Demo compile result</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root { --ink:#16181D; --paper:#F2F0EA; --sheet:#fff; --line:#DCD9D0; --steel:#5A6472; --signal:#F5C400; --gap:#C74E19; --gapBg:#FDF0E8; --fact:#1450B4; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Archivo, sans-serif; background: var(--paper); color: var(--ink); }
+    .bar { background: var(--ink); color: #fff; padding: 14px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .bar a { color: var(--signal); text-decoration: none; font-size: 13px; font-weight: 700; }
+    .bar h1 { margin: 0; font-size: 16px; font-weight: 800; flex: 1; }
+    .meta { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: #c8ccd2; }
+    .sheet { max-width: 820px; margin: 24px auto 64px; background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; padding: 40px 48px; box-shadow: 0 2px 12px rgba(22,24,29,.06); }
+    .sheet h2 { font-size: 18px; font-weight: 800; margin: 32px 0 12px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
+    .sheet table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+    .sheet th, .sheet td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+    .sheet th { background: var(--paper); }
+    .sheet code, .mangler { font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 600; background: var(--gapBg); color: var(--gap); padding: 2px 6px; border-radius: 4px; }
+    #loading { padding: 48px; text-align: center; color: var(--steel); font-family: "IBM Plex Mono", monospace; }
+    #err { padding: 48px; color: var(--gap); }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <a href="index.html">← Foldok</a>
+    <h1>Løfteheis DEMO-HEIS-0042 — syntetisk</h1>
+    <span class="meta">contract_review · demo · v0.14.0</span>
+  </div>
+  <div id="loading">Laster utkast…</div>
+  <div id="err" style="display:none"></div>
+  <article class="sheet" id="doc" style="display:none"></article>
+  <script>
+    fetch("../examples/demo-lifting-tool/draft.md")
+      .then(r => { if (!r.ok) throw new Error(r.status + " " + r.statusText); return r.text(); })
+      .then(md => {
+        document.getElementById("loading").style.display = "none";
+        const el = document.getElementById("doc");
+        el.style.display = "block";
+        let html = marked.parse(md);
+        html = html.replace(/`\[MANGLER: ([^\]]+)\]`/g, '<span class="mangler">MANGLER: $1</span>');
+        el.innerHTML = html;
+      })
+      .catch(e => {
+        document.getElementById("loading").style.display = "none";
+        const err = document.getElementById("err");
+        err.style.display = "block";
+        err.innerHTML = "Kunne ikke laste draft.md (" + e.message + ").";
+      });
+  </script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+# ISO 9223-style category labels for structure only — not full standard text.
+corrosivity_categories:
+  - id: C1
+    level: very_low
+    examples: [heated dry indoor]
+  - id: C2
+    level: low
+    examples: [rural outdoor, unheated indoor with condensation risk]
+  - id: C3
+    level: medium
+    examples: [urban outdoor, mild industrial indoor]
+  - id: C4
+    level: high
+    examples: [industrial outdoor, coastal with moderate salinity]
+  - id: C5
+    level: very_high
+    examples: [aggressive industrial, high-salinity coastal]
+  - id: CX
+    level: extreme
+    examples: [offshore splash, very severe industrial]
+
+influencing_factors:
+  - temperature
+  - relative_humidity_time_of_wetness
+  - chlorides_salinity
+  - sulfur_dioxide_pollution
+  - sheltering_vs_full_exposure
+  - splash_or_immersion
+  - chemical_exposure
+  - galvanic_coupling
+  - abrasion_or_erosion
+
+assessment_rule: >
+  Suggest a corrosivity class from project context when possible.
+  Require user confirmation before using it in formal selection or reports.
+  Do not treat class alone as a complete design basis when splash,
+  chemicals, or galvanic effects apply.

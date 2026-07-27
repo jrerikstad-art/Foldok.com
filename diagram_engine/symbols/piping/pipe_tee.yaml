@@ -1,0 +1,33 @@
+id: pipe_tee
+domain: piping
+label: Tee
+svg: pipe_tee.svg
+default_rotation: 0
+ports:
+- id: run_in
+  name: Run in
+  side: left
+  kind: fluid
+  allowed_media:
+  - water
+  - oil
+  - fluid
+  order: 1
+- id: run_out
+  name: Run out
+  side: right
+  kind: fluid
+  allowed_media:
+  - water
+  - oil
+  - fluid
+  order: 1
+- id: branch
+  name: Branch
+  side: bottom
+  kind: fluid
+  allowed_media:
+  - water
+  - oil
+  - fluid
+  order: 1

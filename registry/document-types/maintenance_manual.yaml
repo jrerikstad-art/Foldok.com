@@ -1,0 +1,46 @@
+id: maintenance_manual
+name: Maintenance Manual
+aliases: ["vedlikeholdsmanual", "service manual", "maintenance guide", "vedlikehold"]
+industries: [manufacturing, energy, maritime, process, aquaculture]
+description: >
+  Instructions for inspection, service, repair and preventive maintenance.
+
+regions: [eu, eea, uk, "no", us, international]
+domains: [machinery, process, marine, general]
+obligation_types: [maintenance, operation]
+evidence_types: [procedure, inspection_record, photo]
+
+structure:
+  required:
+    - cover
+    - summary
+    - maintenance
+    - identification
+    - revision_history
+  recommended:
+    - symbols
+    - tools_required
+    - safety
+    - spare_parts
+    - troubleshooting
+  optional:
+    - transport_storage
+
+preferred_blocks:
+  maintenance: [Procedure, EngineeringTable, CalloutBox]
+  spare_parts: [EngineeringTable]
+  troubleshooting: [Procedure, EngineeringTable]
+
+compliance_notes:
+  - Lock-out / tag-out and safety procedures must be clear
+  - Revision history mandatory
+
+skills:
+  primary: [force-blocks, lead-engineer, technical-writer]
+  supporting: [compliance-manager, cad-inspector]
+
+tools:
+  - compose_document
+  - run_qa
+
+workbench_template: null

@@ -1,0 +1,24 @@
+id: HEA200
+family: hea
+designation: HEA 200
+material_hint: steel
+source: catalog
+status: profile
+pack: steel_structural
+series: HEA
+
+geometry:
+  h:  { value: 190, unit: mm, source: profile_default, status: assumed }
+  b:  { value: 200, unit: mm, source: profile_default, status: assumed }
+  tw: { value: 6.5, unit: mm, source: profile_default, status: assumed }
+  tf: { value: 10.0, unit: mm, source: profile_default, status: assumed }
+
+properties:
+  A:  { value: 5380, unit: mm2, source: profile_default, status: assumed }
+  Iy: { value: 36920000, unit: mm4, source: profile_default, status: assumed }
+  Iz: { value: 13360000, unit: mm4, source: profile_default, status: assumed }
+  Wy: { value: 389000, unit: mm3, source: profile_default, status: assumed }
+  Wz: { value: 134000, unit: mm3, source: profile_default, status: assumed }
+  iy: { value: 82.8, unit: mm, source: profile_default, status: assumed }
+  iz: { value: 49.8, unit: mm, source: profile_default, status: assumed }
+  mass_per_m: { value: 42.3, unit: kg/m, source: profile_default, status: assumed }

@@ -1,0 +1,22 @@
+id: belt_drive
+domain: mechanical
+label: Belt / chain drive
+svg: belt_drive.svg
+default_orientation: 0
+ports:
+- id: drive
+  name: Drive
+  side: left
+  kind: mechanical
+  allowed_media:
+  - belt
+  - shaft
+  order: 1
+- id: driven
+  name: Driven
+  side: right
+  kind: mechanical
+  allowed_media:
+  - belt
+  - shaft
+  order: 1

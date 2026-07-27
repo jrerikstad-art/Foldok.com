@@ -1,0 +1,23 @@
+block_type: CorrosionProtectionNote
+
+fields:
+  environment_class: C1|C2|C3|C4|C5|CX|user_defined
+  exposure_notes: string
+  material_family: string
+  protection_system: string
+  stainless_class: CRC_I|CRC_II|CRC_III|CRC_IV|CRC_V|null
+  galvanic_review: not_applicable | reviewed | open
+  assumptions: string[]
+  sources: string[]          # project file citations only
+  status: draft | confirmed
+  confirmed_by: string | null
+
+example_output: |
+  Corrosion protection (draft)
+    Environment: C3 (user-confirmed) — urban outdoor, atmospheric
+    Material: zinc-coated carbon steel — hot-dip galvanized (project choice)
+    Galvanic: reviewed — fastener and substrate noted in sources
+    Assumptions:
+      - Atmospheric exposure only; no splash or process chemicals declared
+      - Final suitability confirmed by responsible person
+    Sources: [project specs, …]

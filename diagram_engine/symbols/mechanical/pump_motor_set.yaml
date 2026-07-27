@@ -1,0 +1,31 @@
+id: pump_motor_set
+domain: hybrid
+label: Motor-pump set
+svg: pump_motor_set.svg
+default_rotation: 0
+ports:
+- id: suction
+  name: Suction
+  side: left
+  kind: fluid
+  allowed_media:
+  - water
+  - oil
+  - fluid
+  order: 1
+- id: discharge
+  name: Discharge
+  side: right
+  kind: fluid
+  allowed_media:
+  - water
+  - oil
+  - fluid
+  order: 1
+- id: electrical
+  name: Power
+  side: left
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 2

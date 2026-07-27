@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Foldok — design dummy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #16181D;
+      --paper: #F2F0EA;
+      --sheet: #fff;
+      --line: #DCD9D0;
+      --steel: #5A6472;
+      --signal: #F5C400;
+      --ok: #1E7A46;
+      --gap: #C74E19;
+      --gapbg: #FDF0E8;
+      --fact: #1450B4;
+      --factbg: #EAF1FD;
+      --dummy: #6B4FA0;
+      --dummybg: #F3EEFC;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Archivo, sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+    button, input, select, textarea { font-family: inherit; }
+    button { cursor: pointer; }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 52px;
+      padding: 0 18px;
+      background: var(--ink);
+      color: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    header .logo {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: transparent;
+      border-radius: 0;
+      color: var(--signal);
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 700; font-size: 22px; letter-spacing: -0.06em;
+      text-decoration: none; line-height: 1; padding: 0;
+    }
+    header b { font-size: 14px; letter-spacing: .06em; font-weight: 800; }
+    header .ver {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      color: var(--signal);
+    }
+    header .right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header .api {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      color: #c8ccd2;
+    }
+    .btn-signin {
+      font-weight: 700;
+      font-size: 12px;
+      padding: 7px 14px;
+      border-radius: 7px;
+      border: 1px solid #ffffff33;
+      background: transparent;
+      color: #fff;
+    }
+    .btn-signin:hover { background: #ffffff14; }
+
+    /* ── Design banner ── */
+    .dummy-bar {
+      background: var(--dummybg);
+      border-bottom: 1px solid #d9ccef;
+      padding: 8px 18px;
+      font-size: 12.5px;
+      color: var(--dummy);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .dummy-bar strong { font-weight: 800; }
+    .dummy-bar .pill {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 99px;
+      background: #fff;
+      border: 1px solid #d9ccef;
+    }
+    .dummy-bar button {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid #d9ccef;
+      background: #fff;
+      color: var(--dummy);
+    }
+    .dummy-bar .bar-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .dummy-bar button.active {
+      background: var(--dummy);
+      color: #fff;
+      border-color: var(--dummy);
+    }
+
+    /* ── Layout ── */
+    main { max-width: 1080px; margin: 0 auto; padding: 28px 20px 100px; }
+    main.layout-home { max-width: 1240px; }
+    .layout-canvas {
+      position: relative;
+      width: 1200px;
+      max-width: 100%;
+      margin: 0 auto;
+      min-height: 420px;
+    }
+    .layout-block { position: absolute; box-sizing: border-box; }
+    .layout-block .proj { margin-bottom: 0; height: 100%; box-sizing: border-box; }
+    .layout-block .card { height: 100%; overflow: auto; }
+    body.layout-edit-mode .layout-block {
+      outline: 2px dashed #9b7fd4;
+      outline-offset: 0;
+      cursor: move;
+      touch-action: none;
+      z-index: 1;
+    }
+    body.layout-edit-mode .layout-block:hover,
+    body.layout-edit-mode .layout-block.selected {
+      outline-color: var(--dummy);
+      outline-width: 2px;
+      z-index: 3;
+    }
+    .layout-tag {
+      display: none;
+      position: absolute;
+      top: -20px;
+      left: 0;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #fff;
+      background: var(--dummy);
+      padding: 2px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    body.layout-edit-mode .layout-tag { display: block; }
+    .layout-resize {
+      display: none;
+      position: absolute;
+      right: -6px;
+      bottom: -6px;
+      width: 14px;
+      height: 14px;
+      background: var(--dummy);
+      border: 2px solid #fff;
+      border-radius: 3px;
+      cursor: nwse-resize;
+      z-index: 4;
+    }
+    body.layout-edit-mode .layout-block.selected .layout-resize { display: block; }
+    .layout-hud {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--ink);
+      color: #fff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.2);
+      z-index: 50;
+      max-width: calc(100vw - 32px);
+    }
+    body.layout-edit-mode .layout-hud { display: block; }
+    .layout-hud b { color: var(--signal); }
+
+    h1 { font-size: 24px; font-weight: 900; margin: 0 0 4px; }
+    .sub { color: var(--steel); font-size: 13.5px; margin-bottom: 22px; line-height: 1.5; }
+    .mono { font-family: "IBM Plex Mono", monospace; }
+    .label {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      color: var(--steel);
+      margin-bottom: 10px;
+    }
+    .card {
+      background: var(--sheet);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 20px 22px;
+    }
+
+    /* ── Home: two-column on wide screens ── */
+    .home-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 820px) {
+      .home-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Project rows ── */
+    .proj {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      background: var(--sheet);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: border-color .12s, box-shadow .12s;
+      text-decoration: none;
+      color: inherit;
+    }
+    .proj:hover {
+      border-color: var(--ink);
+      box-shadow: 0 4px 16px rgba(22, 24, 29, .06);
+    }
+    .proj .ic {
+      width: 38px; height: 38px;
+      border-radius: 8px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+    .proj b { display: block; font-size: 14px; }
+    .proj small {
+      color: var(--steel);
+      font-size: 11.5px;
+      display: block;
+      margin-top: 2px;
+      word-break: break-all;
+    }
+    .proj .arrow { margin-left: auto; color: var(--steel); flex-shrink: 0; }
+
+    /* ── Forms ── */
+    input, select, textarea {
+      font-size: 13px;
+      padding: 9px 11px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #FBFAF6;
+      width: 100%;
+    }
+    textarea {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11.5px;
+    }
+    .field { margin-bottom: 10px; }
+    .field-hint {
+      font-size: 11px;
+      color: var(--steel);
+      margin-top: 4px;
+    }
+    .row { display: flex; gap: 10px; }
+    .row > * { flex: 1; }
+    .folder-row {
+      display: flex;
+      gap: 8px;
+    }
+    .folder-row input { flex: 1; }
+    .btn {
+      font-weight: 800;
+      font-size: 13px;
+      background: var(--signal);
+      color: var(--ink);
+      border: none;
+      border-radius: 7px;
+      padding: 10px 18px;
+      white-space: nowrap;
+    }
+    .btn:hover { filter: brightness(.97); }
+    .btn.ghost {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--steel);
+      font-weight: 700;
+    }
+    .btn.dark { background: var(--ink); color: #fff; }
+    .btn.sm { padding: 8px 12px; font-size: 12px; }
+
+    /* ── Project view ── */
+    .crumb { font-size: 12.5px; color: var(--steel); margin-bottom: 14px; }
+    .crumb a { color: var(--fact); text-decoration: none; font-weight: 700; cursor: pointer; }
+    .step { display: flex; gap: 14px; margin-bottom: 14px; }
+    .stepnum {
+      width: 30px; height: 30px;
+      border-radius: 99px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 13px;
+      border: 2px solid var(--line);
+      background: var(--sheet);
+      color: var(--steel);
+      margin-top: 16px;
+    }
+    .stepnum.on { border-color: var(--ink); background: var(--ink); color: #fff; }
+    .stepnum.ok { border-color: var(--ok); background: var(--ok); color: #fff; }
+    .step .card { flex: 1; margin-bottom: 0; }
+    .filerow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 12.5px;
+    }
+    .filerow:last-child { border-bottom: none; }
+    .kindtag {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      color: var(--steel);
+      width: 44px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .chip {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+    .chip.ok { background: #E8F5EC; color: var(--ok); }
+    .chip.wait { background: #FFF6CE; color: #8a6d00; }
+    .cap {
+      color: var(--steel);
+      font-size: 11.5px;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pill {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10.5px;
+      padding: 3px 9px;
+      background: var(--sheet);
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      margin: 0 4px 4px 0;
+      display: inline-block;
+    }
+    .gaprow {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin-bottom: 5px;
+      font-size: 12.5px;
+    }
+    .gaprow.blocking { background: var(--gapbg); color: var(--gap); }
+    .gaprow.warning { background: #FFF8E0; color: #8a6d00; }
+    .gaprow .sev {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    /* ── Foldable KILDER (dropdown affordance) ── */
+    .fold-card { margin: 0; }
+    .fold-card > summary {
+      list-style: none;
+      cursor: pointer;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--steel);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      user-select: none;
+    }
+    .fold-card > summary::-webkit-details-marker { display: none; }
+    .fold-card > summary::before {
+      content: "▸";
+      font-size: 12px;
+      color: var(--ink);
+      width: 14px;
+    }
+    .fold-card[open] > summary::before { content: "▾"; }
+    .fold-card > summary .fold-meta {
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--ok);
+      margin-left: auto;
+    }
+    .fold-card > summary .fold-hint {
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--steel);
+      font-size: 10px;
+      opacity: .85;
+    }
+    .fold-body { margin-top: 12px; }
+
+    /* ── Retning: combined FORSTÅ + BYGG chat ── */
+    .steer-chat {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #FBFAF6;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .steer-log {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 340px;
+      overflow-y: auto;
+    }
+    .steer-msg {
+      max-width: 92%;
+      font-size: 13.5px;
+      line-height: 1.5;
+      padding: 10px 12px;
+      border-radius: 10px;
+    }
+    .steer-msg.bot {
+      align-self: flex-start;
+      background: var(--sheet);
+      border: 1px solid var(--line);
+    }
+    .steer-msg.user {
+      align-self: flex-end;
+      background: var(--ink);
+      color: #fff;
+    }
+    .steer-msg .who {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--steel);
+      margin-bottom: 4px;
+    }
+    .steer-msg.user .who { color: #ffffff88; }
+    .steer-msg ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+    .steer-msg li { margin-bottom: 4px; }
+    .steer-suggest {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .steer-suggest button {
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 6px 11px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--sheet);
+      color: var(--ink);
+    }
+    .steer-suggest button:hover { border-color: var(--ink); }
+    .steer-suggest button.picked {
+      background: var(--signal);
+      border-color: var(--signal);
+    }
+    .steer-compose {
+      display: flex;
+      gap: 8px;
+      padding: 10px 12px;
+      border-top: 1px solid var(--line);
+      background: var(--sheet);
+    }
+    .steer-compose input { flex: 1; }
+    .steer-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 14px;
+    }
+    .steer-fallback {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--line);
+    }
+    .tpl-pick {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .tpl-pick .tpl-wrap {
+      flex: 1;
+      position: relative;
+    }
+    .tpl-pick select {
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 36px;
+      cursor: pointer;
+      background: #FBFAF6;
+      height: 100%;
+    }
+    .tpl-pick .tpl-wrap::after {
+      content: "▾";
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      font-size: 12px;
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    /* ── Notes panel ── */
+    .notes-panel {
+      position: fixed;
+      right: 0;
+      top: 84px;
+      width: 300px;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      background: var(--sheet);
+      border: 1px solid var(--line);
+      border-right: none;
+      border-radius: 10px 0 0 10px;
+      padding: 16px 18px;
+      box-shadow: -4px 0 24px rgba(22, 24, 29, .08);
+      transform: translateX(100%);
+      transition: transform .2s;
+      z-index: 30;
+      font-size: 12.5px;
+      line-height: 1.55;
+    }
+    .notes-panel.open { transform: translateX(0); }
+    .notes-panel h3 {
+      margin: 0 0 10px;
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--dummy);
+    }
+    .notes-panel ul { margin: 0 0 14px; padding-left: 18px; color: var(--steel); }
+    .notes-panel li { margin-bottom: 6px; }
+    .notes-panel .note-tag {
+      display: inline-block;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--dummybg);
+      color: var(--dummy);
+      margin-right: 4px;
+    }
+
+    /* ── Modal ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(22, 24, 29, .45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 40;
+      padding: 20px;
+    }
+    .overlay.show { display: flex; }
+    .modal {
+      background: var(--sheet);
+      border-radius: 12px;
+      padding: 24px 26px;
+      max-width: 400px;
+      width: 100%;
+      border: 1px solid var(--line);
+    }
+    .modal h2 { margin: 0 0 8px; font-size: 18px; }
+    .modal p { margin: 0 0 16px; color: var(--steel); font-size: 13.5px; line-height: 1.5; }
+    .modal .actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="#/" title="Foldok — fills […]">[…]</a>
+  <b>FOLDOK</b>
+  <span class="ver">v0.13.0</span>
+  <div class="right">
+    <span class="api">API-nøkkel: satt</span>
+    <button class="btn-signin" type="button" onclick="showSignIn()">Sign in</button>
+  </div>
+</header>
+
+<div class="dummy-bar">
+  <strong>Design dummy</strong>
+  <span class="pill">ingen backend</span>
+  <span class="pill">mock data</span>
+  <span>Layout fra <code class="mono">Capture Design/Code/outputs/foldok-home.json</code></span>
+  <span>— rediger i wireframe tool, last inn her</span>
+  <div class="bar-actions">
+    <button type="button" onclick="loadWireframeJson()">Last inn wireframe JSON</button>
+    <button type="button" onclick="resetLayout()">Nullstill layout</button>
+    <button type="button" onclick="exportWireframeJson()">Eksporter wireframe JSON</button>
+    <button type="button" onclick="toggleNotes()">Design-notater</button>
+  </div>
+  <span id="import-status" class="pill" style="display:none;background:var(--ok);color:#fff;border-color:var(--ok)"></span>
+  <input type="file" id="wireframe-import" accept=".json,application/json" hidden />
+</div>
+
+<div class="layout-hud" id="layout-hud" hidden></div>
+
+<main id="app"></main>
+
+<aside class="notes-panel" id="notes">
+  <h3>Design-notater</h3>
+  <p style="margin:0 0 12px;color:var(--steel)">Visuell mock uten backend. Layout-kilde: <code class="mono">./wireframes/foldok-home.json</code>. Rediger i wireframe tool, lagre, deretter <strong>Last inn wireframe JSON</strong>.</p>
+
+  <div><span class="note-tag">HOME</span> Prosjekter venstre, «nytt prosjekt» høyre på desktop.</div>
+  <ul>
+    <li>Mappe: «Velg mappe»-knapp + manuell lim inn (wireframe-note).</li>
+    <li>Sign in i header — placeholder til auth finnes.</li>
+    <li>Prosjektkort klikkbare → prosjektvisning.</li>
+  </ul>
+
+  <div><span class="note-tag">PROSJEKT</span> Ny retningsflyt (mock).</div>
+  <ul>
+    <li><strong>Kilder</strong> — foldbart med ▸/▾ (tydelig dropdown).</li>
+    <li><strong>Retning</strong> — FORSTÅ + BYGG i én chat: oppsummering → forslag → bruker styrer → Generer.</li>
+    <li>Motor under: A bekreftes før B/C (UI-merge, ikke kontrakt-merge).</li>
+    <li>Mal-dropdown er fallback under chatten.</li>
+  </ul>
+
+  <div><span class="note-tag">TODO</span> Åpent for diskusjon</div>
+  <ul>
+    <li>Når skal «Bekreft artefakt» være synlig vs skjult bak Generer?</li>
+    <li>Skal REDIGER-assistenten arve retnings-historikken?</li>
+    <li>Tom tilstand når ingen prosjekter?</li>
+  </ul>
+</aside>
+
+<div class="overlay" id="signin-overlay" onclick="if(event.target===this) hideSignIn()">
+  <div class="modal">
+    <h2>Sign in</h2>
+    <p>Placeholder for innlogging. Ikke implementert i design dummy — bare for å vise plassering i header.</p>
+    <div class="actions">
+      <button class="btn ghost sm" type="button" onclick="hideSignIn()">Lukk</button>
+      <button class="btn sm" type="button" onclick="hideSignIn()">Fortsett uten konto</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PROJECTS = [
+  {
+    id: "example",
+    name: "Example project",
+    folder: "/path/to/your/project-folder",
+  },
+];
+
+const MOCK_FILES = [
+  { kind: "DOC", name: "Tillatelse_2024.pdf", caption: "Utslippstillatelse kommunalt avløp", indexed: true, facts: 12 },
+  { kind: "DOC", name: "Tegning_P&ID_rev_B.pdf", caption: "Prosesstegning hovedanlegg", indexed: true, facts: 8 },
+  { kind: "IMG", name: "IMG_4521.jpg", caption: "Innløpskammer, nordvegg", indexed: true, facts: 3 },
+  { kind: "DOC", name: "Risikovurdering.docx", caption: "", indexed: false, facts: 0 },
+];
+
+const MOCK_GAPS = [
+  { severity: "blocking", section: "Kap. 3", label: "Maks utslipp mg/l ikke funnet i kilder" },
+  { severity: "warning", section: "Kap. 5", label: "Vedlikeholdsintervall pumper — antatt 12 mnd" },
+];
+
+const LAYOUT_KEY = "foldok-design-dummy-home-layout";
+const DEFAULT_HOME_LAYOUT = {
+  canvasWidth: 1200,
+  blocks: {
+    "block-title": { x: 0, y: 0, w: 680, h: 72, label: "Tittel" },
+    "block-projects-label": { x: 0, y: 88, w: 400, h: 24, label: "Dine prosjekter" },
+    "block-proj-sandnes": { x: 0, y: 118, w: 400, h: 76, label: "Demo løfteheis" },
+    "block-proj-foldok": { x: 0, y: 204, w: 400, h: 76, label: "Foldok" },
+    "block-proj-ryfylke": { x: 0, y: 290, w: 400, h: 76, label: "Verkstedveien demo" },
+    "block-new-project": { x: 440, y: 118, w: 420, h: 220, label: "Nytt prosjekt" },
+  },
+};
+
+let layoutEditMode = false;
+let selectedBlockId = null;
+let layoutDrag = null;
+let layoutMemory = null;
+
+function esc(s) {
+  return String(s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+function getLayout() {
+  if (layoutMemory) return layoutMemory;
+  try {
+    const raw = localStorage.getItem(LAYOUT_KEY);
+    if (raw) {
+      layoutMemory = JSON.parse(raw);
+      return layoutMemory;
+    }
+  } catch (_) {}
+  layoutMemory = JSON.parse(JSON.stringify(DEFAULT_HOME_LAYOUT));
+  return layoutMemory;
+}
+
+function saveLayout(layout) {
+  layoutMemory = JSON.parse(JSON.stringify(layout));
+  try {
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(layoutMemory));
+  } catch (_) {
+    /* file:// or private mode — in-memory layout still works */
+  }
+}
+
+function snap(n) {
+  return Math.round(n / 10) * 10;
+}
+
+function route() {
+  const m = location.hash.match(/^#\/p\/([^/?#]+)/);
+  const main = document.getElementById("app");
+  main.className = m ? "" : "layout-home";
+  main.innerHTML = m ? renderProject(m[1]) : renderHome();
+  if (!m) initLayoutBlocks();
+  updateLayoutControls();
+}
+
+function projBlock(id, p) {
+  const inner = `
+    <span class="ic">📁</span>
+    <span>
+      <b>${esc(p.name)}</b>
+      <small class="mono">${esc(p.folder)}</small>
+    </span>
+    <span class="arrow">→</span>`;
+  if (layoutEditMode) {
+    return `<div class="proj" data-block="${id}">${inner}</div>`;
+  }
+  return `<a class="proj" href="#/p/${p.id}" data-block="${id}">${inner}</a>`;
+}
+
+function layoutShell(id, label, html) {
+  return `
+    <div class="layout-block" data-block="${id}" data-label="${esc(label)}">
+      <span class="layout-tag">${esc(label)}</span>
+      <span class="layout-resize" data-resize="${id}"></span>
+      ${html}
+    </div>`;
+}
+
+function renderHome() {
+  const projects = [
+    ["block-proj-sandnes", PROJECTS[0]],
+    ["block-proj-foldok", PROJECTS[1]],
+    ["block-proj-ryfylke", PROJECTS[2]],
+  ];
+
+  return `
+    <div class="layout-canvas" id="layout-canvas">
+      ${layoutShell("block-title", "Tittel", `
+        <h1 style="margin-bottom:4px">Prosjekter</h1>
+        <p class="sub" style="margin-bottom:0">Mappen er databasen — hvert dokument er en visning over den.</p>
+      `)}
+      ${layoutShell("block-projects-label", "Dine prosjekter", `
+        <div class="label" style="margin-bottom:0">DINE PROSJEKTER</div>
+      `)}
+      ${projects.map(([id, p]) => layoutShell(id, p.name, projBlock(id, p))).join("")}
+      ${layoutShell("block-new-project", "Nytt prosjekt", `
+        <div class="card" style="margin:0;height:100%;box-sizing:border-box">
+          <div class="label">NYTT PROSJEKT — KOBLE TIL MAPPE</div>
+          <div class="field">
+            <input id="np-name" placeholder="Prosjektnavn, f.eks. Demo løfteheis" />
+          </div>
+          <div class="field">
+            <div class="folder-row">
+              <input id="np-folder" placeholder="Full folder path" />
+              <button class="btn ghost sm" type="button" onclick="pickFolder()">Velg mappe</button>
+            </div>
+            <div class="field-hint">Åpne mappevelger eller lim inn sti manuelt.</div>
+          </div>
+          <button class="btn" type="button" onclick="createProject()">+ Opprett prosjekt</button>
+          <div id="np-msg" style="margin-top:10px;font-size:13px;color:var(--steel)"></div>
+        </div>
+      `)}
+    </div>`;
+}
+
+function applyLayoutPositions(forcedLayout) {
+  const layout = forcedLayout || getLayout();
+  const canvas = document.getElementById("layout-canvas");
+  if (!canvas) return;
+
+  canvas.style.width = layout.canvasWidth + "px";
+  let maxBottom = 0;
+
+  canvas.querySelectorAll(".layout-block").forEach(el => {
+    const id = el.dataset.block;
+    const box = layout.blocks[id] || DEFAULT_HOME_LAYOUT.blocks[id];
+    if (!box) return;
+    el.style.display = "";
+    el.style.left = box.x + "px";
+    el.style.top = box.y + "px";
+    el.style.width = box.w + "px";
+    const minH = el.querySelector(".proj") ? 76 : (el.querySelector(".card") ? 220 : 0);
+    const h = Math.max(box.h || 0, minH);
+    if (h) el.style.height = h + "px";
+    else el.style.height = "auto";
+    maxBottom = Math.max(maxBottom, box.y + (h || el.offsetHeight || 80));
+  });
+
+  canvas.style.minHeight = Math.max(420, maxBottom + 40) + "px";
+}
+
+function initLayoutBlocks() {
+  applyLayoutPositions();
+  if (!layoutEditMode) return;
+
+  const canvas = document.getElementById("layout-canvas");
+  if (!canvas) return;
+
+  canvas.querySelectorAll(".layout-block").forEach(el => {
+    el.onpointerdown = (e) => {
+      if (e.target.closest(".layout-resize")) return;
+      if (e.target.closest("input, button, select, textarea, a")) return;
+      e.preventDefault();
+      selectBlock(el.dataset.block);
+      const box = getLayout().blocks[el.dataset.block];
+      layoutDrag = {
+        mode: "move",
+        id: el.dataset.block,
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        orig: { x: box.x, y: box.y },
+      };
+      el.setPointerCapture(e.pointerId);
+    };
+  });
+
+  canvas.querySelectorAll(".layout-resize").forEach(handle => {
+    handle.onpointerdown = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = handle.dataset.resize;
+      selectBlock(id);
+      const box = getLayout().blocks[id];
+      const el = canvas.querySelector(`[data-block="${id}"]`);
+      layoutDrag = {
+        mode: "resize",
+        id,
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        orig: { x: box.x, y: box.y, w: box.w, h: box.h || el.offsetHeight },
+      };
+      handle.setPointerCapture(e.pointerId);
+    };
+  });
+
+  if (!canvas.dataset.bound) {
+    canvas.dataset.bound = "1";
+    canvas.addEventListener("pointermove", onLayoutPointerMove);
+    canvas.addEventListener("pointerup", onLayoutPointerUp);
+    canvas.addEventListener("pointercancel", onLayoutPointerUp);
+  }
+}
+
+function onLayoutPointerMove(e) {
+  if (!layoutDrag || e.pointerId !== layoutDrag.pointerId) return;
+  const layout = getLayout();
+  const box = layout.blocks[layoutDrag.id];
+  if (!box) return;
+
+  const dx = e.clientX - layoutDrag.startX;
+  const dy = e.clientY - layoutDrag.startY;
+
+  if (layoutDrag.mode === "move") {
+    box.x = Math.max(0, snap(layoutDrag.orig.x + dx));
+    box.y = Math.max(0, snap(layoutDrag.orig.y + dy));
+  } else {
+    box.w = Math.max(120, snap(layoutDrag.orig.w + dx));
+    box.h = Math.max(40, snap(layoutDrag.orig.h + dy));
+  }
+
+  saveLayout(layout);
+  applyLayoutPositions();
+  updateLayoutHud(box);
+}
+
+function onLayoutPointerUp(e) {
+  if (!layoutDrag || e.pointerId !== layoutDrag.pointerId) return;
+  layoutDrag = null;
+}
+
+function selectBlock(id) {
+  selectedBlockId = id;
+  document.querySelectorAll(".layout-block").forEach(el => {
+    el.classList.toggle("selected", el.dataset.block === id);
+  });
+  const layout = getLayout();
+  updateLayoutHud(layout.blocks[id]);
+}
+
+function updateLayoutHud(box) {
+  const hud = document.getElementById("layout-hud");
+  if (!box || !layoutEditMode) return;
+  hud.innerHTML = `<b>${esc(box.label || selectedBlockId)}</b> — x:${box.x} y:${box.y} w:${box.w} h:${box.h || "auto"}`;
+}
+
+function updateLayoutControls() {}
+
+const WIREFRAME_BOX_META = {
+  "block-title": { id: 10, label: "Tittel — Prosjekter", color: "#6b7280", note: "H1: Prosjekter. Undertekst: Mappen er databasen — hvert dokument er en visning over den." },
+  "block-projects-label": { id: 11, label: "DINE PROSJEKTER", color: "#6b7280" },
+  "block-proj-sandnes": { id: 12, label: "Demo løfteheis", color: "#ae3ec9", note: "Prosjektkort — klikk åpner prosjekt" },
+  "block-proj-foldok": { id: 13, label: "Foldok", color: "#ae3ec9" },
+  "block-proj-ryfylke": { id: 14, label: "Verkstedveien demo", color: "#ae3ec9" },
+  "block-new-project": { id: 15, label: "NYTT PROSJEKT — KOBLE TIL MAPPE", color: "#3b6fed", note: "Velg mappe-knapp + manuell lim inn mappesti. Knapp: + Opprett prosjekt" },
+};
+
+const WIREFRAME_LABEL_TO_BLOCK = {
+  "Tittel — Prosjekter": "block-title",
+  "Tittel": "block-title",
+  "DINE PROSJEKTER": "block-projects-label",
+  "Dine prosjekter": "block-projects-label",
+  "Demo løfteheis": "block-proj-sandnes",
+  "Foldok": "block-proj-foldok",
+  "Verkstedveien demo": "block-proj-ryfylke",
+  "NYTT PROSJEKT — KOBLE TIL MAPPE": "block-new-project",
+  "Nytt prosjekt": "block-new-project",
+};
+
+const WIREFRAME_ID_TO_BLOCK = {
+  10: "block-title",
+  11: "block-projects-label",
+  12: "block-proj-sandnes",
+  13: "block-proj-foldok",
+  14: "block-proj-ryfylke",
+  15: "block-new-project",
+};
+
+function normalizeWireframeLabel(label) {
+  return String(label || "")
+    .trim()
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function wireframeLabelToBlock(box) {
+  if (box.id != null && WIREFRAME_ID_TO_BLOCK[box.id]) {
+    return WIREFRAME_ID_TO_BLOCK[box.id];
+  }
+  if (WIREFRAME_LABEL_TO_BLOCK[box.label]) {
+    return WIREFRAME_LABEL_TO_BLOCK[box.label];
+  }
+  const norm = normalizeWireframeLabel(box.label);
+  for (const [label, blockId] of Object.entries(WIREFRAME_LABEL_TO_BLOCK)) {
+    if (normalizeWireframeLabel(label) === norm) return blockId;
+  }
+  return null;
+}
+
+function showImportStatus(text, ok) {
+  const el = document.getElementById("import-status");
+  if (!el) return;
+  el.textContent = text;
+  el.style.display = "inline-block";
+  el.style.background = ok ? "var(--ok)" : "var(--gap)";
+  el.style.borderColor = ok ? "var(--ok)" : "var(--gap)";
+}
+
+function loadWireframeJson() {
+  document.getElementById("wireframe-import").click();
+}
+
+function importWireframeJson(data) {
+  const pages = Array.isArray(data.pages) ? data.pages : [];
+  const page = pages.find(p => /home|arbeidsbenk|prosjekter/i.test(p.name || "")) || pages[0];
+  if (!page) {
+    showImportStatus("Fant ingen sider i JSON", false);
+    return;
+  }
+
+  const layout = JSON.parse(JSON.stringify(DEFAULT_HOME_LAYOUT));
+  layout.canvasWidth = page.width || 1200;
+
+  /* Side menu in wireframe tool = parked for editing; on the dummy we keep
+     the same Foldok card design and only apply x/y/w/h positions. */
+  const allBoxes = [...(page.boxes || []), ...(data.sideMenu || [])];
+  let updated = 0;
+
+  for (const box of allBoxes) {
+    const blockId = wireframeLabelToBlock(box);
+    if (!blockId) continue;
+    layout.blocks[blockId] = {
+      x: Number(box.x) || 0,
+      y: Number(box.y) || 0,
+      w: Number(box.width) || DEFAULT_HOME_LAYOUT.blocks[blockId]?.w || 200,
+      h: Number(box.height) || DEFAULT_HOME_LAYOUT.blocks[blockId]?.h || 80,
+      label: DEFAULT_HOME_LAYOUT.blocks[blockId]?.label || box.label,
+    };
+    updated++;
+  }
+
+  if (!updated) {
+    showImportStatus("Ingen kjente bokser i JSON", false);
+    return;
+  }
+
+  saveLayout(layout);
+  if (location.hash.match(/^#\/p\//)) location.hash = "#/";
+  route();
+  showImportStatus("Oppdatert " + updated + " posisjoner", true);
+}
+
+function resetLayout() {
+  layoutMemory = null;
+  try { localStorage.removeItem(LAYOUT_KEY); } catch (_) {}
+  route();
+  showImportStatus("Standard layout", true);
+}
+
+function initWireframeImport() {
+  document.getElementById("wireframe-import").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      importWireframeJson(JSON.parse(await file.text()));
+    } catch (err) {
+      showImportStatus("Kunne ikke lese JSON", false);
+      console.error(err);
+    }
+  });
+}
+
+function exportWireframeJson() {
+  const layout = getLayout();
+  const boxes = [];
+
+  for (const [key, box] of Object.entries(layout.blocks)) {
+    const meta = WIREFRAME_BOX_META[key] || {};
+    const out = {
+      id: meta.id || key,
+      x: box.x,
+      y: box.y,
+      width: box.w,
+      height: box.h,
+      label: meta.label || box.label || key,
+      color: meta.color || "#6b7280",
+    };
+    if (meta.note) out.note = meta.note;
+    boxes.push(out);
+  }
+
+  boxes.sort((a, b) => (typeof a.id === "number" && typeof b.id === "number") ? a.id - b.id : 0);
+  const data = {
+    tool: "wireframe-sketch",
+    version: 5,
+    pages: [{
+      id: 1,
+      name: "Foldok — Home (arbeidsbenk)",
+      width: layout.canvasWidth || 1200,
+      heightMode: "endless",
+      height: null,
+      boxes,
+    }],
+    sideMenu: [],
+    description: "Exported from foldok-engine/web/design-dummy.html",
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "foldok-home.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportLayout() {
+  const layout = getLayout();
+  const blob = new Blob([JSON.stringify(layout, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "foldok-home-layout.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function renderProject(id) {
+  const p = PROJECTS.find(x => x.id === id) || PROJECTS[0];
+  const indexed = MOCK_FILES.filter(f => f.indexed).length;
+  const folderName = p.folder.split("\\").pop();
+  const fileRows = MOCK_FILES.map(f => `
+    <div class="filerow">
+      <span class="kindtag">${f.kind}</span>
+      <b style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</b>
+      <span class="cap">${esc(f.caption)}</span>
+      ${f.indexed
+        ? `<span class="chip ok">✓ indeksert · ${f.facts} fakta</span>`
+        : `<span class="chip wait">⏳ venter</span>`}
+    </div>`).join("");
+
+  const gapRows = MOCK_GAPS.map(g => `
+    <div class="gaprow ${g.severity}">
+      <span class="sev">${g.severity}</span>
+      <span><b>${esc(g.section)}</b> · ${esc(g.label)}</span>
+    </div>`).join("");
+
+  return `
+    <div class="crumb"><a href="#/">← Prosjekter</a></div>
+    <h1>${esc(p.name)}</h1>
+    <p class="sub mono">${esc(p.folder)}</p>
+
+    <div class="step">
+      <div class="stepnum ok">✓</div>
+      <div class="card">
+        <details class="fold-card">
+          <summary>
+            Kilder — ${MOCK_FILES.length} filer i 1 mappe
+            <span class="fold-hint">klikk for å åpne</span>
+            <span class="fold-meta">✓ ${indexed} indeksert</span>
+          </summary>
+          <div class="fold-body">
+            <div style="margin-bottom:8px">
+              <span class="pill">📁 ${esc(folderName)}</span>
+              <button class="btn ghost sm" type="button">+ Legg til mappe</button>
+            </div>
+            <div style="max-height:220px;overflow-y:auto">${fileRows}</div>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+              <button class="btn" disabled>✓ Alt indeksert</button>
+              <span class="mono" style="font-size:10.5px;color:var(--steel)">5 parallelle arbeidere · cache</span>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="stepnum on">2</div>
+      <div class="card">
+        <div class="label">Retning — forstå + bygg · én samtale</div>
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+          <b style="font-size:16px">${esc(p.name)}</b>
+          <span class="mono" style="font-size:11px;color:var(--ok)">87% sikker</span>
+          <span class="chip wait">utkast · ikke bekreftet</span>
+        </div>
+
+        <div class="steer-chat" id="steer-chat">
+          <div class="steer-log" id="steer-log">
+            <div class="steer-msg bot">
+              <div class="who">Assistent</div>
+              Jeg har indeksert <b>${indexed} filer</b> i «${esc(folderName)}». Dette ser ut som
+              <b>kommunalt renseanlegg</b> — drift og dokumentasjon for utslippstillatelse.
+              <ul>
+                <li>Tillatelse + P&amp;ID + foto av innløpskammer</li>
+                <li>Komponenter: innløpskammer, biologisk rensesteg, slambehandling</li>
+                <li>Farer: H₂S i lukket rom, kjemikalielager</li>
+                <li>1 fil venter fortsatt (Risikovurdering.docx)</li>
+              </ul>
+              <p style="margin:10px 0 0">Jeg kan bygge dette ut fra kildene:</p>
+              <div class="steer-suggest">
+                <button type="button" class="picked" onclick="steerPick(this)">Driftsdokumentasjon</button>
+                <button type="button" onclick="steerPick(this)">Kontraktsgjennomgang</button>
+                <button type="button" onclick="steerPick(this)">Teknisk dokumentasjonspakke</button>
+              </div>
+            </div>
+            <div class="steer-msg user" id="steer-user-msg" hidden>
+              <div class="who">Du</div>
+              <span id="steer-user-text"></span>
+            </div>
+            <div class="steer-msg bot" id="steer-reply" hidden>
+              <div class="who">Assistent</div>
+              <span id="steer-reply-text"></span>
+            </div>
+          </div>
+          <div class="steer-compose">
+            <input id="steer-input" placeholder="Skriv retning — f.eks. «start med driftsdok» eller «dette er bare for kommunen»"
+              onkeydown="if(event.key==='Enter')steerSend()" />
+            <button class="btn" type="button" onclick="steerSend()">Send</button>
+          </div>
+        </div>
+
+        <div class="steer-actions">
+          <button class="btn" type="button" onclick="steerGenerate()">Bekreft &amp; generer utkast →</button>
+          <button class="btn ghost" type="button">Lagre utkast</button>
+          <span class="mono" style="font-size:10.5px;color:var(--steel)">~€0,12 · A bekreftes, deretter B+C</span>
+        </div>
+
+        <div class="steer-fallback">
+          <div class="label">Eller velg mal direkte</div>
+          <div class="tpl-pick">
+            <div class="tpl-wrap">
+              <select id="steer-tpl" aria-label="Velg mal">
+                <option selected>Driftsdokumentasjon (NO)</option>
+                <option>Kontraktsgjennomgang</option>
+                <option>Designgrunnlag struktur</option>
+                <option>Teknisk dokumentasjonspakke</option>
+              </select>
+            </div>
+            <button class="btn dark" type="button" onclick="steerGenerate()">Generer →</button>
+          </div>
+        </div>
+
+        <details style="margin-top:16px">
+          <summary style="cursor:pointer;font-size:12.5px;color:var(--steel);font-weight:700">Forhåndsvisning av mangler (etter generering)</summary>
+          <div style="margin-top:10px">
+            <div class="label">MANGLER OG HULL (${MOCK_GAPS.length})</div>
+            ${gapRows}
+          </div>
+        </details>
+      </div>
+    </div>`;
+}
+
+function steerPick(btn) {
+  document.querySelectorAll(".steer-suggest button").forEach(b => b.classList.remove("picked"));
+  btn.classList.add("picked");
+  const tpl = document.getElementById("steer-tpl");
+  if (!tpl) return;
+  const label = btn.textContent.trim();
+  for (const opt of tpl.options) {
+    if (opt.text.includes(label) || label.includes(opt.text.split(" ")[0])) {
+      tpl.value = opt.value;
+      opt.selected = true;
+      break;
+    }
+  }
+  const input = document.getElementById("steer-input");
+  if (input) input.value = "Bygg «" + label + "» først";
+}
+
+function steerSend() {
+  const input = document.getElementById("steer-input");
+  const text = (input?.value || "").trim();
+  if (!text) return;
+  const userMsg = document.getElementById("steer-user-msg");
+  const userText = document.getElementById("steer-user-text");
+  const reply = document.getElementById("steer-reply");
+  const replyText = document.getElementById("steer-reply-text");
+  if (userText) userText.textContent = text;
+  if (userMsg) userMsg.hidden = false;
+  if (replyText) {
+    replyText.innerHTML = "Forstått. Jeg oppdaterer modellen og setter malen deretter. "
+      + "Trykk <b>Bekreft &amp; generer</b> når du er klar — eller juster videre her.";
+  }
+  if (reply) reply.hidden = false;
+  input.value = "";
+  const log = document.getElementById("steer-log");
+  if (log) log.scrollTop = log.scrollHeight;
+}
+
+function steerGenerate() {
+  const btn = document.querySelector(".steer-actions .btn");
+  if (btn) {
+    btn.textContent = "✓ Genererer… (mock)";
+    btn.disabled = true;
+  }
+  setTimeout(() => {
+    if (btn) {
+      btn.textContent = "Bekreft & generer utkast →";
+      btn.disabled = false;
+    }
+    alert("Mock: ville bekreftet artefakt (A) og generert valgt mal (B+C).");
+  }, 600);
+}
+
+function pickFolder() {
+  const input = document.getElementById("np-folder");
+  if (!input) return;
+  input.value = "C:\\Prosjekter\\MittProsjekt";
+  const msg = document.getElementById("np-msg");
+  if (msg) msg.textContent = "Mock: mappevelger returnerte en eksempelsti.";
+}
+
+function createProject() {
+  const name = document.getElementById("np-name")?.value.trim();
+  const folder = document.getElementById("np-folder")?.value.trim();
+  const msg = document.getElementById("np-msg");
+  if (!name || !folder) {
+    if (msg) msg.innerHTML = `<span style="color:var(--gap)">Fyll inn prosjektnavn og mappesti.</span>`;
+    return;
+  }
+  if (msg) msg.innerHTML = `<span style="color:var(--ok)">Mock: «${esc(name)}» opprettet — ville navigert til prosjektvisning.</span>`;
+}
+
+function showSignIn() {
+  document.getElementById("signin-overlay").classList.add("show");
+}
+function hideSignIn() {
+  document.getElementById("signin-overlay").classList.remove("show");
+}
+function toggleNotes() {
+  document.getElementById("notes").classList.toggle("open");
+}
+
+window.addEventListener("hashchange", route);
+initWireframeImport();
+route();
+</script>
+</body>
+</html>

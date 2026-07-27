@@ -1,0 +1,18 @@
+corrosion_definition: >
+  Physicochemical interaction between a metal and its environment that
+  changes material properties and may impair function of the metal or system.
+  (Aligned with common ISO 8044 framing — label only, not full standard text.)
+
+requirements_for_electrochemical_corrosion:
+  - electrically conducting metal
+  - electrolyte (thin moisture film can be enough)
+  - cathodic reactant (typically oxygen in atmospheric exposure)
+
+reaction_parts:
+  anodic: metal dissolution (oxidation)
+  cathodic: typically oxygen reduction in atmospheric corrosion
+
+types:
+  - electrochemical   # most common in normal service
+  - chemical          # e.g. high-temperature oxidation
+  - metallophysical   # e.g. hydrogen embrittlement mechanisms

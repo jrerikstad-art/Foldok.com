@@ -1,0 +1,24 @@
+id: ohms_law
+label: Ohm's law (V = I R)
+domains: [electrical]
+formula_latex: "V = I \\times R"
+formula_code: "I * R"
+description: Voltage from current and resistance.
+safety_critical: false
+assumptions:
+  - DC or RMS-equivalent; steady-state
+inputs:
+  - key: I
+    label: Current
+    unit: A
+    required: true
+    fact_keys: [current, I, amperage]
+  - key: R
+    label: Resistance
+    unit: ohm
+    required: true
+    fact_keys: [resistance, R]
+outputs:
+  - key: V
+    label: Voltage
+    unit: V

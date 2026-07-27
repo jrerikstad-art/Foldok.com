@@ -1,0 +1,107 @@
+{
+  "template_key": "project_plan",
+  "name": "Project Plan",
+  "name_no": "Prosjektplan",
+  "description": "Phased project plan compiled from the project memory: phases and activities drafted by AI from the artifact model and indexed material (clearly AI-proposed, user-owned), while every date, deadline, dimension and document reference is a cited fact or [MANGLER]. Known issues (rev conflicts, open TQs, hazards) are pulled from the index as risk items. Sequencing and priorities are planning judgment — author placeholders mark where the human decides.",
+  "applies_to": [],
+  "version": 1,
+  "language_default": "no",
+  "export_price_tier": "standard",
+  "sections": [
+    {
+      "section_key": "plan_overview",
+      "title": "Overview & Objective",
+      "title_no": "Oversikt og mål",
+      "position": 1,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "project_name", "fact_type": "identifier", "severity": "warning", "label": "Project name", "label_no": "Prosjektnavn" },
+        { "key": "scope_statement", "fact_type": "instruction", "severity": "warning", "label": "Objective / scope as stated in sources", "label_no": "Mål/omfang slik det fremgår av kildene" }
+      ],
+      "required_media": { "min_photos": 0, "preferred_roles": ["overview", "site_plan", "drawing"] },
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 150, "fact_citation": "required" }
+    },
+    {
+      "section_key": "phases",
+      "title": "Phases & Activities",
+      "title_no": "Faser og aktiviteter",
+      "position": 2,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["ai_proposed_banner", "author_placeholder_for_sequencing", "no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "numbered_list", "max_words": 500, "fact_citation": "required" },
+      "notes": "AI drafts phases from artifact lifecycle + document types present (design → søknad → utførelse → ferdigstillelse patterns). Every activity referencing a spec/dimension/document cites it. Section carries the 'AI-foreslått struktur' banner; '[AUTHOR: bekreft rekkefølge og ansvar]' per phase — sequencing is planning judgment, not extraction."
+    },
+    {
+      "section_key": "milestones",
+      "title": "Milestones & Dates",
+      "title_no": "Milepæler og datoer",
+      "position": 3,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [
+        { "key": "deadline", "fact_type": "deadline", "severity": "info", "label": "Dates/deadlines found in sources", "label_no": "Datoer/frister funnet i kildene" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "chronological_order", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Table: milepæl | dato | kilde | status. ONLY dates that exist as facts (deadlines, document dates, permit dates) — planned future dates the user hasn't stated render as [MANGLER: dato — angi] rows the user fills. The engine never invents a schedule."
+    },
+    {
+      "section_key": "risks_open_items",
+      "title": "Risks & Open Items",
+      "title_no": "Risiko og åpne punkter",
+      "position": 4,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["table_format", "compiled_from_index", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Code+AI hybrid: rows compiled from what the index already knows — revision conflicts (drawings register), open TQs (spec review docs), hazards/warnings (facts), unresolved MANGLER across sibling documents. Each row cites its source. Mitigation column = author placeholder."
+    },
+    {
+      "section_key": "document_deliverables",
+      "title": "Document Deliverables",
+      "title_no": "Dokumentleveranser",
+      "position": 5,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["table_format", "reference_source_documents"],
+      "writing_rules": { "structure": "table", "fact_citation": "optional" },
+      "notes": "Which documents this project needs/has: existing project documents (from the project's document list) + completeness suggestions (detect_suggestions) as proposed rows marked 'foreslått'. The plan becomes the natural home for the suggestion engine's output."
+    },
+    {
+      "section_key": "source_register",
+      "title": "Source Register",
+      "title_no": "Kilderegister",
+      "position": 6,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["reference_source_documents", "table_format"],
+      "writing_rules": { "structure": "table", "fact_citation": "optional" }
+    },
+    {
+      "section_key": "declaration",
+      "title": "Declaration",
+      "title_no": "Erklæring",
+      "position": 7,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": { "structure": "boilerplate" },
+      "boilerplate": "This plan was compiled from the sources listed in the Source Register; dates, dimensions and references are cited facts. Phasing, sequencing and priorities are proposals requiring the project owner's judgment and confirmation. This document is a planning aid, not a contractual schedule.",
+      "boilerplate_no": "Denne planen er sammenstilt fra kildene i kilderegisteret; datoer, dimensjoner og referanser er siterte fakta. Fasedeling, rekkefølge og prioriteringer er forslag som krever prosjekteiers vurdering og bekreftelse. Dokumentet er et planleggingsverktøy, ikke en kontraktsfestet fremdriftsplan."
+    }
+  ]
+}

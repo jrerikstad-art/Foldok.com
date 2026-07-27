@@ -1,0 +1,14 @@
+{
+  "name": "foldok",
+  "private": true,
+  "description": "Foldok — project folders to technical documentation",
+  "scripts": {
+    "start": "python local_app/server.py",
+    "workbench": "powershell -ExecutionPolicy Bypass -File scripts/workbench.ps1",
+    "release": "powershell -ExecutionPolicy Bypass -File scripts/make_release.ps1",
+    "test:registry": "python scripts/test_document_type_registry.py",
+    "test:compliance": "python scripts/test_compliance_phase1.py",
+    "test:calculations": "python scripts/test_calculation_engine.py",
+    "test:materials": "python scripts/test_materials_engine.py"
+  }
+}

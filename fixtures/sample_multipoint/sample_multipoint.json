@@ -1,0 +1,726 @@
+{
+  "template_key": "sample_multipoint",
+  "name": "Multipoint Inspection",
+  "name_no": "Multipoint Inspection",
+  "description": "Print-faithful multipoint inspection form_fill (form_engine sample fixture).",
+  "document_species": "form_fill",
+  "applies_to": [
+    "vehicle",
+    "inspection"
+  ],
+  "version": 1,
+  "language_default": "no",
+  "export_price_tier": "basic",
+  "origin": "imported",
+  "badge": "Egen mal",
+  "legend": [
+    "Kontrollert og OK",
+    "Kan kreve tiltak senere",
+    "Krever tiltak nå"
+  ],
+  "footer": "Øverst — kundekopi / Nederst — verkstedkopi",
+  "subtitle": "Foldok · form_fill · felt-utfyllbar",
+  "sections": [
+    {
+      "section_key": "kunde_og_kjoretoy",
+      "title": "Kunde og kjøretøy",
+      "title_no": "Kunde og kjøretøy",
+      "position": 1,
+      "required": true,
+      "gap_severity": "warning",
+      "block_type": "form_section",
+      "columns": 1,
+      "side_label": false,
+      "fields": [
+        {
+          "key": "date",
+          "type": "date",
+          "label": "Dato",
+          "label_no": "Dato",
+          "required": true,
+          "severity": "warning"
+        },
+        {
+          "key": "customer_name",
+          "type": "text",
+          "label": "Kunde",
+          "label_no": "Kunde",
+          "required": true,
+          "severity": "warning"
+        },
+        {
+          "key": "reg_no",
+          "type": "text",
+          "label": "Reg.nr",
+          "label_no": "Reg.nr",
+          "required": true,
+          "severity": "warning"
+        },
+        {
+          "key": "model_year",
+          "type": "text",
+          "label": "År/merke/modell",
+          "label_no": "År/merke/modell",
+          "required": false,
+          "severity": "info"
+        },
+        {
+          "key": "mileage",
+          "type": "measure",
+          "label": "Km-stand",
+          "label_no": "Km-stand",
+          "required": true,
+          "severity": "warning",
+          "unit": "km",
+          "cells": [
+            ""
+          ]
+        },
+        {
+          "key": "vin",
+          "type": "text",
+          "label": "VIN",
+          "label_no": "VIN",
+          "required": true,
+          "severity": "warning"
+        }
+      ]
+    },
+    {
+      "section_key": "eksterior",
+      "title": "Eksteriør",
+      "title_no": "Eksteriør",
+      "position": 2,
+      "required": true,
+      "gap_severity": "warning",
+      "block_type": "form_section",
+      "columns": 1,
+      "side_label": true,
+      "fields": [
+        {
+          "key": "horn",
+          "type": "rating3",
+          "label": "Horn",
+          "label_no": "Horn",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "lights",
+          "type": "rating3",
+          "label": "Lys / blinklys / bremselys",
+          "label_no": "Lys / blinklys / bremselys",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "wipers",
+          "type": "rating3",
+          "label": "Vindusviskere og spylere",
+          "label_no": "Vindusviskere og spylere",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "windshield",
+          "type": "rating3",
+          "label": "Frontrute",
+          "label_no": "Frontrute",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "fuel_cap",
+          "type": "rating3",
+          "label": "Tanklokk-pakning",
+          "label_no": "Tanklokk-pakning",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        }
+      ]
+    },
+    {
+      "section_key": "interior",
+      "title": "Interiør",
+      "title_no": "Interiør",
+      "position": 3,
+      "required": true,
+      "gap_severity": "warning",
+      "block_type": "form_section",
+      "columns": 1,
+      "side_label": true,
+      "fields": [
+        {
+          "key": "dome_light",
+          "type": "rating3",
+          "label": "Innvendig lys / instrumentbelysning",
+          "label_no": "Innvendig lys / instrumentbelysning",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "cabin_filter",
+          "type": "rating3",
+          "label": "Kupéfilter",
+          "label_no": "Kupéfilter",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "parking_brake",
+          "type": "rating3",
+          "label": "Parkeringsbrems",
+          "label_no": "Parkeringsbrems",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "floormat",
+          "type": "rating3",
+          "label": "Fastmontering av førermatte",
+          "label_no": "Fastmontering av førermatte",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        }
+      ]
+    },
+    {
+      "section_key": "motorrom",
+      "title": "Motorrom",
+      "title_no": "Motorrom",
+      "position": 4,
+      "required": true,
+      "gap_severity": "warning",
+      "block_type": "form_section",
+      "columns": 1,
+      "side_label": true,
+      "fields": [
+        {
+          "key": "air_filter",
+          "type": "rating3",
+          "label": "Luftfilter",
+          "label_no": "Luftfilter",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "battery_cond",
+          "type": "rating3",
+          "label": "Batteri (kabler/klemmer/korrosjon)",
+          "label_no": "Batteri (kabler/klemmer/korrosjon)",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "battery_health",
+          "type": "rating3",
+          "label": "Batteritilstand",
+          "label_no": "Batteritilstand",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "cooling",
+          "type": "rating3",
+          "label": "Kjølesystem (lekkasje)",
+          "label_no": "Kjølesystem (lekkasje)",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "hoses",
+          "type": "rating3",
+          "label": "Slanger (sprekker/skade/lekkasje)",
+          "label_no": "Slanger (sprekker/skade/lekkasje)",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "belts",
+          "type": "rating3",
+          "label": "Drivremmer (sprekker/skade/slitasje)",
+          "label_no": "Drivremmer (sprekker/skade/slitasje)",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "radiator",
+          "type": "rating3",
+          "label": "Radiator / AC-kondensator",
+          "label_no": "Radiator / AC-kondensator",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        }
+      ]
+    },
+    {
+      "section_key": "vaesker",
+      "title": "Væsker",
+      "title_no": "Væsker",
+      "position": 5,
+      "required": true,
+      "gap_severity": "warning",
+      "block_type": "form_section",
+      "columns": 1,
+      "side_label": true,
+      "fields": [
+        {
+          "key": "washer_fluid",
+          "type": "rating3",
+          "label": "Spylervæske",
+          "label_no": "Spylervæske",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "coolant",
+          "type": "rating3",
+          "label": "Kjølevæske",
+          "label_no": "Kjølevæske",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "power_steering",
+          "type": "rating3",
+          "label": "Servostyring",
+          "label_no": "Servostyring",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "brake_fluid",
+          "type": "rating3",
+          "label": "Bremsevæske",
+          "label_no": "Bremsevæske",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "transmission",
+          "type": "rating3",
+          "label": "Girkasse / transaksel",
+          "label_no": "Girkasse / transaksel",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "differential",
+          "type": "rating3",
+          "label": "Differensial",
+          "label_no": "Differensial",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        }
+      ]
+    },
+    {
+      "section_key": "understell",
+      "title": "Understell",
+      "title_no": "Understell",
+      "position": 6,
+      "required": true,
+      "gap_severity": "warning",
+      "block_type": "form_section",
+      "columns": 1,
+      "side_label": true,
+      "fields": [
+        {
+          "key": "driveshaft",
+          "type": "rating3",
+          "label": "Drivaksel / kardang (skade/lekkasje/kryss)",
+          "label_no": "Drivaksel / kardang (skade/lekkasje/kryss)",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "cv_boots",
+          "type": "rating3",
+          "label": "Drivaksel-mansjetter",
+          "label_no": "Drivaksel-mansjetter",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "hub_bearing",
+          "type": "rating3",
+          "label": "Navlager (skade/lyd)",
+          "label_no": "Navlager (skade/lyd)",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "steering",
+          "type": "rating3",
+          "label": "Styring (skade/slitasje)",
+          "label_no": "Styring (skade/slitasje)",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "suspension",
+          "type": "rating3",
+          "label": "Fjæring (skade/slitasje)",
+          "label_no": "Fjæring (skade/slitasje)",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "fluid_leaks",
+          "type": "rating3",
+          "label": "Væskelekkasjer",
+          "label_no": "Væskelekkasjer",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "exhaust",
+          "type": "rating3",
+          "label": "Eksosanlegg (skade/korrosjon)",
+          "label_no": "Eksosanlegg (skade/korrosjon)",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "fuel_lines",
+          "type": "rating3",
+          "label": "Drivstoffledninger og tank",
+          "label_no": "Drivstoffledninger og tank",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        }
+      ]
+    },
+    {
+      "section_key": "dekk",
+      "title": "Dekk",
+      "title_no": "Dekk",
+      "position": 7,
+      "required": true,
+      "gap_severity": "warning",
+      "block_type": "form_section",
+      "columns": 1,
+      "side_label": true,
+      "fields": [
+        {
+          "key": "tire_pressure",
+          "type": "measure",
+          "label": "Dekktrykk justert til",
+          "label_no": "Dekktrykk justert til",
+          "required": false,
+          "severity": "info",
+          "unit": "bar",
+          "cells": [
+            "VF",
+            "HF",
+            "VB",
+            "HB",
+            "Res"
+          ]
+        },
+        {
+          "key": "tread_depth",
+          "type": "measure",
+          "label": "Mønsterdybde",
+          "label_no": "Mønsterdybde",
+          "required": true,
+          "severity": "warning",
+          "unit": "mm",
+          "cells": [
+            "VF",
+            "HF",
+            "VB",
+            "HB"
+          ]
+        },
+        {
+          "key": "tire_damage",
+          "type": "rating3",
+          "label": "Dekkskade / unormal slitasje",
+          "label_no": "Dekkskade / unormal slitasje",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "rims",
+          "type": "rating3",
+          "label": "Felger / hjulmuttere",
+          "label_no": "Felger / hjulmuttere",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "torque_spec",
+          "type": "measure",
+          "label": "Tiltrekkingsmoment",
+          "label_no": "Tiltrekkingsmoment",
+          "required": false,
+          "severity": "info",
+          "unit": "Nm",
+          "cells": [
+            ""
+          ]
+        }
+      ]
+    },
+    {
+      "section_key": "bremser",
+      "title": "Bremser",
+      "title_no": "Bremser",
+      "position": 8,
+      "required": true,
+      "gap_severity": "warning",
+      "block_type": "form_section",
+      "columns": 1,
+      "side_label": true,
+      "fields": [
+        {
+          "key": "brake_lining",
+          "type": "measure",
+          "label": "Bremsebelegg",
+          "label_no": "Bremsebelegg",
+          "required": true,
+          "severity": "warning",
+          "unit": "mm",
+          "cells": [
+            "VF",
+            "HF",
+            "VB",
+            "HB"
+          ]
+        },
+        {
+          "key": "brake_lines",
+          "type": "rating3",
+          "label": "Bremserør / slanger / håndbrekkvaier",
+          "label_no": "Bremserør / slanger / håndbrekkvaier",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        },
+        {
+          "key": "discs",
+          "type": "rating3",
+          "label": "Skiver / trommler / kalipere",
+          "label_no": "Skiver / trommler / kalipere",
+          "required": false,
+          "severity": "info",
+          "options": [
+            "ok",
+            "attention",
+            "immediate"
+          ]
+        }
+      ]
+    },
+    {
+      "section_key": "kommentarer_og_signatur",
+      "title": "Kommentarer og signatur",
+      "title_no": "Kommentarer og signatur",
+      "position": 9,
+      "required": true,
+      "gap_severity": "warning",
+      "block_type": "form_section",
+      "columns": 1,
+      "side_label": false,
+      "fields": [
+        {
+          "key": "comments",
+          "type": "text",
+          "label": "Kommentarer",
+          "label_no": "Kommentarer",
+          "required": false,
+          "severity": "info"
+        },
+        {
+          "key": "comments2",
+          "type": "text",
+          "label": "comments2",
+          "label_no": "comments2",
+          "required": false,
+          "severity": "info"
+        },
+        {
+          "key": "technician",
+          "type": "text",
+          "label": "Tekniker",
+          "label_no": "Tekniker",
+          "required": true,
+          "severity": "warning"
+        },
+        {
+          "key": "signature",
+          "type": "signature",
+          "label": "Signatur",
+          "label_no": "Signatur",
+          "required": false,
+          "severity": "info"
+        }
+      ]
+    }
+  ]
+}

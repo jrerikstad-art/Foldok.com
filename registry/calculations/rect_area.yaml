@@ -1,0 +1,24 @@
+id: rect_area
+label: Rectangle area
+domains: [general, construction, machinery]
+formula_latex: "A = L \\times W"
+formula_code: "L * W"
+description: Area of a rectangle from length and width.
+safety_critical: false
+assumptions:
+  - Flat rectangle; no trim or waste allowance
+inputs:
+  - key: L
+    label: Length
+    unit: m
+    required: true
+    fact_keys: [length, L, lengde]
+  - key: W
+    label: Width
+    unit: m
+    required: true
+    fact_keys: [width, W, bredde]
+outputs:
+  - key: A
+    label: Area
+    unit: m2

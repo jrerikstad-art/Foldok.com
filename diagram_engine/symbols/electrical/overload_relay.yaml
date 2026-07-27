@@ -1,0 +1,21 @@
+id: overload_relay
+domain: electrical
+label: Thermal overload relay
+svg: overload_relay.svg
+default_orientation: 0
+standard_hint: IEC-style
+ports:
+- id: in
+  name: In
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: out
+  name: Out
+  side: bottom
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1

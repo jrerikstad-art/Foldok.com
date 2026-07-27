@@ -1,0 +1,50 @@
+forms:
+  - id: uniform
+    name: Uniform / general corrosion
+    description: Relatively even metal loss over the surface.
+    notes:
+      - Often estimated as average rate (e.g. µm/year) from experience or tables.
+      - Predictable compared with localized forms when environment is stable.
+
+  - id: pitting
+    name: Pitting corrosion
+    description: Localized attack forming pits; common on passive metals.
+    notes:
+      - Passive films (stainless, aluminium, etc.) can break down locally.
+      - Chlorides are a frequent aggravating factor.
+
+  - id: crevice
+    name: Crevice corrosion
+    description: Attack in shielded gaps with restricted oxygen access.
+    notes:
+      - Geometry and stagnant electrolyte matter.
+      - Gaps too tight or too open may not initiate the same way.
+
+  - id: galvanic
+    name: Galvanic (contact) corrosion
+    description: >
+      Accelerated attack of the less noble metal when dissimilar metals are
+      electrically coupled in an electrolyte.
+    notes:
+      - Driven by potential difference and area ratio.
+      - Small anodic fastener on large cathodic plate is a high-risk geometry.
+
+  - id: scc
+    name: Stress corrosion cracking
+    description: Cracking from combined tensile stress and specific corrosive environment.
+    notes:
+      - Requires susceptible material + tensile stress + specific environment together.
+      - Can cause sudden failure with little prior visible warning.
+
+  - id: hydrogen
+    name: Hydrogen-assisted cracking / embrittlement
+    description: Loss of ductility or cracking related to hydrogen in the metal.
+    notes:
+      - Hydrogen may come from processes (e.g. plating) or corrosion reactions.
+      - High-strength steels need particular care.
+
+  - id: intergranular
+    name: Intergranular corrosion
+    description: Preferential attack along grain boundaries.
+    notes:
+      - Often linked to sensitization or composition differences at boundaries.

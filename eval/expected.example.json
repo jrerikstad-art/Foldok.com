@@ -1,0 +1,24 @@
+{
+  "_comment": "Ground truth for eval. Copy to <project-folder>/expected.json and edit. You only need to fill what you know — partial ground truth still scores.",
+  "files": {
+    "IMG_2844.jpg": {
+      "roles": ["nameplate"],
+      "facts": [
+        { "key": "swl", "value": "3.2" },
+        { "key": "serial_no", "value": "BLT-2026-011" }
+      ],
+      "any_extra_ok": true
+    },
+    "lasttest_rapport.pdf": {
+      "roles": ["test_result", "certificate"],
+      "facts": [
+        { "key": "test_standard", "value": "EN 13155" },
+        { "key": "proof_load", "value": "4.8" }
+      ]
+    }
+  },
+  "mapping": {
+    "IMG_2844.jpg": ["technical_data", "cover"],
+    "lasttest_rapport.pdf": ["test_documentation"]
+  }
+}

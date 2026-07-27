@@ -1,0 +1,59 @@
+id: electrical_installation
+regions: [eu, eea, "no", us, international]
+domains: [electrical]
+label: Electrical installation (structural profile)
+description: >
+  Structural evidence kinds for electrical installation packages
+  (aligned with common NEK / EU / NEC-style *package shapes*).
+  Not full code text; not a compliance determination.
+evidence_requirements:
+  - id: single_line_or_schematic
+    framework_ref: Electrical-Installation
+    clause_family: Schematics
+    evidence_type: drawing
+    severity: blocking
+    description: Single-line diagram or schematic available
+    satisfied_by:
+      fact_keys: [circuit, single_line]
+      document_sections: [design_documentation, system_overview]
+      media_roles: [schematic, wiring, drawing]
+  - id: inspection_record
+    framework_ref: Electrical-Installation
+    clause_family: Inspection
+    evidence_type: inspection_record
+    severity: blocking
+    description: Inspection record for the installation
+    satisfied_by:
+      fact_keys: [inspection, visual_inspection]
+      document_sections: [checklist, results]
+      media_roles: [inspection]
+  - id: test_results
+    framework_ref: Electrical-Installation
+    clause_family: Testing
+    evidence_type: test_record
+    severity: blocking
+    description: Insulation / earth / RCD or equivalent test results
+    satisfied_by:
+      fact_keys: [insulation_resistance, earth_continuity, rcd_test, test_result]
+      document_sections: [measurements, results]
+      media_roles: [test_result]
+  - id: declaration_or_certificate
+    framework_ref: Electrical-Installation
+    clause_family: Declaration
+    evidence_type: declaration
+    severity: warning
+    description: Declaration or certificate of conformity / completion
+    satisfied_by:
+      fact_keys: [declaration, nek400_edition]
+      document_sections: [declaration]
+      media_roles: []
+  - id: as_built_photos
+    framework_ref: Electrical-Installation
+    clause_family: As-built evidence
+    evidence_type: photo
+    severity: warning
+    description: As-built photos of installation
+    satisfied_by:
+      fact_keys: []
+      document_sections: [photo_evidence]
+      media_roles: [as_built_photo, wiring, photo]

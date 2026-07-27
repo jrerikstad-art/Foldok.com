@@ -1,0 +1,119 @@
+# Diagram Style Spec — print-first visual rules for 2D technical graphics.
+# Part of DesignSystem. AI does not invent these; the renderer paints from tokens.
+#
+# Units: pt (SVG uses the same numeric values as user units).
+# Graph = truth · positions = editable · wires = engine-routed · style = this file.
+
+id: engineering_default
+label: Engineering default
+
+canvas:
+  background: "#FFFFFF"
+  frame_stroke: 0.5
+  frame_color: "#E5E7EB"
+  padding: 12
+
+grid:
+  step: 8
+  snap: true
+
+gaps:
+  min_component: 28
+  min_port_clear: 12
+  min_label: 8
+  wire_to_symbol: 4
+  crossing: 6
+
+strokes:
+  equipment: 1.25
+  wire_bus: 1.5
+  wire_L: 1.1
+  wire_N: 1.1
+  wire_PE: 1.1
+  wire_default: 0.9
+  wire_normal: 0.9   # alias of wire_default (compat)
+  pipe_main: 1.5
+  pipe_branch: 1.0
+  shaft: 1.25
+  guide: 0.4
+  hidden: 0.5
+
+colors:
+  wire:
+    L: "#111827"
+    L1: "#A0522D"
+    L2: "#111827"
+    L3: "#6B7280"
+    N: "#2563EB"
+    PE: "#16A34A"
+    DEFAULT: "#374151"
+    DC_POS: "#B91C1C"
+    DC_NEG: "#2563EB"
+  pipe:
+    water: "#0EA5E9"
+    drain: "#78716C"
+    process: "#111827"
+    oil: "#8B5A2B"
+    air: "#6B7280"
+    steam: "#B91C1C"
+    DEFAULT: "#0EA5E9"
+  shaft: "#111827"
+  emphasis: "#B91C1C"
+  muted: "#9CA3AF"
+  ink: "#111827"
+  symbol_fill: "#FFFFFF"
+  symbol_stroke: "#111827"
+
+symbols:
+  default_size: 28
+  port_dot: 3
+  alignment: center
+  width: 64
+  height: 48
+
+labels:
+  font: "Arial, Helvetica, sans-serif"
+  font_mono: "'IBM Plex Mono', Consolas, monospace"
+  tag_size: 9
+  tag_weight: 600
+  annotation_size: 8
+  title_size: 14
+  subtitle_size: 9
+  color: "#111827"
+  muted_color: "#6B7280"
+  preferred: above          # above | right | left | below | auto
+  position: above           # compat alias of preferred
+  max_width: 64
+  padding: 3
+  hide_if_overlap: false
+  leader_when_offset: true
+  leader_stroke: 0.4
+
+ports:
+  hotspot_radius: 6
+  snap_radius: 10
+  show_on_hover: true
+  show_when_connecting: true
+  dot_size: 3
+
+routing:
+  orthogonal: true
+  corner_radius: 0
+  stub_length: 12
+  bus_align: true
+  crossing_gap: 6
+  wire_to_symbol_gap: 4
+
+legend:
+  position: bottom_left
+  swatch: 10
+  font_size: 8
+  gap: 6
+  title_size: 10
+
+figure:
+  caption_size: 9
+  caption_color: "#374151"
+  number_weight: 600
+  source_size: 8
+  source_color: "#6B7280"

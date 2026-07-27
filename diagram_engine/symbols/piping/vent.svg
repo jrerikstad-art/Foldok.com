@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 48" width="64" height="48">
+  <line x1="32" y1="42" x2="32" y2="24" stroke="#16181D" stroke-width="1.5"/>
+  <path d="M24 24 Q32 8 40 24" fill="none" stroke="#16181D" stroke-width="1.5"/>
+  <line x1="26" y1="12" x2="22" y2="6" stroke="#16181D" stroke-width="1.2"/>
+  <line x1="38" y1="12" x2="42" y2="6" stroke="#16181D" stroke-width="1.2"/>
+  <text x="48" y="28" font-family="IBM Plex Mono,monospace" font-size="6">V</text>
+</svg>

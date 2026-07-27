@@ -1,0 +1,25 @@
+id: compliance_matrix
+name: Compliance Traceability Matrix
+aliases: ["traceability matrix", "requirement evidence matrix", "samsvarsmatrise"]
+industries: [manufacturing, construction, energy, process]
+regions: [eu, eea, uk, "no", us, international]
+domains: [general, machinery, electrical, construction, process]
+obligation_types: [design, inspection, handover]
+evidence_types: [drawing, test_record, inspection_record, declaration, procedure, risk_assessment]
+description: >
+  Requirement to evidence traceability view. Gaps are missing evidence rows, not legal pass/fail.
+structure:
+  required: [identification, scope, matrix, revision_history]
+  recommended: [summary, attachments]
+  optional: [method]
+preferred_blocks:
+  matrix: [EvaluationMatrix, EngineeringTable]
+  summary: [CalloutBox, Paragraph]
+compliance_notes:
+  - Each requirement row should cite evidence or mark an evidence gap
+  - Never auto-conclude legal conformity from a filled matrix
+skills:
+  primary: [compliance-manager, force-blocks]
+  supporting: [technical-writer]
+tools: [compose_document, run_qa]
+workbench_template: tender_compliance_matrix.json

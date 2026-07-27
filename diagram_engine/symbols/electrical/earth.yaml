@@ -1,0 +1,14 @@
+id: earth
+domain: electrical
+label: Protective earth
+svg: earth.svg
+default_orientation: 0
+standard_hint: IEC-style
+ports:
+- id: pe
+  name: PE
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1

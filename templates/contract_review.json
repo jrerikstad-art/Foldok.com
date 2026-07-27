@@ -1,0 +1,131 @@
+{
+  "template_key": "contract_review",
+  "name": "Contract Review — Obligations Register",
+  "name_no": "Kontraktsgjennomgang — forpliktelsesregister",
+  "description": "Extracts and structures what a contract SAYS: parties, deliverables, obligations with verbatim clause citations, deadlines, penalties, and ambiguity gaps. The engine in reverse — the contract is the source; the deliverable is understanding. HARD BOUNDARY: extracts and traces, never interprets or advises. Legal evaluation rests with the reader and their counsel, stated in the declaration.",
+  "applies_to": ["contract", "agreement", "tender"],
+  "version": 1,
+  "language_default": "no",
+  "export_price_tier": "complex",
+  "sections": [
+    {
+      "section_key": "parties_scope",
+      "title": "Parties, Purpose & Scope",
+      "title_no": "Parter, formål og omfang",
+      "position": 1,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "party", "fact_type": "identifier", "severity": "blocking", "label": "Contracting parties", "label_no": "Kontraktsparter", "cardinality": "one_or_more" },
+        { "key": "contract_ref", "fact_type": "identifier", "severity": "warning", "label": "Contract reference / date", "label_no": "Kontraktsreferanse / dato" },
+        { "key": "scope_statement", "fact_type": "instruction", "severity": "blocking", "label": "Scope of work as stated", "label_no": "Arbeidsomfang slik det er beskrevet" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Every entry cites its clause verbatim. Scope compiled ONLY from scope clauses — never paraphrased beyond recognition; ambiguous scope language flagged, not smoothed."
+    },
+    {
+      "section_key": "deliverables",
+      "title": "Deliverables Register",
+      "title_no": "Leveranseregister",
+      "position": 2,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "deliverable", "fact_type": "deliverable", "severity": "blocking", "label": "At least one identified deliverable", "label_no": "Minst én identifisert leveranse", "cardinality": "one_or_more" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "no_uncited_specs", "clause_ref_per_row"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Columns: deliverable | to whom | acceptance criteria (if stated) | evidence required | clause. Rows where acceptance criteria are absent get an inline info gap — the classic dispute seed."
+    },
+    {
+      "section_key": "obligations",
+      "title": "Obligations by Party",
+      "title_no": "Forpliktelser per part",
+      "position": 3,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "obligation", "fact_type": "obligation", "severity": "blocking", "label": "Extracted obligations", "label_no": "Uttrukne forpliktelser", "cardinality": "one_or_more" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "grouped_by_party", "clause_ref_per_row", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "One row per 'shall/skal' obligation: party | obligation (near-verbatim) | trigger/condition | clause. Grouped by party so 'what do WE owe' is one glance. Modal-verb precision: 'shall' vs 'should' vs 'may' preserved exactly — the engine never upgrades or downgrades modality."
+    },
+    {
+      "section_key": "deadlines",
+      "title": "Deadlines & Milestones",
+      "title_no": "Frister og milepæler",
+      "position": 4,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [
+        { "key": "deadline", "fact_type": "deadline", "severity": "warning", "label": "Extracted deadlines", "label_no": "Uttrukne frister" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "chronological_order", "clause_ref_per_row", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Chronological. Relative deadlines ('30 days after notice') kept relative with their trigger — never resolved to guessed calendar dates. Conflicting dates for the same milestone → blocking gap, both clauses cited."
+    },
+    {
+      "section_key": "penalties_rights",
+      "title": "Penalties, Liability & Rights",
+      "title_no": "Sanksjoner, ansvar og rettigheter",
+      "position": 5,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [
+        { "key": "penalty", "fact_type": "penalty", "severity": "info", "label": "LDs / sanctions / termination triggers", "label_no": "Dagbøter / sanksjoner / hevingsgrunnlag" },
+        { "key": "right", "fact_type": "right", "severity": "info", "label": "Options and entitlements", "label_no": "Opsjoner og rettigheter" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "clause_ref_per_row", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Liability cap, LD rate and cap, termination triggers, variation/suspension rights. ABSENCE of a liability cap or LD cap → warning gap: 'not found in provided documents' (stated as absence from sources, never as legal opinion)."
+    },
+    {
+      "section_key": "ambiguities",
+      "title": "Gaps & Ambiguities Found",
+      "title_no": "Hull og uklarheter funnet",
+      "position": 6,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_content": ["gap_list_from_engine", "no_uncited_specs"],
+      "required_media": {},
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Auto-compiled from gap engine: referenced-but-missing appendices, undefined terms used in obligations, conflicting clauses (both cited), obligations without deadlines, deliverables without acceptance criteria. Pure pattern detection on the extraction — each row states WHAT was found/not found, never what it legally means."
+    },
+    {
+      "section_key": "source_register",
+      "title": "Document & Clause Register",
+      "title_no": "Dokument- og klausulregister",
+      "position": 7,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["reference_source_documents", "table_format"],
+      "writing_rules": { "structure": "table", "fact_citation": "optional" },
+      "notes": "Every contract document, appendix and revision indexed, with which sections cite it. Missing referenced appendices appear here as gaps."
+    },
+    {
+      "section_key": "declaration",
+      "title": "Declaration",
+      "title_no": "Erklæring",
+      "position": 8,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": { "structure": "boilerplate" },
+      "boilerplate": "This register was compiled by extraction from the documents listed in the Document & Clause Register; every entry is traceable to a cited clause. It records what the documents state and what could not be found. It is not legal advice, does not interpret the contract, and does not replace review by qualified counsel.",
+      "boilerplate_no": "Dette registeret er sammenstilt ved uttrekk fra dokumentene i dokument- og klausulregisteret; hver oppføring er sporbar til en sitert klausul. Det gjengir hva dokumentene sier og hva som ikke ble funnet. Det er ikke juridisk rådgivning, tolker ikke kontrakten, og erstatter ikke gjennomgang av kvalifisert rådgiver.",
+      "notes": "The liability posture for the legal domain, inside the document itself."
+    }
+  ]
+}

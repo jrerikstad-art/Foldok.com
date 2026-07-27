@@ -1,0 +1,27 @@
+id: inspection_package
+name: Inspection and Test Evidence Package
+aliases: ["inspection package", "test evidence pack", "kontrollpakke"]
+industries: [construction, energy, maritime, process, manufacturing]
+regions: [eu, eea, uk, "no", us, international]
+domains: [electrical, machinery, pressure, construction, process, marine, general]
+obligation_types: [inspection]
+evidence_types: [inspection_record, test_record, photo, drawing]
+description: >
+  Grouped inspection and test evidence for handover or regulatory packages.
+structure:
+  required: [identification, scope, checklist, results, conclusion, signature]
+  recommended: [method, deviations, photo_evidence, attachments, revision_history]
+  optional: [recommendations]
+preferred_blocks:
+  checklist: [EngineeringTable]
+  results: [EngineeringTable]
+  photo_evidence: [ImageBlock]
+  deviations: [CalloutBox]
+compliance_notes:
+  - Results must be factual and sourced
+  - Missing test or inspection records are evidence gaps, not legal verdicts
+skills:
+  primary: [compliance-manager, force-blocks]
+  supporting: [lead-engineer, technical-writer]
+tools: [compose_document, run_qa]
+workbench_template: inspection_checklist.json

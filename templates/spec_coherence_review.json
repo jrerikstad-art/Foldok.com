@@ -1,0 +1,113 @@
+{
+  "template_key": "spec_coherence_review",
+  "name": "Specification Coherence Review — Conflicts, Overlaps & Clarifications",
+  "name_no": "Spesifikasjonsgjennomgang — konflikter, overlapp og avklaringer",
+  "description": "For multi-standard design specifications (client spec + NORSOK/ISO/EN/class invocations). Extracts every requirement with a subject key, groups by subject across all provided documents, and detects: conflicts (same subject, incompatible values — both clauses cited), redundancies (most stringent noted), missing precedence order, and invoked-but-not-provided documents. Serves BOTH sides: the receiving engineer gets a ready-to-send technical query list; the issuing company runs it on drafts before sending. Conflict detection is pure code on the extraction (zero tokens). The engine flags candidates; engineering judgment disposes.",
+  "applies_to": ["specification", "design_spec", "tender", "contract"],
+  "version": 1,
+  "language_default": "en",
+  "export_price_tier": "complex",
+  "sections": [
+    {
+      "section_key": "spec_overview",
+      "title": "Specification Overview & Document Set",
+      "title_no": "Spesifikasjonsoversikt og dokumentsett",
+      "position": 1,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "spec_ref", "fact_type": "identifier", "severity": "blocking", "label": "Specification reference + revision", "label_no": "Spesifikasjonsreferanse + revisjon" },
+        { "key": "issuer", "fact_type": "identifier", "severity": "warning", "label": "Issuing party", "label_no": "Utsteder" },
+        { "key": "invoked_document", "fact_type": "standard_ref", "severity": "blocking", "label": "Every invoked standard/spec with edition", "label_no": "Alle påberopte standarder/spesifikasjoner med utgave", "cardinality": "one_or_more" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "provided_vs_invoked_split", "edition_year_per_standard", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "'provided_vs_invoked_split': every invoked document is marked PROVIDED (indexed) or NOT PROVIDED. Requirements can only be extracted from provided documents — an invoked-but-absent standard is itself a finding, honestly stated. Undated invocations flagged (edition ambiguity is a conflict seed)."
+    },
+    {
+      "section_key": "precedence",
+      "title": "Order of Precedence",
+      "title_no": "Rangordning ved motstrid",
+      "position": 2,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "precedence_statement", "fact_type": "instruction", "severity": "blocking", "label": "Stated order of precedence between documents", "label_no": "Angitt rangordning mellom dokumentene" }
+      ],
+      "required_media": {},
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 150, "fact_citation": "required" },
+      "notes": "THE most common root failure. If no precedence clause exists across the provided set → blocking gap: 'No order of precedence stated — every conflict below is unresolvable by the documents themselves.' If one exists, it is quoted verbatim and every conflict row references it."
+    },
+    {
+      "section_key": "requirements_by_subject",
+      "title": "Requirements Register — Grouped by Subject",
+      "title_no": "Kravregister — gruppert per tema",
+      "position": 3,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "requirement", "fact_type": "requirement", "severity": "blocking", "label": "Extracted requirements with subject keys", "label_no": "Uttrukne krav med temanøkler", "cardinality": "one_or_more" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "grouped_by_subject_key", "clause_ref_per_row", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Extraction assigns each requirement a canonical subject key (design_life, ndt_extent, material_cert_level, weld_class, coating_system, safety_factor, testing_regime, documentation_language...). key = extracted_facts.key — the existing schema, no migration. Checkpoint: user confirms/merges subject grouping before conflict analysis (mis-grouped subjects create false conflicts). Modal precision preserved (shall/should/may never altered)."
+    },
+    {
+      "section_key": "conflict_register",
+      "title": "Conflict & Overlap Register",
+      "title_no": "Konflikt- og overlappregister",
+      "position": 4,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["conflict_check_by_subject", "both_clauses_cited_per_conflict", "disposition_column", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "PURE CODE on the confirmed register (zero tokens): group by subject key → compare values → classify: CONFLICT (incompatible values; both clauses verbatim side by side) | REDUNDANT (same demand from multiple sources; most stringent noted) | UNIQUE. Each conflict row: subject | doc A says (clause) | doc B says (clause) | precedence resolves? (from section 2) | disposition [engineer's column — the engine flags candidates, judgment disposes; a clause may apply to pressure parts only]. Severity: conflicts on mandatory requirements with no precedence = blocking."
+    },
+    {
+      "section_key": "clarification_list",
+      "title": "Technical Query / Clarification List",
+      "title_no": "Avklaringsliste (TQ)",
+      "position": 5,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["one_query_per_unresolved_conflict", "author_placeholder_for_proposed_resolution", "no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "numbered_list", "max_words": 600, "fact_citation": "required" },
+      "notes": "THE DELIVERABLE for the receiving engineer: one formally-worded query per unresolved conflict/gap, each citing both clauses verbatim and asking the issuer to state which governs. Optional '[AUTHOR: proposed resolution]' per query — proposing the answer speeds the client's reply. For the ISSUING side, this section renders instead as 'Fix before issue' with the same rows. Drafted, never sent — export and route through the project's formal TQ channel."
+    },
+    {
+      "section_key": "source_register",
+      "title": "Document & Clause Register",
+      "title_no": "Dokument- og klausulregister",
+      "position": 6,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["reference_source_documents", "table_format"],
+      "writing_rules": { "structure": "table", "fact_citation": "optional" },
+      "notes": "All provided documents with revision; invoked-but-not-provided documents listed as gaps."
+    },
+    {
+      "section_key": "declaration",
+      "title": "Declaration",
+      "title_no": "Erklæring",
+      "position": 7,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": { "structure": "boilerplate" },
+      "boilerplate": "This review was compiled by extraction from the provided documents only; every requirement, conflict and gap is traceable to cited clauses. Conflicts are flagged as candidates by comparison of extracted values — their engineering and contractual significance must be assessed by qualified personnel. Documents invoked but not provided were not analysed. This is not legal or engineering advice.",
+      "boilerplate_no": "Denne gjennomgangen er sammenstilt ved uttrekk fra de fremlagte dokumentene alene; hvert krav, hver konflikt og hvert hull er sporbart til siterte klausuler. Konflikter er flagget som kandidater ved sammenligning av uttrukne verdier — deres faglige og kontraktsmessige betydning må vurderes av kvalifisert personell. Dokumenter som er påberopt men ikke fremlagt, er ikke analysert. Dette er ikke juridisk eller ingeniørfaglig rådgivning.",
+      "notes": "Fixed text, zero AI."
+    }
+  ]
+}

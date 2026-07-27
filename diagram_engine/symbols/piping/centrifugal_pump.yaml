@@ -1,0 +1,31 @@
+id: centrifugal_pump
+domain: piping
+label: Centrifugal pump
+svg: centrifugal_pump.svg
+default_rotation: 0
+ports:
+- id: suction
+  name: Suction
+  side: left
+  kind: fluid
+  allowed_media:
+  - water
+  - oil
+  - fluid
+  order: 1
+- id: discharge
+  name: Discharge
+  side: right
+  kind: fluid
+  allowed_media:
+  - water
+  - oil
+  - fluid
+  order: 1
+- id: drive
+  name: Drive shaft
+  side: bottom
+  kind: mechanical
+  allowed_media:
+  - shaft
+  order: 1

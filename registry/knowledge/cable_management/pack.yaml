@@ -1,0 +1,18 @@
+id: cable_management_wiring
+version: "1.0"
+title: Cable trays, ladders, and wiring systems — structural knowledge
+status: profile
+framework_refs_label_only:
+  - IEC 61537 family
+  - IEC 60364-5-52 family
+disclaimer: >
+  Structural documentation profile only. Not a substitute for the
+  applicable standard text, national adoption, or competent design.
+  User confirms selections. Feltdok does not claim conformity.
+legal_compliance_claimed: false
+
+includes:
+  - tray_ladder_systems.yaml
+  - wiring_systems.yaml
+  - evidence.yaml
+  - report_blocks.yaml

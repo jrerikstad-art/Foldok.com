@@ -1,0 +1,743 @@
+{
+  "version": "0.72.0",
+  "templates": [
+    {
+      "key": "contract_review",
+      "file": "contract_review.json",
+      "name_no": "Kontraktsgjennomgang — forpliktelsesregister",
+      "name": "Contract Review — Obligations Register",
+      "one_liner": "Extracts and structures what a contract SAYS: parties, deliverables, obligations with verbatim clause citations, deadlines, penalties, an….",
+      "description": "Extracts and structures what a contract SAYS: parties, deliverables, obligations with verbatim clause citations, deadlines, penalties, and ambiguity gaps. The engine in reverse — the contract is the source; the deliverable is understanding. HARD BOUNDARY: extracts and traces, never interprets or advises. Legal evaluation rests with the reader and their counsel, stated in the declaration.",
+      "needs": [
+        "Kontraktsparter",
+        "Kontraktsreferanse / dato",
+        "Arbeidsomfang slik det er beskrevet",
+        "Minst én identifisert leveranse",
+        "Uttrukne forpliktelser",
+        "Uttrukne frister"
+      ],
+      "checklist": [
+        "□ Kontraktsparter",
+        "□ Kontraktsreferanse / dato",
+        "□ Arbeidsomfang slik det er beskrevet",
+        "□ Minst én identifisert leveranse",
+        "□ Uttrukne forpliktelser",
+        "□ Uttrukne frister"
+      ],
+      "applies_to": [
+        "contract",
+        "agreement",
+        "tender"
+      ],
+      "group": "Kontrakt / anbud",
+      "document_species": "narrative",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    },
+    {
+      "key": "design_basis",
+      "file": "design_basis.json",
+      "name_no": "Designgrunnlag / prosjekteringsforutsetninger",
+      "name": "Design Basis",
+      "one_liner": "Establishes the inputs, codes, loads, materials, and assumptions governing a structural or mechanical design.",
+      "description": "Establishes the inputs, codes, loads, materials, and assumptions governing a structural or mechanical design. Compiled from client specifications, standards, environmental/geotechnical reports, and decision records. Structure aligned with NORSOK N-001 / Eurocode project practice. The engine compiles and traces — engineering responsibility rests with the signing engineer.",
+      "needs": [
+        "Prosjekttittel",
+        "Dokumentnummer",
+        "Revisjon + status",
+        "Oppdragsgiver",
+        "Omfangsbeskrivelse — hva grunnlaget dekker og ikke dekker",
+        "tegning (PDF)",
+        "situasjonsplan",
+        "oversiktsbilde / produktfoto"
+      ],
+      "checklist": [
+        "□ Prosjekttittel",
+        "□ Dokumentnummer",
+        "□ Revisjon + status",
+        "□ Oppdragsgiver",
+        "□ Omfangsbeskrivelse — hva grunnlaget dekker og ikke dekker",
+        "□ tegning (PDF)",
+        "□ situasjonsplan",
+        "□ oversiktsbilde / produktfoto",
+        "□ minst 1 foto(s)",
+        "□ Styrende prosjekteringsstandard",
+        "□ Understøttende standarder med utgave/år",
+        "□ Dimensjonerende levetid (år)",
+        "□ Konsekvens-/pålitelighetsklasse",
+        "□ Akseptkriterier (utnyttelsesgrader, nedbøyningsgrenser)",
+        "□ Minst én karakteristisk last definert",
+        "□ Lastfaktor-/kombinasjonsskjema",
+        "□ technical data",
+        "□ testrapport",
+        "□ Vind (referansehastighet / sone)",
+        "□ Snølastgrunnlag"
+      ],
+      "applies_to": [
+        "structure",
+        "machine",
+        "equipment",
+        "installation",
+        "facility"
+      ],
+      "group": "Bygg / prosjektering",
+      "document_species": "narrative",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    },
+    {
+      "key": "free_document",
+      "file": "free_document.json",
+      "name_no": "Fritt dokument",
+      "name": "Free Document",
+      "one_liner": "Escape hatch, not the default: a minimally structured document for users who want the engine (indexing, fact traceability, citation rule,….",
+      "description": "Escape hatch, not the default: a minimally structured document for users who want the engine (indexing, fact traceability, citation rule, editor, export) without an opinionated template. No blocking requirements. Gap detection limited to citation integrity. Never used in demos or marketing — Foldok's identity is the opinionated templates; this exists so no user ever bounces off structure they did not ask for.",
+      "needs": [],
+      "checklist": [
+        "□ Prosjektfiler (PDF, bilder, notater)"
+      ],
+      "applies_to": [],
+      "group": "Åpent",
+      "document_species": "narrative",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    },
+    {
+      "key": "inspection_checklist",
+      "file": "inspection_checklist.json",
+      "name_no": "Inspeksjonssjekkliste",
+      "name": "Inspection Checklist",
+      "one_liner": "Flexible composition profile for inspection / verification (TEMPLATE_STANDARD).",
+      "description": "Flexible composition profile for inspection / verification (TEMPLATE_STANDARD). Shape only — agent relabels slots from sources. Domain forms (e.g. imported multipoint sheets) arrive via import, not as this default.",
+      "needs": [
+        "Objekt / ID",
+        "Kunde / eier",
+        "Dato",
+        "Hva ble kontrollert",
+        "Kontrollpunkt 1",
+        "Kontrollpunkt 2",
+        "Kontrollpunkt 3",
+        "Kontrollpunkt 4"
+      ],
+      "checklist": [
+        "□ Objekt / ID",
+        "□ Kunde / eier",
+        "□ Dato",
+        "□ Hva ble kontrollert",
+        "□ Kontrollpunkt 1",
+        "□ Kontrollpunkt 2",
+        "□ Kontrollpunkt 3",
+        "□ Kontrollpunkt 4",
+        "□ Samlet resultat",
+        "□ Kontrollør",
+        "□ Signatur",
+        "□ Dato signert"
+      ],
+      "applies_to": [
+        "inspection",
+        "equipment",
+        "installation",
+        "vehicle",
+        "machine",
+        "tool",
+        "system"
+      ],
+      "group": "Bygg / prosjektering",
+      "document_species": "form_fill",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    },
+    {
+      "key": "installation_manual",
+      "file": "installation_manual.json",
+      "name_no": "Installasjonsmanual",
+      "name": "Installation Manual",
+      "one_liner": "PRESCRIPTIVE document: tells the installer what to do, which no source document contains.",
+      "description": "PRESCRIPTIVE document: tells the installer what to do, which no source document contains. Reference implementation of the prescriptive rules (WORKORDER_0.27 §B): all facts inside steps stay cited (depths, capacities, standards, requirements), while the SEQUENCE is AI-drafted, visibly badged 'AI-foreslått rekkefølge', and closed with author placeholders. A mandatory section lists what only the manufacturer's manual can supply. Used for installation, commissioning, and site-work documents across t",
+      "needs": [
+        "Prosjekt-/anleggsnavn",
+        "Anleggsadresse",
+        "Anleggstype og kapasitet",
+        "Leverandør/produsent",
+        "oversiktsbilde / produktfoto",
+        "situasjonsplan",
+        "tegning (PDF)",
+        "skjema / snitt"
+      ],
+      "checklist": [
+        "□ Prosjekt-/anleggsnavn",
+        "□ Anleggsadresse",
+        "□ Anleggstype og kapasitet",
+        "□ Leverandør/produsent",
+        "□ oversiktsbilde / produktfoto",
+        "□ situasjonsplan",
+        "□ tegning (PDF)",
+        "□ skjema / snitt",
+        "□ minst 1 foto(s)",
+        "□ Krav fra tillatelser/standarder",
+        "□ Farer dokumentert i kildene",
+        "□ Akseptkriterier fra kravene"
+      ],
+      "applies_to": [
+        "installation",
+        "system",
+        "machine",
+        "equipment",
+        "structure",
+        "building"
+      ],
+      "group": "Bygg / prosjektering",
+      "document_species": "narrative",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    },
+    {
+      "key": "phd_materials_draft",
+      "file": "phd_materials_draft.json",
+      "name_no": "Avhandlingsutkast (evidensdel) — materialvitenskap",
+      "name": "Thesis Evidence Draft — Materials Science",
+      "one_liner": "Compiles the EVIDENCE backbone of a materials-science thesis: materials, methods, per-experiment result chapters, characterization data, ….",
+      "description": "Compiles the EVIDENCE backbone of a materials-science thesis: materials, methods, per-experiment result chapters, characterization data, nomenclature — with full claim-to-source traceability. Interpretation, contribution and discussion are generated as structured scaffolds with [AUTHOR] placeholders: the argument is the researcher's. Demonstrates grammar v2: hierarchy (parent_key), repetition (repeat_for), auto-numbering, symbol registry, equation/figure blocks.",
+      "needs": [
+        "Thesis title",
+        "Author",
+        "Institution / faculty",
+        "Supervisor(s)",
+        "Test parameters for this experiment",
+        "Research question(s) — from proposal/notes",
+        "sertifikat / attest",
+        "technical data"
+      ],
+      "checklist": [
+        "□ Thesis title",
+        "□ Author",
+        "□ Institution / faculty",
+        "□ Supervisor(s)",
+        "□ Test parameters for this experiment",
+        "□ Research question(s) — from proposal/notes",
+        "□ sertifikat / attest",
+        "□ technical data",
+        "□ Materials studied — grade/composition",
+        "□ Supplier / batch / cert references",
+        "□ bilde av merkeskilt",
+        "□ Procedure per technique (SEM, XRD, tensile...)",
+        "□ Instruments + settings",
+        "□ bilde av arbeidssted",
+        "□ oversiktsbilde / produktfoto",
+        "□ minst 1 foto(s)",
+        "□ Recorded results for this experiment",
+        "□ testrapport",
+        "□ Author name"
+      ],
+      "applies_to": [
+        "research_project",
+        "study",
+        "experiment"
+      ],
+      "group": "Forskning",
+      "document_species": "narrative",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    },
+    {
+      "key": "project_plan",
+      "file": "project_plan.json",
+      "name_no": "Prosjektplan",
+      "name": "Project Plan",
+      "one_liner": "Phased project plan compiled from the project memory: phases and activities drafted by AI from the artifact model and indexed material (c….",
+      "description": "Phased project plan compiled from the project memory: phases and activities drafted by AI from the artifact model and indexed material (clearly AI-proposed, user-owned), while every date, deadline, dimension and document reference is a cited fact or [MANGLER]. Known issues (rev conflicts, open TQs, hazards) are pulled from the index as risk items. Sequencing and priorities are planning judgment — author placeholders mark where the human decides.",
+      "needs": [
+        "Prosjektnavn",
+        "Mål/omfang slik det fremgår av kildene",
+        "oversiktsbilde / produktfoto",
+        "situasjonsplan",
+        "tegning (PDF)"
+      ],
+      "checklist": [
+        "□ Prosjektnavn",
+        "□ Mål/omfang slik det fremgår av kildene",
+        "□ oversiktsbilde / produktfoto",
+        "□ situasjonsplan",
+        "□ tegning (PDF)"
+      ],
+      "applies_to": [],
+      "group": "Planlegging",
+      "document_species": "narrative",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    },
+    {
+      "key": "research_project_report",
+      "file": "research_project_report.json",
+      "name_no": "Forskningsprosjektrapport",
+      "name": "Research Project Report",
+      "one_liner": "Structured project/progress report for a research project (master, PhD, funded project).",
+      "description": "Structured project/progress report for a research project (master, PhD, funded project). Compiles experiment records, data files, photos and notes into a documented report with full claim-to-source traceability. NOT a thesis writer: it assembles and cites what exists, and flags what is missing. Structure aligned with common institutional progress-report and lab-report conventions.",
+      "needs": [
+        "Prosjekttittel",
+        "Forfatter / forsker",
+        "Institusjon / avdeling",
+        "Rapporteringsperiode",
+        "Forskningsspørsmål / målformulering",
+        "Metode-/prosedyrebeskrivelse",
+        "Utstyr / instrumenter",
+        "Utvalgsstørrelse / n"
+      ],
+      "checklist": [
+        "□ Prosjekttittel",
+        "□ Forfatter / forsker",
+        "□ Institusjon / avdeling",
+        "□ Rapporteringsperiode",
+        "□ Forskningsspørsmål / målformulering",
+        "□ Metode-/prosedyrebeskrivelse",
+        "□ Utstyr / instrumenter",
+        "□ Utvalgsstørrelse / n",
+        "□ bilde av arbeidssted",
+        "□ technical data",
+        "□ oversiktsbilde / produktfoto",
+        "□ minst 1 foto(s)",
+        "□ Minst én registrert måling / datasett",
+        "□ Referanser til datafiler",
+        "□ testrapport",
+        "□ skadefoto",
+        "□ Minst ett angitt neste steg",
+        "□ Forfatters navn"
+      ],
+      "applies_to": [
+        "research_project",
+        "experiment",
+        "prototype",
+        "study"
+      ],
+      "group": "Forskning",
+      "document_species": "narrative",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    },
+    {
+      "key": "samsvarserklaering_el",
+      "file": "samsvarserklaering.json",
+      "name_no": "Samsvarserklæring — elektrisk installasjon",
+      "name": "Declaration of Conformity — Electrical Installation",
+      "one_liner": "Norwegian declaration of conformity for electrical installation work per FEL §12 and NEK 400.",
+      "description": "Norwegian declaration of conformity for electrical installation work per FEL §12 and NEK 400. Structure aligned with DSB expectations. Boilerplate legal text is fixed; AI fills installation-specific data only.",
+      "needs": [
+        "Foretakets navn",
+        "Organisasjonsnummer",
+        "Elvirksomhets-ID",
+        "Foretakets adresse",
+        "Anleggsadresse",
+        "Kunde / eier",
+        "Målernummer",
+        "Arbeidstype (nyanlegg / utvidelse / endring)"
+      ],
+      "checklist": [
+        "□ Foretakets navn",
+        "□ Organisasjonsnummer",
+        "□ Elvirksomhets-ID",
+        "□ Foretakets adresse",
+        "□ Anleggsadresse",
+        "□ Kunde / eier",
+        "□ Målernummer",
+        "□ Arbeidstype (nyanlegg / utvidelse / endring)",
+        "□ oversiktsbilde / produktfoto",
+        "□ koblingsskjema",
+        "□ Minst én kurs med sikringsstørrelse og kabeltverrsnitt",
+        "□ bilde av merkeskilt",
+        "□ minst 1 foto(s)",
+        "□ Isolasjonsresistans (MΩ)",
+        "□ Kontinuitet beskyttelsesleder",
+        "□ Test av jordfeilbryter",
+        "□ testrapport",
+        "□ Anvendt NEK 400-utgave",
+        "□ Ansvarlig montørs navn",
+        "□ Dato for signering"
+      ],
+      "applies_to": [
+        "electrical_installation"
+      ],
+      "group": "Samsvar / sertifisering",
+      "document_species": "narrative",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    },
+    {
+      "key": "sja",
+      "file": "sja.json",
+      "name_no": "Sikker jobbanalyse (SJA)",
+      "name": "Safe Job Analysis",
+      "one_liner": "Pre-task risk assessment required before high-risk work in Norway (hot work, lifting, confined space, work at height).",
+      "description": "Pre-task risk assessment required before high-risk work in Norway (hot work, lifting, confined space, work at height). Aligned with Forskrift om utførelse av arbeid and Arbeidstilsynet SJA guidance. Highest-frequency document type from market survey — 5 of 7 respondents named it unprompted.",
+      "needs": [
+        "Beskrivelse av arbeidsoppgaven",
+        "Sted / anlegg",
+        "Dato og tidspunkt",
+        "SJA-ansvarlig",
+        "oversiktsbilde / produktfoto",
+        "bilde av arbeidssted",
+        "minst 1 foto(s)",
+        "Minst én identifisert fare"
+      ],
+      "checklist": [
+        "□ Beskrivelse av arbeidsoppgaven",
+        "□ Sted / anlegg",
+        "□ Dato og tidspunkt",
+        "□ SJA-ansvarlig",
+        "□ oversiktsbilde / produktfoto",
+        "□ bilde av arbeidssted",
+        "□ minst 1 foto(s)",
+        "□ Minst én identifisert fare",
+        "□ skadefoto",
+        "□ sikkerhetsfoto",
+        "□ Minst ett tiltak per fare",
+        "□ Referanse arbeidstillatelse",
+        "□ sertifikat / attest",
+        "□ Nødkontakt / nødnummer",
+        "□ Møteplass / rømningsvei",
+        "□ Minst én deltaker i tillegg til SJA-ansvarlig"
+      ],
+      "applies_to": [],
+      "group": "HMS / arbeid",
+      "document_species": "narrative",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    },
+    {
+      "key": "sketch_document",
+      "file": "sketch_document.json",
+      "name_no": "Tomt dokument (skisse)",
+      "name": "Sketch Document",
+      "one_liner": "Blank A4 canvas — draw blocks, label them, fill from sources.",
+      "description": "Blank A4 canvas — draw blocks, label them, fill from sources. WORKORDER 0.59.",
+      "needs": [],
+      "checklist": [
+        "□ Prosjektfiler (PDF, bilder, notater)"
+      ],
+      "applies_to": [],
+      "group": "Teknisk dokumentasjon",
+      "document_species": "sketch",
+      "owned": false,
+      "origin": "system",
+      "badge": null
+    },
+    {
+      "key": "spec_coherence_review",
+      "file": "spec_coherence_review.json",
+      "name_no": "Spesifikasjonsgjennomgang — konflikter, overlapp og avklaringer",
+      "name": "Specification Coherence Review — Conflicts, Overlaps & Clarifications",
+      "one_liner": "For multi-standard design specifications (client spec + NORSOK/ISO/EN/class invocations).",
+      "description": "For multi-standard design specifications (client spec + NORSOK/ISO/EN/class invocations). Extracts every requirement with a subject key, groups by subject across all provided documents, and detects: conflicts (same subject, incompatible values — both clauses cited), redundancies (most stringent noted), missing precedence order, and invoked-but-not-provided documents. Serves BOTH sides: the receiving engineer gets a ready-to-send technical query list; the issuing company runs it on drafts before ",
+      "needs": [
+        "Spesifikasjonsreferanse + revisjon",
+        "Utsteder",
+        "Alle påberopte standarder/spesifikasjoner med utgave",
+        "Angitt rangordning mellom dokumentene",
+        "Uttrukne krav med temanøkler"
+      ],
+      "checklist": [
+        "□ Spesifikasjonsreferanse + revisjon",
+        "□ Utsteder",
+        "□ Alle påberopte standarder/spesifikasjoner med utgave",
+        "□ Angitt rangordning mellom dokumentene",
+        "□ Uttrukne krav med temanøkler"
+      ],
+      "applies_to": [
+        "specification",
+        "design_spec",
+        "tender",
+        "contract"
+      ],
+      "group": "Bygg / prosjektering",
+      "document_species": "narrative",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    },
+    {
+      "key": "structural_design_report",
+      "file": "structural_design_report.json",
+      "name_no": "Konstruksjonsrapport / designrapport",
+      "name": "Structural Design Report",
+      "one_liner": "Documents that a design satisfies its design basis: model, loads applied, governing checks, utilizations, deviations.",
+      "description": "Documents that a design satisfies its design basis: model, loads applied, governing checks, utilizations, deviations. Compiled from calc sheets, FEA result tables, drawings and the design basis. The engine compiles and traces results — it does not verify calculations. Engineering verification and responsibility rest with the signing engineer.",
+      "needs": [
+        "Prosjekttittel",
+        "Dokumentnummer",
+        "Revisjon + status",
+        "Styrende designgrunnlag (dok.nr. + rev)",
+        "Gulvareal / tilbygg (m²)",
+        "Adresse / eiendom",
+        "Dimensjonerende utnyttelsesgrad",
+        "Akseptkriterium det sammenlignes mot"
+      ],
+      "checklist": [
+        "□ Prosjekttittel",
+        "□ Dokumentnummer",
+        "□ Revisjon + status",
+        "□ Styrende designgrunnlag (dok.nr. + rev)",
+        "□ Gulvareal / tilbygg (m²)",
+        "□ Adresse / eiendom",
+        "□ Dimensjonerende utnyttelsesgrad",
+        "□ Akseptkriterium det sammenlignes mot",
+        "□ tegning (PDF)",
+        "□ situasjonsplan",
+        "□ oversiktsbilde / produktfoto",
+        "□ skjema / snitt",
+        "□ minst 1 foto(s)",
+        "□ Programvare + versjon",
+        "□ Opplager-/randbetingelser",
+        "□ technical data",
+        "□ Påførte laster sporbare til designgrunnlaget",
+        "□ Kombinasjonsskjema + faktorer (bruddgrense/bruksgrense/ulykke)",
+        "□ Utnyttelse per dimensjonerende kontroll",
+        "□ testrapport"
+      ],
+      "applies_to": [
+        "structure",
+        "machine",
+        "equipment",
+        "lifting_tool",
+        "installation"
+      ],
+      "group": "Bygg / prosjektering",
+      "document_species": "narrative",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    },
+    {
+      "key": "technical_doc_package",
+      "file": "technical_doc_package.json",
+      "name_no": "Teknisk dokumentasjonspakke",
+      "name": "Technical Documentation Package",
+      "one_liner": "Combined user manual, operational guide and service documentation for a physical product, tool or machine.",
+      "description": "Combined user manual, operational guide and service documentation for a physical product, tool or machine. Structure aligned with EN 82079-1 (preparation of instructions for use) and Machinery Directive Annex I 1.7.4 information requirements.",
+      "needs": [
+        "Produkt-/prosjektnavn",
+        "Modell / typebetegnelse",
+        "Serienummer",
+        "Produsent navn + adresse",
+        "oversiktsbilde / produktfoto",
+        "minst 1 foto(s)",
+        "Erklæring om tiltenkt bruk",
+        "Forutsigbar feilbruk"
+      ],
+      "checklist": [
+        "□ Produkt-/prosjektnavn",
+        "□ Modell / typebetegnelse",
+        "□ Serienummer",
+        "□ Produsent navn + adresse",
+        "□ oversiktsbilde / produktfoto",
+        "□ minst 1 foto(s)",
+        "□ Erklæring om tiltenkt bruk",
+        "□ Forutsigbar feilbruk",
+        "□ Minst én identifisert fare",
+        "□ Påkrevd verneutstyr",
+        "□ sikkerhetsfoto",
+        "□ skadefoto",
+        "□ Ytre mål",
+        "□ Vekt",
+        "□ Nominell kapasitet / SWL",
+        "□ Gjeldende teststandard(er)",
+        "□ bilde av merkeskilt",
+        "□ technical data",
+        "□ minst 2 foto(s)",
+        "□ Tiltrekkingsmoment"
+      ],
+      "applies_to": [
+        "lifting_tool",
+        "machine",
+        "tool",
+        "prototype",
+        "equipment"
+      ],
+      "group": "Teknisk dokumentasjon",
+      "document_species": "narrative",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    },
+    {
+      "key": "tender_compliance_matrix",
+      "file": "tender_compliance_matrix.json",
+      "name_no": "Anbuds-samsvarsmatrise med svarutkast",
+      "name": "Tender Compliance Matrix & Response Skeleton",
+      "one_liner": "Two-corpus compilation: extracts every requirement from tender documents (fact_type='requirement', one row each, clause-cited), then maps….",
+      "description": "Two-corpus compilation: extracts every requirement from tender documents (fact_type='requirement', one row each, clause-cited), then maps the company's own material (past project docs, certificates, CVs, procedures) against each requirement — coverage where evidence exists, blocking gaps where it does not. Uses grammar v2 repeat_for to instantiate one response block per requirement. This is the requirements traceability matrix EPC teams build by hand over weeks.",
+      "needs": [
+        "Anbudsreferanse",
+        "Oppdragsgiver",
+        "Innleveringsfrist",
+        "Sammendrag av arbeidsomfang",
+        "Uttrukne krav"
+      ],
+      "checklist": [
+        "□ Anbudsreferanse",
+        "□ Oppdragsgiver",
+        "□ Innleveringsfrist",
+        "□ Sammendrag av arbeidsomfang",
+        "□ Uttrukne krav"
+      ],
+      "applies_to": [
+        "tender",
+        "bid",
+        "rfq"
+      ],
+      "group": "Samsvar / sertifisering",
+      "document_species": "narrative",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    },
+    {
+      "key": "user_manual",
+      "file": "user_manual.json",
+      "name_no": "Brukermanual",
+      "name": "User Manual",
+      "one_liner": "Instructions for use (brukermanual / bruksanvisning) for a product, tool or machine.",
+      "description": "Instructions for use (brukermanual / bruksanvisning) for a product, tool or machine. Structure aligned with EN 82079-1 — identification, intended use, safety, operation, maintenance, troubleshooting. Distinct from the broader technical documentation package and from installation manuals.",
+      "needs": [
+        "Produktnavn",
+        "Modell / type",
+        "Produsent",
+        "oversiktsbilde / produktfoto",
+        "bilde av merkeskilt",
+        "minst 1 foto(s)",
+        "Tiltenkt bruk",
+        "Forutsigbar feilbruk"
+      ],
+      "checklist": [
+        "□ Produktnavn",
+        "□ Modell / type",
+        "□ Produsent",
+        "□ oversiktsbilde / produktfoto",
+        "□ bilde av merkeskilt",
+        "□ minst 1 foto(s)",
+        "□ Tiltenkt bruk",
+        "□ Forutsigbar feilbruk",
+        "□ Identifisert fare",
+        "□ Påkrevd verneutstyr",
+        "□ sikkerhetsfoto",
+        "□ Betjeningssteg",
+        "□ installation step",
+        "□ Mål",
+        "□ Vekt",
+        "□ Nominell kapasitet / SWL",
+        "□ technical data",
+        "□ Vedlikeholdsintervall"
+      ],
+      "applies_to": [
+        "lifting_tool",
+        "machine",
+        "tool",
+        "prototype",
+        "equipment",
+        "product",
+        "system"
+      ],
+      "group": "Teknisk dokumentasjon",
+      "document_species": "narrative",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    }
+  ],
+  "file_types": {
+    "reads": [
+      "PDF",
+      "bilder (JPG/PNG/WEBP/HEIC)",
+      "Word/Excel via markitdown",
+      "PowerPoint"
+    ],
+    "cad_policy": "tegnings-PDF, ikke DWG"
+  },
+  "cannot": [
+    "verifisere beregninger",
+    "gi juridisk råd",
+    "gi juridisk vurdering",
+    "håndtere beviskjede/chain of custody",
+    "utforme juridisk tekst",
+    "lese native CAD (DWG/STEP)",
+    "signere for deg",
+    "finne på verdier som ikke finnes i kilder",
+    "tegne eller modellere i 3D"
+  ],
+  "privacy": [
+    "Filene dine ligger på din maskin. Foldok laster dem aldri opp til noen Foldok-sky og lagrer ingen kopier hos oss.",
+    "Når jeg analyserer en fil, sendes utdrag av innholdet (tekst eller bilde) til AI-tjenesten for behandling av akkurat det kallet — du ser kostnaden i €-måleren. Originalene blir hvor de er.",
+    "Ferdige og signerte PDF-er lagres heller ikke hos oss — de er dine."
+  ],
+  "privacy_en": [
+    "Your files stay on your machine. Foldok never uploads them to a Foldok cloud or keeps copies on our side.",
+    "When I analyse a file, excerpts (text or image) are sent to the AI service for that call only — you see the cost in the € meter. The originals stay put.",
+    "Finished and signed PDFs are not stored with us either — they are yours."
+  ],
+  "scale": {
+    "per_file_index_cost_eur": [
+      0.001,
+      0.01
+    ],
+    "parallel_workers": 5,
+    "cache": "sha256, re-index is free",
+    "multi_folder": true,
+    "recommendation": "Very large corpora (1000+ files) run better as several focused projects (one per workstream) than one index.",
+    "index_cost_eur_per_file_min": 0.001,
+    "index_cost_eur_per_file_max": 0.01,
+    "typical_doc_eur": 0.01,
+    "typical_photo_eur": 0.008,
+    "multi_folder_note": "Several folders link into one project; each file indexes once.",
+    "example_files": 2000,
+    "example_time": "a few hours, one time",
+    "large_corpus_recommendation": "most large diligence / review work runs better as several focused projects (one per workstream) than one giant index",
+    "large_corpus_recommendation_no": "de fleste store diligence-/gjennomgangsjobber kjører bedre som flere fokuserte prosjekter (ett per arbeidsspor) enn én gigantindeks"
+  },
+  "pricing": {
+    "index_per_file_eur": [
+      0.001,
+      0.01
+    ],
+    "export_tiers_eur": {
+      "basic": 9,
+      "standard": 19,
+      "complex": 49
+    },
+    "included": "redigering og AI-hjelp i dokumentet",
+    "included_en": "editing and AI help inside the document",
+    "free_tier": "1 prosjekt, ~50 filer, forhåndsvisning med vannmerke",
+    "free_tier_en": "1 project, ~50 files, watermarked preview",
+    "reexport": "gratis for betalte dokumenter",
+    "reexport_en": "free for paid documents",
+    "contract_tier_note": "contract reviews are typically the €49 tier",
+    "contract_tier_note_no": "kontraktsgjennomgang er typisk €49-nivået"
+  },
+  "pricing_line": "Gratis å prøve — betal per eksportert dokument (€9 / €19 / €49).",
+  "pricing_line_en": "Free to try — pay per exported document (€9 / €19 / €49).",
+  "legal_framing": {
+    "en": "Foldok does document review and extraction: parties, obligations, deadlines and penalties with verbatim clause citations, plus cross-document conflict detection. It records what the documents say and what could not be found. It is not legal advice, and the legal assessment stays with you.",
+    "no": "Foldok gjør dokumentgjennomgang og ekstraksjon: parter, forpliktelser, frister og sanksjoner med ordrette klausulsitater, pluss konfliktdeteksjon på tvers av dokumenter. Den registrerer hva dokumentene sier og hva som ikke ble funnet. Det er ikke juridisk råd — den juridiske vurderingen er din."
+  },
+  "forbidden_legal_phrases": [
+    "evidence handling",
+    "bevishåndtering",
+    "admissible",
+    "chain of custody",
+    "beviskjede"
+  ],
+  "forbidden_privacy_phrases": [
+    "helt offline",
+    "ingenting forlater maskinen",
+    "vi har ikke tilgang til dataene dine",
+    "completely offline",
+    "nothing leaves your machine"
+  ]
+}

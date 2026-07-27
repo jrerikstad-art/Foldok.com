@@ -1,0 +1,35 @@
+id: junction
+domain: electrical
+label: Wire junction
+svg: junction.svg
+default_orientation: 0
+standard_hint: IEC-style
+ports:
+- id: a
+  name: A
+  side: left
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: b
+  name: B
+  side: right
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: c
+  name: C
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: d
+  name: D
+  side: bottom
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1

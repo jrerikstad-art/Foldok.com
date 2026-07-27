@@ -1,0 +1,24 @@
+# Knowledge pack schema (conceptual)
+
+KnowledgePack:
+  id: string
+  version: string
+  title: string
+  status: profile | user_defined
+  disclaimer: string
+  legal_compliance_claimed: false
+  includes: string[]          # fragment YAML files in same folder
+  domains: string[]
+
+Pack fragments may define:
+  - vocabulary (forms, environments, material families)
+  - selection_flow steps
+  - blocking_gaps (engine-facing checklist)
+  - report_block templates (AST block types)
+
+Usage layers:
+  knowledge_pack: vocabulary and checklist structure
+  project_sources: user specs, datasheets, preferred standards
+  materials_engine: optional link — steel grade + coating as material attributes
+  report: block after user confirm (e.g. CorrosionProtectionNote)
+  compliance_posture: evidence and selection structure — never "certified corrosion-free"

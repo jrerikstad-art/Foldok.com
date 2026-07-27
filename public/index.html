@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Foldok — project folders to technical documentation</title>
+  <meta name="description" content="Foldok turns project folders into complete technical documentation packages. Local-first. You confirm before anything is final." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --ink:#16181D; --paper:#F2F0EA; --sheet:#fff; --line:#DCD9D0; --steel:#5A6472; --signal:#F5C400; --ok:#1E7A46; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:Archivo,sans-serif; background:var(--paper); color:var(--ink); }
+    header { display:flex; align-items:center; gap:12px; min-height:52px; padding:8px 18px; background:var(--ink); color:#fff; flex-shrink:0; flex-wrap:wrap; }
+    /* Foldok mark: […] — code blocks, data gaps, folder/page geometry (no tile) */
+    header .logo {
+      display:inline-flex; align-items:center; justify-content:center;
+      background:transparent; color:var(--signal);
+      border-radius:0; padding:0;
+      font-family:"IBM Plex Mono",monospace;
+      font-weight:700; font-size:22px; letter-spacing:-0.06em;
+      line-height:1; user-select:none;
+    }
+    header .brand-home {
+      display:inline-flex; align-items:center; gap:12px;
+      color:inherit; text-decoration:none; cursor:pointer;
+    }
+    header b { font-size:14px; letter-spacing:.06em; font-weight:800; }
+    header .doc-meta {
+      display:inline-flex; flex-wrap:wrap; align-items:baseline; gap:6px 0;
+      margin-left:6px; padding-left:12px;
+      border-left:1px solid rgba(255,255,255,.18);
+      font-family:"IBM Plex Mono",monospace; font-size:10px; line-height:1.35;
+      color:rgba(255,255,255,.72);
+    }
+    header .doc-meta .dm { display:inline-flex; align-items:baseline; gap:5px; white-space:nowrap; }
+    header .doc-meta .dm + .dm::before {
+      content:""; display:inline-block; width:3px; height:3px; margin:0 10px 0 8px;
+      border-radius:50%; background:rgba(245,196,0,.55); align-self:center; flex-shrink:0;
+    }
+    header .doc-meta .dm em {
+      font-style:normal; font-size:8.5px; font-weight:700; letter-spacing:.1em;
+      text-transform:uppercase; color:rgba(255,255,255,.42);
+    }
+    header .doc-meta .dm strong { font-weight:600; color:rgba(255,255,255,.88); }
+    header .ver {
+      font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--signal);
+      display:inline-flex; align-items:baseline; gap:6px;
+    }
+    header .ver .ver-label {
+      font-style:normal; font-size:8.5px; font-weight:700; letter-spacing:.1em;
+      text-transform:uppercase; color:rgba(255,255,255,.42);
+    }
+    header .doc-meta .dm-note { color:rgba(255,255,255,.55); }
+    header .doc-meta .dm-note strong { font-weight:600; color:var(--signal); }
+    header .doc-meta .dm-lang button.lang-pick {
+      background:transparent; border:none; padding:0; margin:0; cursor:pointer;
+      font:inherit; color:inherit;
+    }
+    header .doc-meta .dm-lang button.lang-pick strong {
+      font-weight:600; color:rgba(255,255,255,.38); pointer-events:none;
+    }
+    header .doc-meta .dm-lang button.lang-pick.on strong,
+    header .doc-meta .dm-lang button.lang-pick strong.on { color:var(--signal); }
+    header .doc-meta .dm-lang .lang-sep { color:rgba(255,255,255,.28); margin:0 3px; }
+    [data-l="en"], [data-l="no"] { display: none !important; }
+    html[lang="en"] [data-l="en"],
+    html[lang="nb"] [data-l="no"],
+    html[data-lang="en"] [data-l="en"],
+    html[data-lang="no"] [data-l="no"],
+    body[data-lang="en"] [data-l="en"],
+    body[data-lang="no"] [data-l="no"] { display: inline !important; }
+    html[lang="en"] h2[data-l="en"], html[lang="nb"] h2[data-l="no"],
+    body[data-lang="en"] h2[data-l="en"], body[data-lang="no"] h2[data-l="no"],
+    html[lang="en"] p[data-l="en"], html[lang="nb"] p[data-l="no"],
+    body[data-lang="en"] p[data-l="en"], body[data-lang="no"] p[data-l="no"],
+    html[lang="en"] li[data-l="en"], html[lang="nb"] li[data-l="no"],
+    body[data-lang="en"] li[data-l="en"], body[data-lang="no"] li[data-l="no"],
+    html[lang="en"] .story-kicker[data-l="en"], html[lang="nb"] .story-kicker[data-l="no"],
+    body[data-lang="en"] .story-kicker[data-l="en"], body[data-lang="no"] .story-kicker[data-l="no"],
+    html[lang="en"] div[data-l="en"], html[lang="nb"] div[data-l="no"],
+    body[data-lang="en"] div[data-l="en"], body[data-lang="no"] div[data-l="no"] {
+      display: block !important;
+    }
+    @media (max-width:900px) {
+      header .doc-meta { margin-left:0; padding-left:0; border-left:none; width:100%; order:3; }
+    }
+    header .right { margin-left:auto; }
+    header a.cta { color:var(--ink); background:var(--signal); text-decoration:none; font-weight:800; font-size:12px; padding:8px 14px; border-radius:7px; }
+    main { max-width:960px; margin:0 auto; padding:28px 20px 80px; }
+    .hero {
+      padding:0; margin-bottom:8px;
+    }
+    .hero .mark { font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:28px; letter-spacing:-0.06em; }
+    .hero h1 { font-size:clamp(26px,4vw,36px); font-weight:900; letter-spacing:-0.03em; line-height:1.15; margin:12px 0 10px; max-width:16em; }
+    .hero p { font-size:16px; line-height:1.5; color:var(--steel); margin:0 0 18px; max-width:38em; }
+    .hero .row { display:flex; flex-wrap:wrap; gap:10px; }
+    .btn { display:inline-block; background:var(--signal); color:var(--ink); font-weight:800; font-size:13px; padding:11px 16px; border-radius:8px; text-decoration:none; border:none; cursor:pointer; }
+    .btn.ghost { background:transparent; border:1px solid var(--line); }
+    .story-block { padding:52px 0 44px; border-top:1px solid var(--line); }
+    .story-kicker { font-family:"IBM Plex Mono",monospace; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--steel); margin:0 0 10px; }
+    .story-block h2 { font-size:clamp(22px,3.2vw,30px); font-weight:900; letter-spacing:-0.025em; line-height:1.15; margin:0 0 14px; max-width:18em; }
+    .story-block .subline { font-size:14px; line-height:1.5; color:var(--steel); margin:0 0 22px; max-width:40em; }
+    .story-block ul.tight { margin:0; padding:0; list-style:none; display:grid; gap:10px; max-width:40em; }
+    .story-block ul.tight li { font-size:14.5px; line-height:1.45; padding-left:14px; position:relative; }
+    .story-block ul.tight li::before { content:""; position:absolute; left:0; top:.55em; width:6px; height:6px; background:var(--signal); }
+    .story-flow { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+    .story-flow .node { background:var(--sheet); border:1px solid var(--line); border-radius:8px; padding:10px 12px; font-family:"IBM Plex Mono",monospace; font-size:11.5px; font-weight:600; }
+    .story-flow .arrow { color:var(--steel); font-family:"IBM Plex Mono",monospace; font-weight:700; }
+    .story-caps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:8px 0 22px; }
+    @media (max-width:720px) { .story-caps { grid-template-columns:1fr; } }
+    .story-cap { background:var(--sheet); border:1px solid var(--line); border-radius:10px; padding:14px; }
+    .story-cap .n { font-family:"IBM Plex Mono",monospace; font-size:10px; font-weight:700; color:var(--steel); margin-bottom:8px; }
+    .story-outputs { display:flex; flex-wrap:wrap; gap:8px; }
+    .story-outputs span { font-size:12px; font-weight:700; padding:7px 11px; border:1px solid var(--line); border-radius:8px; background:var(--sheet); }
+    .story-pipe { margin:8px 0 0; padding:14px 16px; background:var(--sheet); border:1px solid var(--line); border-radius:10px; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.7; white-space:pre; overflow-x:auto; }
+    .story-note { margin:14px 0 0; font-size:13.5px; max-width:40em; }
+    .story-compare { width:100%; border-collapse:collapse; font-size:13px; margin-top:6px; }
+    .story-compare th, .story-compare td { border:1px solid var(--line); padding:11px 12px; text-align:left; vertical-align:top; }
+    .story-compare th { background:var(--ink); color:#fff; font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
+    .story-compare td:last-child { background:#F7FAF8; }
+    .story-steps { counter-reset:story-step; margin:6px 0 0; padding:0; max-width:42em; }
+    .story-steps li { list-style:none; display:grid; grid-template-columns:28px 1fr; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); font-size:14.5px; }
+    .story-steps li::before { counter-increment:story-step; content:counter(story-step); font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:700; width:28px; height:28px; border-radius:8px; border:1px solid var(--line); background:var(--sheet); display:flex; align-items:center; justify-content:center; }
+    .story-who { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    @media (max-width:640px) { .story-who { grid-template-columns:1fr; } }
+    .story-who div { background:var(--sheet); border:1px solid var(--line); border-radius:10px; padding:14px; font-size:13.5px; line-height:1.4; }
+    .story-who b { display:block; font-size:13px; font-weight:800; margin-bottom:4px; }
+    .story-price { background:var(--sheet); border:1px solid var(--line); border-radius:10px; padding:16px 18px; max-width:36em; }
+    .story-price .ex { font-family:"IBM Plex Mono",monospace; font-size:13px; font-weight:700; color:var(--ok); margin-top:10px; }
+    .story-cta-row { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+    .story-reassure { margin:14px 0 0; font-size:13px; color:var(--steel); }
+    footer { border-top:1px solid var(--line); padding:24px 0; font-size:12px; color:var(--steel); }
+
+    /* ══ v2 additions: show, don't tell ══ */
+    /* document-as-page framing */
+    .docmeta{display:flex;flex-wrap:wrap;gap:14px;align-items:baseline;font-family:"IBM Plex Mono",monospace;
+      font-size:10px;color:var(--steel);letter-spacing:.04em;border-bottom:1px solid var(--line);
+      padding-bottom:8px;margin-bottom:18px}
+    .docmeta b{color:var(--ink)}
+    /* live compile hero */
+    .drop{border:2px dashed var(--line);border-radius:12px;background:var(--paper);padding:22px;
+      text-align:center;transition:all .18s;cursor:pointer}
+    .drop:hover,.drop.hot{border-color:var(--signal);background:#FFFDF2}
+    .drop .big{font-weight:900;font-size:15px;margin-bottom:3px}
+    .drop .sm{font-size:12px;color:var(--steel)}
+    .samples{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:11px}
+    .samples button{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;padding:6px 11px;
+      border:1px solid var(--line);border-radius:99px;background:var(--sheet);cursor:pointer}
+    .samples button:hover{border-color:var(--ink)}
+    .compile{margin-top:16px;display:none}
+    .compile.on{display:block}
+    .clog{font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1.75;background:var(--ink);
+      color:#C9CCD3;border-radius:9px;padding:12px 14px;height:132px;overflow:hidden}
+    .clog .f{color:#7f8895}
+    .clog .ok{color:#5fd08a}
+    .clog .warn{color:#F5C400}
+    .counters{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+    .counter{background:var(--sheet);border:1px solid var(--line);border-radius:9px;padding:9px 11px}
+    .counter .v{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:19px}
+    .counter .k{font-size:10px;color:var(--steel);letter-spacing:.03em}
+    @media(max-width:640px){.counters{grid-template-columns:repeat(2,1fr)}}
+    /* traceable citation chips */
+    .cite{font-family:"IBM Plex Mono",monospace;font-size:.92em;color:#1450B4;background:#EAF1FD;
+      border-bottom:2px solid #1450B4;padding:0 3px;border-radius:2px;cursor:help;position:relative}
+    .cite:hover{background:#DCE8FC}
+    .cite::after{content:attr(data-src);position:absolute;left:0;bottom:calc(100% + 6px);white-space:nowrap;
+      background:var(--ink);color:#fff;font-size:10px;padding:4px 8px;border-radius:5px;opacity:0;
+      pointer-events:none;transition:opacity .12s;z-index:5}
+    .cite:hover::after{opacity:1}
+    .mangler{font-family:"IBM Plex Mono",monospace;font-size:.9em;font-weight:700;color:#C74E19;
+      background:#FDF0E8;border:1.5px dashed #C74E19;padding:1px 7px;border-radius:4px}
+    /* the gap panel */
+    .gapdemo{background:var(--sheet);border:1px solid var(--line);border-radius:11px;padding:20px 22px;max-width:44em}
+    .gapdemo table{width:100%;border-collapse:collapse;font-size:13.5px}
+    .gapdemo td{padding:7px 0;border-bottom:1px solid var(--line)}
+    .gapdemo td:first-child{color:var(--steel);width:52%}
+    .gapline{display:flex;gap:8px;align-items:center;margin-top:13px;font-size:12.5px;color:#C74E19;font-weight:700}
+    .gapline .dot{width:7px;height:7px;border-radius:99px;background:#C74E19;flex:0 0 auto}
+    /* honesty side-by-side */
+    .honest{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media(max-width:700px){.honest{grid-template-columns:1fr}}
+    .honest > div{border-radius:11px;padding:16px 18px;font-size:13.5px;line-height:1.55}
+    .honest .them{background:#1C1F26;color:#C6CBD4;border:1px solid #2A2E38}
+    .honest .them .fake{color:#fff;background:#2A2E38;padding:1px 6px;border-radius:3px}
+    .honest .us{background:var(--sheet);border:1px solid var(--line)}
+    .honest .lab{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;
+      color:var(--steel);margin-bottom:9px}
+    .honest .verdict{margin-top:11px;font-size:12px;font-weight:700}
+    /* real numbers */
+    .runs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    @media(max-width:700px){.runs{grid-template-columns:1fr}}
+    .run{background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:14px 15px}
+    .run b{display:block;font-size:13px;margin-bottom:6px}
+    .run .m{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--steel);line-height:1.7}
+    .run .m i{font-style:normal;color:var(--ink);font-weight:700}
+    .compiled-by{margin-top:34px;border-top:1px solid var(--line);padding-top:12px;
+      font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--steel);
+      display:flex;flex-wrap:wrap;gap:12px}
+
+    /* ══ live chat hero — matches app hub-chat ══ */
+    .hub-chat { background:var(--sheet); border:1px solid var(--line); border-radius:12px; padding:16px 18px;
+      box-shadow:0 3px 18px rgba(20,22,28,.07); margin-top:4px; }
+    .hub-brand {
+      font-family:Archivo,sans-serif; font-size:22px; font-weight:900; letter-spacing:-0.02em;
+      color:var(--ink); margin:0 0 12px; padding-bottom:10px; border-bottom:1px solid var(--line);
+      display:flex; align-items:baseline; flex-wrap:wrap; gap:8px 12px;
+    }
+    .hub-brand .mark {
+      display:inline-flex; align-items:center; justify-content:center;
+      color:var(--ink); font-family:"IBM Plex Mono",monospace;
+      font-weight:700; font-size:28px; letter-spacing:-0.06em; line-height:1;
+    }
+    .hub-brand .hub-name { display:inline-flex; align-items:baseline; gap:10px; }
+    .hub-brand .hub-tag {
+      font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600; letter-spacing:0.02em;
+      color:var(--steel); line-height:1.3;
+    }
+    .hub-brand .hub-tag #cmeter { color:var(--signal); font-weight:700; }
+    .hub-log { max-height:min(52vh,420px); overflow-y:auto; display:flex; flex-direction:column; gap:10px;
+      margin-bottom:12px; min-height:180px; }
+    .hub-log .msg{max-width:92%;font-size:13.5px;line-height:1.52;padding:9px 12px;border-radius:11px}
+    .hub-log .msg.u{align-self:flex-end;background:var(--ink);color:#fff}
+    .hub-log .msg.a{align-self:flex-start;background:var(--paper);border:1px solid var(--line)}
+    .hub-log .msg .free{display:block;margin-top:5px;font-family:"IBM Plex Mono",monospace;font-size:9.5px;color:var(--ok)}
+    .hub-log .runlog{font-family:"IBM Plex Mono",monospace;font-size:10.5px;line-height:1.72;background:var(--ink);
+      color:#9BA3AF;border-radius:8px;padding:9px 11px;align-self:stretch;max-width:100%}
+    .hub-log .runlog .ok{color:#5fd08a}.hub-log .runlog .warn{color:#F5C400}.hub-log .runlog .f{color:#7f8895}
+    .hub-log .doccard{align-self:stretch;max-width:100%;background:var(--sheet);border:1px solid var(--line);
+      border-radius:9px;padding:11px 13px}
+    .hub-log .doccard .dk{font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--steel);letter-spacing:.05em}
+    .hub-log .doccard h4{font-weight:900;font-size:13px;margin:3px 0 7px}
+    .hub-log .doccard table{width:100%;border-collapse:collapse;font-size:11.5px}
+    .hub-log .doccard td{padding:4px 0;border-bottom:1px solid var(--line)}
+    .hub-log .doccard td:first-child{color:var(--steel);width:56%}
+    .hints { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+    .hints button { font-size:12px; padding:6px 10px; border-radius:8px; border:1px solid var(--line);
+      background:var(--paper); cursor:pointer; font-weight:600; color:var(--ink); font-family:Archivo,sans-serif; }
+    .hints button:hover { border-color:var(--signal); }
+    .hints button.primary { background:var(--signal); border-color:var(--ink); }
+    .hints button .c{font-family:"IBM Plex Mono",monospace;font-size:9.5px;font-weight:600;margin-left:5px;color:var(--steel)}
+    .hints button.primary .c{color:#6b5c00}
+    .compose { display:flex; gap:8px; align-items:center; }
+    .compose input { flex:1; font-family:Archivo,sans-serif; font-size:12.5px; padding:9px 11px;
+      border-radius:8px; border:1px solid var(--line); background:var(--paper); }
+    .chat-attach-btn { background:var(--paper); border:1px solid var(--line); border-radius:8px;
+      width:38px; height:38px; cursor:pointer; font-size:15px; flex-shrink:0; }
+    .typing{display:inline-flex;gap:3px;align-items:center}
+    .typing i{width:5px;height:5px;border-radius:9px;background:var(--steel);animation:tp 1s infinite}
+    .typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+    @keyframes tp{0%,60%,100%{opacity:.25}30%{opacity:1}}
+
+    /* gap resolution panel */
+    .resolve{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+    .rhead{font-size:12.5px;color:var(--steel);margin-bottom:10px}
+    .rhead b{color:var(--ink)}
+    .ropts{display:flex;flex-direction:column;gap:7px}
+    .ropt{display:flex;align-items:center;gap:11px;text-align:left;width:100%;cursor:pointer;
+      background:var(--paper);border:1.5px solid var(--line);border-radius:9px;padding:10px 12px;
+      font-family:Archivo,sans-serif;transition:border-color .12s}
+    .ropt:hover{border-color:var(--ink)}
+    .ropt .ri{font-size:16px;flex:0 0 auto;width:20px;text-align:center}
+    .ropt b{display:block;font-size:12.5px}
+    .ropt small{display:block;font-size:11px;color:var(--steel);line-height:1.4;margin-top:1px}
+    .ropt .rc{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:700;
+      color:var(--ok);flex:0 0 auto}
+    .ropt[data-r="ref"] .rc{color:var(--steel)}
+    .rout{margin-top:11px;font-size:12px;line-height:1.55;min-height:0}
+    .rout .step{display:flex;gap:8px;align-items:flex-start;margin-top:7px}
+    .rout .step .k{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--ok);flex:0 0 auto;margin-top:1px}
+    .filled{font-family:"IBM Plex Mono",monospace;font-size:.92em;color:#1450B4;background:#EAF1FD;
+      border-bottom:2px solid #1450B4;padding:0 3px;border-radius:2px}
+    .filled.user{color:#1E7A46;border-color:#1E7A46;background:#EAF6EE}
+    .filled.ref{color:#C74E19;border-color:#C74E19;background:#FDF0E8;border-style:dashed}
+    .gapline.clear{color:var(--ok)}
+    .gapline.clear .dot{background:var(--ok)}
+
+    /* ══ orbit workflow ══ */
+    .orbit{position:relative;width:100%;max-width:560px;height:400px;margin:10px auto 6px}
+    .orbitsvg{position:absolute;inset:0;width:100%;height:100%}
+    .core{position:absolute;left:240px;top:200px;transform:translate(-50%,-50%);
+      width:168px;height:168px;border-radius:99px;border:3px solid var(--ink);background:var(--signal);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;
+      font-family:Archivo,sans-serif;z-index:3;
+      box-shadow:0 0 0 6px var(--paper),0 0 0 8px rgba(20,22,28,.12),0 8px 26px rgba(20,22,28,.18)}
+    .core:hover{box-shadow:0 0 0 6px var(--paper),0 0 0 8px var(--ink),0 8px 26px rgba(20,22,28,.22)}
+    .core .cico{font-size:40px;line-height:1}
+    .core b{font-size:16px}
+    .core small{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:#6b5c00}
+    .orbit .node{position:absolute;transform:translate(-50%,-50%);
+      display:flex;align-items:center;gap:8px;background:var(--sheet);border:1.5px solid var(--line);
+      border-radius:99px;padding:8px 15px 8px 8px;cursor:pointer;font-family:Archivo,sans-serif;
+      white-space:nowrap;z-index:2;transition:border-color .12s,transform .12s;
+      box-shadow:0 2px 6px rgba(20,22,28,.06)}
+    .orbit .node:hover{border-color:var(--ink);transform:translate(-50%,-50%) scale(1.05)}
+    .n1{left:240px;top:50px}
+    .n2{left:355px;top:104px}
+    .n3{left:387px;top:231px}
+    .n4{left:306px;top:335px}
+    .n5{left:161px;top:327px}
+    .n6{left:91px;top:213px}
+    .orbit .node.active{border-color:var(--ink);background:var(--ink);color:#fff}
+    .orbit .node i{width:24px;height:24px;border-radius:99px;background:var(--paper);color:var(--ink);
+      font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:700;font-style:normal;
+      display:grid;place-items:center;flex:0 0 auto}
+    .orbit .node.active i{background:var(--signal)}
+    .orbit .node span{font-size:12.5px;font-weight:700}
+    /* nodes near the right edge flip their content so labels stay on-canvas */
+    .n2,.n3{flex-direction:row}
+    @media(max-width:560px){
+      .orbit{height:0;padding-bottom:72%;overflow:visible}
+      .orbit .node span{font-size:10.5px}
+    }
+    .orbit-detail{background:var(--sheet);border:1px solid var(--line);border-radius:12px;
+      padding:18px 20px;max-width:44em;margin-top:10px}
+    .orbit-detail .od-k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;
+      color:var(--steel)}
+    .orbit-detail h3{font-weight:900;font-size:17px;margin:4px 0 7px}
+    .orbit-detail p{font-size:14px;line-height:1.55;color:#25282F;margin:0}
+    .od-note{margin-top:11px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ok);
+      border-top:1px solid var(--line);padding-top:9px}
+
+    .engine-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:4px}
+    @media(max-width:720px){.engine-grid{grid-template-columns:1fr}}
+    .eg{background:var(--sheet);border:1px solid var(--line);border-radius:11px;padding:15px 16px}
+    .eg .egt{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.06em;color:var(--steel)}
+    .eg b{display:block;font-size:15px;margin:5px 0 7px}
+    .eg small{font-size:12px;line-height:1.5;color:#25282F}
+
+    .privacy-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+    @media(max-width:700px){.privacy-grid{grid-template-columns:1fr}}
+    .pg{border-radius:12px;padding:16px 18px}
+    .pg .pgk{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.06em;
+      font-weight:700;margin-bottom:9px}
+    .pg ul{list-style:none;margin:0;padding:0}
+    .pg li{font-size:13px;line-height:1.5;padding-left:18px;position:relative;margin-bottom:5px}
+    .pg.keep{background:#EAF6EE;border:1.5px solid #1E7A46}
+    .pg.keep .pgk{color:#1E7A46}
+    .pg.keep li::before{content:"●";position:absolute;left:0;color:#1E7A46;font-size:9px;top:4px}
+    .pg.send{background:var(--sheet);border:1.5px solid var(--line)}
+    .pg.send .pgk{color:var(--steel)}
+    .pg.send li::before{content:"→";position:absolute;left:0;color:var(--steel);font-weight:700}
+
+    .pricecard{display:grid;grid-template-columns:200px 1fr;gap:0;border:1.5px solid var(--ink);
+      border-radius:12px;overflow:hidden;max-width:46em;margin-top:4px}
+    @media(max-width:640px){.pricecard{grid-template-columns:1fr}}
+    .pc-bal{background:var(--ink);color:#fff;padding:18px 20px;display:flex;flex-direction:column;gap:4px}
+    .pc-bal .pc-k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;color:#9BA3AF}
+    .pc-bal .pc-v{font-weight:900;font-size:30px;color:var(--signal);line-height:1}
+    .pc-bal .pc-note{font-size:11px;color:#C6CBD4;line-height:1.4;margin-top:3px}
+    .pc-ledger{padding:8px 18px}
+    .pc-row{display:flex;justify-content:space-between;align-items:center;gap:12px;
+      padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+    .pc-row:last-child{border-bottom:none}
+    .pc-row span{color:#25282F}
+    .pc-row b{font-family:"IBM Plex Mono",monospace;font-size:12px;flex:0 0 auto}
+    .pc-row b.free{color:var(--ok)}
+    .pricepoints{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+    @media(max-width:700px){.pricepoints{grid-template-columns:1fr}}
+    .pricepoints > div{font-size:12.5px;line-height:1.5;color:#25282F;
+      background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+    .pricepoints b{color:var(--ink)}
+
+    /* ══ engine pipeline: AI proposes / code decides ══ */
+    .pipe{display:grid;grid-template-columns:1fr 60px 1fr;gap:0;align-items:stretch;
+      max-width:46em;margin-top:6px}
+    @media(max-width:680px){.pipe{grid-template-columns:1fr;gap:10px}.pipe-mid{display:none}}
+    .pipe-lane{display:flex;flex-direction:column;gap:8px;padding:14px}
+    .pipe-lane.ai{background:#F4F1FB;border:1.5px solid #6D5FC0;border-radius:12px 0 0 12px}
+    .pipe-lane.code{background:#EAF6EE;border:1.5px solid #1E7A46;border-radius:0 12px 12px 0}
+    @media(max-width:680px){.pipe-lane.ai,.pipe-lane.code{border-radius:12px}}
+    .lane-k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.06em;font-weight:700;
+      margin-bottom:2px}
+    .pipe-lane.ai .lane-k{color:#6D5FC0}
+    .pipe-lane.code .lane-k{color:#1E7A46}
+    .pstep{background:var(--sheet);border:1px solid var(--line);border-radius:9px;padding:9px 11px;
+      font-size:13px;font-weight:700;transition:transform .12s,box-shadow .12s}
+    .pstep small{display:block;font-weight:400;font-size:11px;color:var(--steel);margin-top:2px;line-height:1.4}
+    .pstep.lit{transform:translateX(3px);box-shadow:-3px 0 0 var(--signal)}
+    .pipe-mid{display:flex;align-items:center;justify-content:center;position:relative}
+    .pipe-mid .gate{writing-mode:vertical-rl;transform:rotate(180deg);font-family:"IBM Plex Mono",monospace;
+      font-size:9.5px;letter-spacing:.05em;color:var(--steel);background:var(--paper);padding:6px 3px;
+      border-radius:6px;border:1px solid var(--line)}
+    .pipe-mid::before,.pipe-mid::after{content:"→";position:absolute;color:var(--steel);font-size:15px;font-weight:700}
+    .pipe-mid::before{left:6px}.pipe-mid::after{right:6px}
+
+    /* ══ AI discipline cards ══ */
+    .aicards{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;margin-top:6px}
+    @media(max-width:640px){.aicards{grid-template-columns:1fr}}
+    .aic{text-align:left;background:var(--sheet);border:1.5px solid var(--line);border-radius:12px;
+      padding:15px 16px 14px;cursor:pointer;font-family:Archivo,sans-serif;position:relative;
+      transition:border-color .12s,transform .12s;overflow:hidden}
+    .aic:hover{border-color:var(--ink);transform:translateY(-2px)}
+    .aic .aic-n{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:700;color:var(--signal);
+      background:var(--ink);border-radius:5px;padding:2px 7px}
+    .aic b{display:block;font-size:14px;margin:9px 0 6px;line-height:1.3}
+    .aic .aic-d{display:block;font-size:12.5px;line-height:1.5;color:#25282F;
+      max-height:0;opacity:0;transition:max-height .28s ease,opacity .2s,margin .28s}
+    .aic .aic-vs{display:block;font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--steel);
+      margin-top:8px}
+    .aic.open .aic-d{max-height:140px;opacity:1;margin-bottom:2px}
+    .aic.open{border-color:var(--ink)}
+    .aic::after{content:"+";position:absolute;top:13px;right:15px;font-size:17px;font-weight:700;
+      color:var(--steel);transition:transform .2s}
+    .aic.open::after{content:"–"}
+  </style>
+</head>
+<body data-lang="en">
+  <header>
+    <a class="brand-home" href="#start" title="Foldok — hjem">
+      <span class="logo" aria-hidden="true">[…]</span><b>FOLDOK</b>
+    </a>
+    <span class="ver">
+      <span class="ver-label"><span data-l="no">Versjon</span><span data-l="en">Version</span></span>
+      <span id="ver"></span>
+    </span>
+    <div class="doc-meta" aria-label="Document metadata">
+      <span class="dm"><em><span data-l="no">Dokument</span><span data-l="en">Document</span></em> <strong id="meta-doc">FOLDOK-WEB-001</strong></span>
+      <span class="dm"><em><span data-l="no">Revisjon</span><span data-l="en">Revision</span></em> <strong id="meta-rev">—</strong></span>
+      <span class="dm"><em><span data-l="no">Dato</span><span data-l="en">Date</span></em> <strong id="meta-date">—</strong></span>
+      <span class="dm dm-lang">
+        <em><span data-l="no">Språk</span><span data-l="en">Language</span></em>
+        <button type="button" class="lang-pick" id="meta-lang-no-btn" onclick="setUiLang('no', event)" title="Norsk">
+          <strong id="meta-lang-no">NO</strong>
+        </button><span class="lang-sep">/</span><button type="button" class="lang-pick" id="meta-lang-en-btn" onclick="setUiLang('en', event)" title="English">
+          <strong id="meta-lang-en">EN</strong>
+        </button>
+      </span>
+      <span class="dm dm-note">
+        <span data-l="no">Denne nettsiden er kompilert av <strong>Foldok</strong></span>
+        <span data-l="en">This website was compiled by <strong>Foldok</strong></span>
+      </span>
+    </div>
+    <div class="right"><a class="cta" href="#start">Open Foldok</a></div>
+  </header>
+  <main>
+    <section class="hero" id="start">
+      <!-- the product itself, running -->
+      <div class="hub-chat card" id="chatwin">
+        <div class="hub-brand">
+          <span class="hub-name"><span class="mark" title="Fills the gaps">[…]</span> Foldok</span>
+          <span class="hub-tag"><span data-i18n="hubTag">Engineering documentation, compiled.</span> · <span id="cmeter">€0,000</span></span>
+        </div>
+        <div class="hub-log" id="chatlog"></div>
+        <div class="hints" id="chips"></div>
+        <div class="compose">
+          <button type="button" class="chat-attach-btn" title="Attach file">📎</button>
+          <input id="chatinput" placeholder="Write here — or drop a folder / file…" autocomplete="off">
+          <button type="button" class="btn" id="chatsend" style="padding:10px 14px;flex-shrink:0">Send</button>
+        </div>
+      </div>
+
+    </section>
+
+    <section class="story-block" id="what">
+      <div class="story-kicker" data-i18n="s1k">1 — What this is</div>
+      <h2 data-i18n="s1h">Project folder in. Signable documentation out.</h2>
+      <p class="subline" data-i18n="s1p">Foldok is a local-first documentation engine. Point it at photos, drawings, PDFs, and notes — it indexes facts on your machine, compiles structured packages, and marks every gap. You confirm before anything is final.</p>
+      <div class="story-flow" aria-hidden="true">
+        <span class="node" data-i18n="s1a">Your folder</span><span class="arrow">→</span>
+        <span class="node" data-i18n="s1b">Cited facts + gaps</span><span class="arrow">→</span>
+        <span class="node" data-i18n="s1c">Finished package</span>
+      </div>
+    </section>
+
+    <section class="story-block">
+      <div class="story-kicker" data-i18n="s2k">2 — The problem</div>
+      <h2 data-i18n="s2h">Documentation still happens after the work is finished.</h2>
+      <ul class="tight">
+        <li data-i18n="s2a">Notes on phones, hand sketches, late declarations, incomplete manuals</li>
+        <li data-i18n="s2b">Hours of unpaid office time per job</li>
+        <li data-i18n="s2c">Incomplete packages = missing evidence and late review pain</li>
+      </ul>
+    </section>
+
+    <div id="story-i18n">
+    <!-- Sections 3–15 rendered by applyStoryI18n() -->
+    </div>
+
+  <footer>Foldok · […] · Local-first documentation engine</footer>
+  </main>
+  
+
+<script>
+/* ── live compile demo: real fixture data, runs in the browser ── */
+(function(){
+  const SAMPLES = {
+    rense: { files:20, facts:20, gaps:12, cost:0.11, name:"Minirenseanlegg (demo)",
+      log:[["f","Søknad om utslippstillatelse.pdf"],["ok","  → 6 fakta: 10 PE, ≥2 m dyp, 60 % P"],
+           ["f","situasjonskart.pdf"],["ok","  → gnr./bnr. · kommune"],
+           ["f","Foreløpig svar 30.05.2023.PDF"],["ok","  → frist 06.11.2023"],
+           ["f","Serviceavtale.pdf"],["ok","  → vedlikeholdsintervall"],
+           ["f","Produktblad SATAK-8.pdf"],["ok","  → renseenhet, biologisk/kjemisk"],
+           ["warn","⚠ 12 mangler: utslippstillatelse nr., eierskap, serienr. …"],
+           ["ok","✓ Teknisk dokumentasjonspakke klar for gjennomgang"]] },
+    loft: { files:34, facts:41, gaps:1, cost:0.19, name:"Løfteverktøy",
+      log:[["f","IMG_2841.jpg"],["ok","  → løfteverktøy montert, sett forfra"],
+           ["f","IMG_2844.jpg"],["ok","  → merkeskilt: SWL 3,2 t · serienr."],
+           ["f","lasttest_rapport.pdf"],["ok","  → prøvelast 4,8 t · EN 13155"],
+           ["f","vekt_dimensjoner.xlsx"],["ok","  → egenvekt 42 kg · S355"],
+           ["f","+ 30 filer …"],["ok","  → 41 fakta, 12 figurer plassert"],
+           ["warn","⚠ 1 mangel: sakkyndig kontroll — intervall"],
+           ["ok","✓ Samsvarserklæring klar · 1 blokkerende"]] },
+    rov: { files:136, facts:118, gaps:24, cost:0.42, name:"ROV prototype",
+      log:[["f","Tegninger/K-01.pdf … K-14.pdf"],["ok","  → 14 tegninger, tittelfelt lest"],
+           ["f","Rapporter/bassengtest_2026.pdf"],["ok","  → trykktest, stabilitet"],
+           ["f","Bilder/ (98 filer)"],["ok","  → 46 indeksert, 90 hoppet over"],
+           ["f","DNV-krav_subsea.pdf"],["ok","  → 31 krav uttrukket"],
+           ["warn","⚠ 3 standardkonflikter funnet på tvers av dokumentene"],
+           ["warn","⚠ 24 mangler · 6 blokkerende"],
+           ["ok","✓ Designgrunnlag + BOM + konfliktregister"]] }
+  };
+  const drop = document.getElementById('drop'), wrap = document.getElementById('compile'),
+        log = document.getElementById('clog');
+  if(!drop) return;
+  const cf=document.getElementById('c-files'), ca=document.getElementById('c-facts'),
+        cg=document.getElementById('c-gaps'), cc=document.getElementById('c-cost');
+  let timer=null;
+  const ease=(el,to,fmt)=>{let i=0;const step=Math.max(1,Math.ceil(to/22));
+    const t=setInterval(()=>{i=Math.min(to,i+step);el.textContent=fmt?fmt(i):i;
+      if(i>=to)clearInterval(t);},38);};
+  function run(key){
+    const s=SAMPLES[key]; if(!s) return;
+    clearInterval(timer); wrap.classList.add('on'); log.innerHTML=''; 
+    cf.textContent=0; ca.textContent=0; cg.textContent=0; cc.textContent='€0,00';
+    let i=0;
+    timer=setInterval(()=>{
+      if(i>=s.log.length){ clearInterval(timer);
+        ease(cf,s.files); ease(ca,s.facts); ease(cg,s.gaps);
+        ease(cc,Math.round(s.cost*100),v=>'€'+(v/100).toFixed(2).replace('.',','));
+        return; }
+      const [k,t]=s.log[i++];
+      const d=document.createElement('div'); d.className=k; d.textContent=t;
+      log.appendChild(d); log.scrollTop=log.scrollHeight;
+    },260);
+  }
+  document.querySelectorAll('.samples button').forEach(b=>
+    b.addEventListener('click',e=>{e.preventDefault();run(b.dataset.s);}));
+  ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{
+    e.preventDefault();drop.classList.add('hot');}));
+  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{
+    e.preventDefault();drop.classList.remove('hot');}));
+  drop.addEventListener('drop',e=>{e.preventDefault();run('rense');});
+  drop.addEventListener('click',()=>run('rense'));
+  drop.addEventListener('keydown',e=>{if(e.key==='Enter')run('rense');});
+})();
+</script>
+
+<script>
+/* ── live chat hero: the product itself, scripted on fixture data ── */
+(function(){
+  const log = document.getElementById('chatlog'),
+        chips = document.getElementById('chips'),
+        input = document.getElementById('chatinput'),
+        send = document.getElementById('chatsend'),
+        meter = document.getElementById('cmeter');
+  if(!log) return;
+  let cost = 0;
+  const bump = c => { cost += c; if(meter){ meter.dataset.live='1'; meter.textContent = (typeof fmtMoney==='function'?fmtMoney(cost):('€'+cost.toFixed(3).replace('.',','))); } };
+  const sc = () => log.scrollTop = log.scrollHeight;
+  const el = (cls, html) => { const d=document.createElement('div'); d.className=cls; d.innerHTML=html; log.appendChild(d); sc(); return d; };
+  const wait = ms => new Promise(r=>setTimeout(r,ms));
+
+  async function typing(ms){ const t=el('msg a','<span class="typing"><i></i><i></i><i></i></span>'); await wait(ms); t.remove(); }
+
+  function setChips(list){
+    chips.innerHTML='';
+    list.forEach(c=>{
+      const b=document.createElement('button');
+      if(c.primary) b.className='primary';
+      b.innerHTML = c.label + (c.cost!==undefined ? `<span class="c">· ${c.cost===0?(typeof freeLabel==='function'?freeLabel():'gratis'):(typeof fmtMoney==='function'?fmtMoney(c.cost):('€'+c.cost.toFixed(2).replace('.',',')))}</span>`:'');
+      b.onclick = ()=>c.go();
+      chips.appendChild(b);
+    });
+  }
+
+  const RUNLOG = [
+    ['f','Søknad om utslippstillatelse.pdf'],['ok','  → 10 PE · utslippsdybde ≥ 2 m · 60 % P'],
+    ['f','situasjonskart.pdf'],['ok','  → gnr./bnr. · kommune'],
+    ['f','Produktblad SATAK-8.pdf'],['ok','  → renseenhet, biologisk/kjemisk'],
+    ['warn','⚠ 12 mangler oppdaget · 5 blokkerende'],
+  ];
+
+  async function doCompile(){
+    setChips([]);
+    await typing(500);
+    el('msg a','Bygger <b>Teknisk dokumentasjonspakke</b> fra 20 filer …');
+    const rl = el('runlog','');
+    for(const [k,t] of RUNLOG){ await wait(360); rl.innerHTML += `<div class="${k}">${t}</div>`; sc(); }
+    bump(0.11);
+    await wait(400);
+    el('doccard',
+      '<div class="dk">TEKNISK DOKUMENTASJONSPAKKE · REV A · UTKAST</div>'+
+      '<h4>4 · Tekniske data</h4>'+
+      '<table><tbody>'+
+      '<tr><td>Anleggstype</td><td><span class="cite" data-src="Produktblad SATAK-8.pdf">Biologisk/kjemisk · 10 PE</span></td></tr>'+
+      '<tr><td>Utslippsdybde</td><td><span class="cite" data-src="Søknad om utslippstillatelse.pdf">≥ 2 m</span></td></tr>'+
+      '<tr><td>P-reduksjon</td><td><span class="cite" data-src="Søknad om utslippstillatelse.pdf">60 %</span></td></tr>'+
+      '<tr><td>Utslippstillatelse nr.</td><td><span class="mangler">MANGLER: oppgi</span></td></tr>'+
+      '</tbody></table>');
+    await typing(600);
+    el('msg a','Ferdig — <b>12 mangler</b>, 5 blokkerende. Alle verdier sitert til kilden. '+
+      'Hold musen over et blått tall.<span class="free">0 tokens · beregnet av motoren</span>');
+    setChips([
+      {label:'Fyll inn det vi vet (7)', cost:0, primary:true, go:doAutofill},
+      {label:'Hva mangler?', cost:0, go:doGaps},
+      {label:'Eksporter PDF', cost:19, go:doExport},
+    ]);
+  }
+
+  async function doAutofill(){
+    el('msg u','Fyll inn det vi vet (7)'); setChips([]);
+    await typing(450);
+    el('msg a','7 verdier hentet fra kildene og sitert. <b>2 blokkerende igjen.</b>'+
+      '<span class="free">0 tokens · beregnet av motoren</span>');
+    setChips([{label:'Hva mangler?',cost:0,go:doGaps},{label:'Eksporter PDF',cost:19,primary:true,go:doExport}]);
+  }
+  async function doGaps(){
+    el('msg u','Hva mangler?'); setChips([]);
+    await typing(450);
+    el('msg a','Blokkerende: <b>utslippstillatelse nr.</b>, <b>eierskap</b>. '+
+      'Begge står vanligvis i vedtaksbrevet fra kommunen — legg til filen, så henter jeg dem.'+
+      '<span class="free">0 tokens · beregnet av motoren</span>');
+    setChips([{label:'Legg til vedtaksbrev',cost:0,go:doAutofill},{label:'Eksporter likevel',cost:19,go:doExport}]);
+  }
+  async function doExport(){
+    el('msg u','Eksporter PDF'); setChips([]);
+    await typing(650); bump(19);
+    el('msg a','Eksportert: <b>Teknisk_dokumentasjonspakke_revA.pdf</b> — 14 sider, '+
+      '20 siterte verdier, 4 figurer. Re-eksport er gratis.');
+    setChips([{label:'Prøv et annet prosjekt',cost:0,primary:true,go:restart}]);
+  }
+
+  function userAsk(text){
+    el('msg u', text); setChips([]);
+    (async()=>{ await typing(500);
+      el('msg a','Basert på kildene passer <b>Teknisk dokumentasjonspakke</b> best for dette anlegget. '+
+        'Skal jeg bygge den?<span class="free">0 tokens</span>');
+      setChips([{label:'Ja, bygg den',cost:0.11,primary:true,go:doCompile},
+                {label:'Vis hva du fant',cost:0,go:()=>{el('msg a','20 fakta: 10 PE, ≥2 m dyp, 60 % P, gnr./bnr., kommune … +14 til.');}}]);
+    })();
+  }
+
+  async function restart(){
+    log.innerHTML=''; cost=0; if(meter) meter.textContent='€0,000';
+    await boot();
+  }
+
+  async function boot(){
+    /* chat starts empty — first message comes from the user, matching the app */
+  }
+
+  send.onclick = ()=>{ const v=input.value.trim(); if(v){ input.value=''; userAsk(v); } };
+  input.onkeydown = e=>{ if(e.key==='Enter') send.onclick(); };
+
+  // start when the hero scrolls into view (or immediately)
+  let started=false;
+  const go=()=>{ if(started)return; started=true; boot(); };
+  if('IntersectionObserver' in window){
+    const io=new IntersectionObserver(es=>{ if(es[0].isIntersecting){ go(); io.disconnect(); }},{threshold:.4});
+    io.observe(document.getElementById('chatwin'));
+  } else go();
+})();
+</script>
+<script>
+/* Story demos — rebound after applyStoryI18n() rebuilds the DOM */
+window.__foldok_bindStoryDemos = function(){
+  const L = (no, en) => (typeof getUiLang === "function" && getUiLang() === "no") ? no : en;
+  const fmt = (n) => (typeof fmtMoney === "function" ? fmtMoney(n) : ("€" + Number(n).toFixed(2)));
+
+  /* gap demo */
+  (function(){
+    const root=document.getElementById('gapdemo'); if(!root) return;
+    const cell=document.getElementById('gap-cell'), line=document.getElementById('gap-line'),
+          rout=document.getElementById('rout'), status=document.getElementById('gap-status');
+    if(!cell || cell.dataset.bound) return; cell.dataset.bound='1';
+    const opts=root.querySelectorAll('.ropt');
+    const wait=ms=>new Promise(r=>setTimeout(r,ms));
+    let done=false;
+    const OUT={
+      source:[['→',L('Legger til <b>sakkyndig_kontroll_2025.pdf</b> og indekserer …','Adding <b>sakkyndig_kontroll_2025.pdf</b> and indexing …')],
+        ['✓',L('Fant «Kontrollintervall: 12 måneder» på side 1','Found “Inspection interval: 12 months” on page 1')],
+        ['✓',L('Verdien satt inn og sitert til rapporten','Value inserted and cited to the report')]],
+      type:[['→',L('Du skriver: <b>12 måneder</b>','You type: <b>12 months</b>')],
+        ['✓',L('Lagt inn og merket «oppgitt av deg»','Entered and marked “stated by you”')]],
+      ref:[['→',L('Foldok slår opp typisk intervall …','Foldok looks up a typical interval …')],
+        ['⚠',L('Forslag: <b>12 måneder</b> — ubekreftet','Suggestion: <b>12 months</b> — unconfirmed')],
+        ['✓',L('Satt inn med tydelig merking','Inserted with clear marking')]]
+    };
+    const FILL={
+      source:`<span class="filled" data-src="sakkyndig_kontroll_2025.pdf s.1">${L('12 måneder','12 months')}</span>`,
+      type:`<span class="filled user">${L('12 måneder · oppgitt av deg','12 months · stated by you')}</span>`,
+      ref:`<span class="filled ref">${L('12 måneder ~ ubekreftet','12 months ~ unconfirmed')}</span>`
+    };
+    opts.forEach(b=>b.addEventListener('click', async ()=>{
+      if(done) return; done=true;
+      const r=b.dataset.r;
+      opts.forEach(o=>o.style.opacity=o===b?'1':'.4');
+      rout.innerHTML='';
+      for(const [k,t] of OUT[r]){ await wait(520);
+        const d=document.createElement('div'); d.className='step';
+        d.innerHTML=`<span class="k">${k}</span><span>${t}</span>`; rout.appendChild(d); }
+      await wait(450);
+      cell.innerHTML=FILL[r];
+      if(r==='ref'){
+        line.innerHTML='<span class="dot"></span>'+L('0 blokkerende · 1 verdi trenger bekreftelse','0 blocking · 1 value needs confirmation');
+      }else{
+        line.className='gapline clear';
+        line.innerHTML='<span class="dot"></span>'+L('✓ Ingen blokkerende mangler — klar for eksport','✓ No blocking gaps — ready to export');
+        if(status) status.textContent=L('KLAR','READY');
+      }
+      const again=document.createElement('button');
+      again.textContent=L('↺ Vis på nytt','↺ Show again');
+      again.style.cssText='margin-top:12px;font-size:11px;font-weight:700;padding:6px 11px;border:1px solid var(--line);border-radius:7px;background:var(--paper);cursor:pointer;font-family:Archivo,sans-serif';
+      again.onclick=()=>{ done=false; opts.forEach(o=>o.style.opacity='1'); rout.innerHTML=''; cell.innerHTML='<span class="mangler">'+L('MANGLER: intervall','MISSING: interval')+'</span>'; line.className='gapline'; line.innerHTML='<span class="dot"></span>'+L('1 blokkerende mangel — dokumentet kan ikke eksporteres som ferdig','1 blocking gap — document cannot export as finished'); if(status) status.textContent=L('UTKAST','DRAFT'); };
+      rout.appendChild(again);
+    }));
+  })();
+
+  /* orbit */
+  (function(){
+    const orbit=document.getElementById('orbit'); if(!orbit || orbit.dataset.bound) return; orbit.dataset.bound='1';
+    const K=document.getElementById('od-k'), Tt=document.getElementById('od-t'),
+          P=document.getElementById('od-p'), N=document.getElementById('od-note'),
+          coreSub=document.getElementById('core-sub');
+    const D={
+      index:{k:L('STEG 1','STEP 1'),t:L('Pek på en prosjektmappe','Point at a project folder'),
+        p:L('Foldok indekserer filene lokalt. Ingenting lastes opp.','Foldok indexes files locally. Nothing is uploaded.'),
+        n:L('Kjører på din maskin · fakta blir sporbare','Runs on your machine · facts become traceable'),
+        sub:L('20 filer · indekserer …','20 files · indexing …')},
+      choose:{k:L('STEG 2','STEP 2'),t:L('Velg dokument — eller la motoren foreslå','Choose a document — or let the engine suggest'),
+        p:L('Fortell hva du trenger, eller velg en mal.','Say what you need, or pick a template.'),
+        n:L('Samsvarserklæring · teknisk pakke …','Declaration · technical package …'),
+        sub:L('20 fakta · 16 maler','20 facts · 16 templates')},
+      gaps:{k:L('STEG 3','STEP 3'),t:L('Manglene kommer til syne','Gaps come into view'),
+        p:L('Motoren sier ifra om det som mangler i kildene.','The engine flags what is missing from sources.'),
+        n:L('12 mangler funnet · 5 blokkerende','12 gaps found · 5 blocking'),
+        sub:L('12 mangler oppdaget','12 gaps detected')},
+      resolve:{k:L('STEG 4','STEP 4'),t:L('Løs eller bekreft','Resolve or confirm'),
+        p:L('Legg til kilde, skriv selv, eller foreslå referanse.','Add a source, type it, or suggest a reference.'),
+        n:L('Løst i dokumentet','Resolved in the document'),
+        sub:L('2 blokkerende igjen','2 blocking left')},
+      compose:{k:L('STEG 5','STEP 5'),t:L('Dokumentet kompileres','The document compiles'),
+        p:L('Koden bygger tabeller og siterer. Modellen skriver setninger.','Code builds tables and cites. The model writes sentences.'),
+        n:L('Kode bygger dokumentet','Code builds the document'),
+        sub:L('14 sider · 4 figurer','14 pages · 4 figures')},
+      export:{k:L('STEG 6','STEP 6'),t:L('Lette redigeringer, så eksport','Light edits, then export'),
+        p:L('Eksporter til PDF, HTML, PowerPoint eller Word.','Export to PDF, HTML, PowerPoint or Word.'),
+        n:L('PDF · HTML · PPTX · DOCX · re-eksport gratis','PDF · HTML · PPTX · DOCX · re-export free'),
+        sub:fmt(9)+' · '+L('Betalt · rev A','Paid · rev A')}
+    };
+    const nodes=[...orbit.querySelectorAll('.node')];
+    function show(s){
+      const d=D[s]; if(!d) return;
+      if(K) K.textContent=d.k; if(Tt) Tt.textContent=d.t; if(P) P.textContent=d.p; if(N) N.textContent=d.n;
+      if(coreSub) coreSub.textContent=d.sub;
+      nodes.forEach(n=>n.classList.toggle('active', n.dataset.s===s));
+    }
+    nodes.forEach(n=>n.addEventListener('click',()=>show(n.dataset.s)));
+    document.getElementById('core')?.addEventListener('click',()=>show('index'));
+    let auto=true, i=0; const order=['index','choose','gaps','resolve','compose','export'];
+    orbit.addEventListener('click',()=>auto=false, {capture:true});
+    function tick(){ if(!auto) return; show(order[i]); i=(i+1)%order.length; if(i!==0) setTimeout(tick,1500); else auto=false; }
+    if('IntersectionObserver' in window){
+      const io=new IntersectionObserver(es=>{ if(es[0].isIntersecting){ tick(); io.disconnect(); }},{threshold:.4});
+      io.observe(orbit);
+    } else show('index');
+  })();
+
+  /* pipe */
+  (function(){
+    const pipe=document.getElementById('pipe'); if(!pipe || pipe.dataset.bound) return; pipe.dataset.bound='1';
+    const steps=[...pipe.querySelectorAll('.pstep')];
+    let ran=false;
+    function ripple(){ if(ran)return; ran=true;
+      steps.forEach((s,i)=>setTimeout(()=>{
+        steps.forEach(x=>x.classList.remove('lit')); s.classList.add('lit');
+        if(i===steps.length-1) setTimeout(()=>s.classList.remove('lit'),500);
+      }, i*280));
+    }
+    if('IntersectionObserver' in window){
+      const io=new IntersectionObserver(e=>{if(e[0].isIntersecting){ripple();io.disconnect();}},{threshold:.45});
+      io.observe(pipe);
+    }
+    steps.forEach(s=>s.addEventListener('mouseenter',()=>{steps.forEach(x=>x.classList.remove('lit'));s.classList.add('lit');}));
+  })();
+
+  /* AI cards */
+  (function(){
+    const wrap=document.getElementById('aicards'); if(!wrap || wrap.dataset.bound) return; wrap.dataset.bound='1';
+    const cards=[...wrap.querySelectorAll('.aic')];
+    cards.forEach(c=>c.addEventListener('click',()=>c.classList.toggle('open')));
+    if('IntersectionObserver' in window && cards[0]){
+      const io=new IntersectionObserver(e=>{if(e[0].isIntersecting){ cards[0].classList.add('open'); io.disconnect();}},{threshold:.4});
+      io.observe(wrap);
+    }
+  })();
+};
+</script>
+
+  <script>
+    const UI_I18N = {
+      no: {
+        ver: "Versjon", doc: "Dokument", rev: "Revisjon", date: "Dato", lang: "Språk",
+        note: 'Denne nettsiden er kompilert av <strong>Foldok</strong>',
+        cta: "Åpne Foldok", brandTitle: "Foldok — hjem",
+        hubTag: "Teknisk dokumentasjon, kompilert.",
+        hubPh: "Skriv her — eller slipp mappe / fil…",
+        hubSend: "Send",
+        s1k: "1 — Hva er dette",
+        s1h: "Prosjektmappe inn. Signerbar dokumentasjon ut.",
+        s1p: "Foldok er en lokal-først dokumentasjonsmotor. Pek den på foto, tegninger, PDF-er og notater — den indekserer fakta på din maskin, kompilerer strukturerte pakker og merker hvert hull. Du bekrefter før noe er endelig.",
+        s1a: "Din mappe", s1b: "Siterte fakta + mangler", s1c: "Ferdig pakke",
+        s2k: "2 — Problemet",
+        s2h: "Dokumentasjonen skjer fortsatt etter at jobben er ferdig.",
+        s2a: "Notater på telefon, håndskisser, sene erklæringer, ufullstendige manualer",
+        s2b: "Timer med ulønnet kontortid per jobb",
+        s2c: "Ufullstendige pakker = manglende evidens og sen gjennomgang",
+      },
+      en: {
+        ver: "Version", doc: "Document", rev: "Revision", date: "Date", lang: "Language",
+        note: 'This website was compiled by <strong>Foldok</strong>',
+        cta: "Open Foldok", brandTitle: "Foldok — home",
+        hubTag: "Engineering documentation, compiled.",
+        hubPh: "Write here — or drop a folder / file…",
+        hubSend: "Send",
+        s1k: "1 — What this is",
+        s1h: "Project folder in. Signable documentation out.",
+        s1p: "Foldok is a local-first documentation engine. Point it at photos, drawings, PDFs, and notes — it indexes facts on your machine, compiles structured packages, and marks every gap. You confirm before anything is final.",
+        s1a: "Your folder", s1b: "Cited facts + gaps", s1c: "Finished package",
+        s2k: "2 — The problem",
+        s2h: "Documentation still happens after the work is finished.",
+        s2a: "Notes on phones, hand sketches, late declarations, incomplete manuals",
+        s2b: "Hours of unpaid office time per job",
+        s2c: "Incomplete packages = missing evidence and late review pain",
+      },
+    };
+
+    function todayISO() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    }
+
+    function getUiLang() {
+      const saved = (localStorage.getItem("foldok_ui_lang") || "").toLowerCase();
+      if (saved === "no" || saved === "en") return saved;
+      return "en";
+    }
+
+    function L(no, en) { return getUiLang() === "no" ? no : en; }
+
+    function getCurrency() {
+      return getUiLang() === "no" ? "NOK" : "EUR";
+    }
+
+    function fmtMoney(eurAmount) {
+      const n = Number(eurAmount || 0);
+      const code = getCurrency();
+      const rate = { EUR: 1, USD: 1.08, NOK: 11.5 }[code] || 1;
+      const v = n * rate;
+      if (code === "NOK") return Math.round(v).toLocaleString("nb-NO") + "\u00a0kr";
+      if (code === "USD") return "$" + v.toFixed(2);
+      if (getUiLang() === "no") return "€" + v.toFixed(2).replace(".", ",");
+      return "€" + v.toFixed(2);
+    }
+
+    function moneyRange(lo, hi) { return fmtMoney(lo) + "–" + fmtMoney(hi); }
+    function freeLabel() { return L("gratis", "free"); }
+
+    function applyStoryI18n() {
+      const host = document.getElementById("story-i18n");
+      if (!host) return;
+      const free = freeLabel();
+      host.innerHTML = `
+<section class="story-block">
+  <div class="story-kicker">${L("3 — Det ingen andre gjør", "3 — The part nobody else does")}</div>
+  <h2>${L("Vi sier ifra før kontrolløren gjør det.", "We flag gaps before the inspector does.")}</h2>
+  <p class="subline">${L("Et komplett dokument er lett å lage hvis man dikter opp det man ikke vet. Foldok gjør det motsatte: hver verdi spores til kilden, og det som mangler står tydelig merket.",
+    "A complete document is easy if you invent what you don’t know. Foldok does the opposite: every value traces to a source, and what’s missing is marked clearly.")}</p>
+  <div class="gapdemo" id="gapdemo">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--steel)">
+      ${L("TEKNISK DOKUMENTASJONSPAKKE","TECHNICAL DOCUMENTATION PACKAGE")} · REV <span id="gap-rev">A</span> · <span id="gap-status">${L("UTKAST","DRAFT")}</span></div>
+    <h3 style="font-weight:900;font-size:16px;margin:5px 0 12px">${L("4 · Tekniske data","4 · Technical data")}</h3>
+    <table><tbody>
+      <tr><td>${L("Sikker arbeidslast (SWL)","Safe working load (SWL)")}</td><td><span class="cite" data-src="IMG_2844.jpg">3,2 t</span></td></tr>
+      <tr><td>${L("Prøvelast (1,5 × SWL)","Proof load (1.5 × SWL)")}</td><td><span class="cite" data-src="lasttest_rapport.pdf s.2">4,8 t</span></td></tr>
+      <tr><td>${L("Teststandard","Test standard")}</td><td><span class="cite" data-src="lasttest_rapport.pdf">EN 13155</span></td></tr>
+      <tr><td>${L("Egenvekt","Dead weight")}</td><td><span class="cite" data-src="vekt_dimensjoner.xlsx">42 kg</span></td></tr>
+      <tr><td>${L("Sakkyndig kontroll, intervall","Competent inspection, interval")}</td><td id="gap-cell"><span class="mangler">${L("MANGLER: intervall","MISSING: interval")}</span></td></tr>
+    </tbody></table>
+    <div class="gapline" id="gap-line"><span class="dot"></span>${L("1 blokkerende mangel — dokumentet kan ikke eksporteres som ferdig","1 blocking gap — document cannot export as finished")}</div>
+    <div class="resolve" id="resolve">
+      <div class="rhead">${L("Foldok foreslår tre måter å lukke mangelen —","Foldok suggests three ways to close the gap —")} <b>${L("uten å forlate dokumentet:","without leaving the document:")}</b></div>
+      <div class="ropts">
+        <button class="ropt" data-r="source"><span class="ri">📎</span><span><b>${L("Legg til kilden","Add the source")}</b><small>${L("Intervallet står i sakkyndig-rapporten. Legg til filen — Foldok henter og siterer verdien.","The interval is in the inspection report. Add the file — Foldok pulls and cites the value.")}</small></span><span class="rc">${free}</span></button>
+        <button class="ropt" data-r="type"><span class="ri">⌨</span><span><b>${L("Skriv inn selv","Type it yourself")}</b><small>${L("Oppgi verdien direkte. Den merkes «oppgitt av deg» og blir sporbar i dokumentet.","Enter the value directly. It is marked “stated by you” and stays traceable.")}</small></span><span class="rc">${free}</span></button>
+        <button class="ropt" data-r="ref"><span class="ri">◇</span><span><b>${L("Foreslå referanseverdi","Suggest a reference value")}</b><small>${L("Foldok foreslår et typisk intervall — tydelig merket som ubekreftet, aldri som fakta.","Foldok suggests a typical interval — clearly marked unconfirmed, never as fact.")}</small></span><span class="rc">${fmtMoney(0.004)}</span></button>
+      </div>
+      <div class="rout" id="rout"></div>
+    </div>
+  </div>
+  <p class="story-note">${L("Klikk en måte å lukke mangelen på — se hvordan dokumentet oppdateres direkte, med kilden intakt.","Click a way to close the gap — watch the document update live, with the source intact.")}</p>
+</section>
+
+<section class="story-block">
+  <div class="story-kicker">${L("4 — Ærlighet som arkitektur","4 — Honesty as architecture")}</div>
+  <h2>${L("Én av disse er oppdiktet. Vi lar deg se hvilken.","One of these is invented. We let you see which.")}</h2>
+  <div class="honest">
+    <div class="them"><div class="lab">${L("GENERISK AI-CHAT","GENERIC AI CHAT")}</div>
+      ${L("«Isolasjonsresistansen skal være <span class=\\"fake\\">≥ 1 MΩ</span>, og tiltrekkingsmomentet er <span class=\\"fake\\">25 Nm</span> i henhold til standarden.»","“Insulation resistance shall be <span class=\\"fake\\">≥ 1 MΩ</span>, and tightening torque is <span class=\\"fake\\">25 Nm</span> per the standard.”")}
+      <div class="verdict" style="color:#9BA3AF">${L("Selvsikkert formulert. Ingen av tallene ble målt — og den sier ikke fra.","Confident wording. Neither number was measured — and it doesn’t say so.")}</div>
+    </div>
+    <div class="us"><div class="lab">FOLDOK</div>
+      ${L("«Isolasjonsresistans <span class=\\"cite\\" data-src=\\"sluttkontroll.pdf\\">&gt;999 MΩ</span>, tiltrekkingsmoment <span class=\\"mangler\\">MANGLER</span>.»","“Insulation resistance <span class=\\"cite\\" data-src=\\"sluttkontroll.pdf\\">&gt;999 MΩ</span>, tightening torque <span class=\\"mangler\\">MISSING</span>.”")}
+      <div class="verdict" style="color:#1E7A46">${L("✓ Målt og sitert — eller tydelig merket som ukjent.","✓ Measured and cited — or clearly marked unknown.")}</div>
+    </div>
+  </div>
+</section>
+
+<section class="story-block">
+  <div class="story-kicker">${L("5 — Hva den gjør","5 — What it does")}</div>
+  <h2>${L("Tre evner. Ikke mer.","Three capabilities. Nothing more.")}</h2>
+  <div class="story-caps">
+    <div class="story-cap"><div class="n">01</div><b>${L("Samle og organisere prosjektkilder","Capture and organize project sources")}</b></div>
+    <div class="story-cap"><div class="n">02</div><b>${L("Kompilere strukturerte tekniske dokumenter","Compile structured technical documents")}</b></div>
+    <div class="story-cap"><div class="n">03</div><b>${L("Holde fakta, mangler og revisjoner under kontroll","Keep facts, gaps, and revisions under control")}</b></div>
+  </div>
+  <div class="story-outputs">
+    <span>${L("Installasjonsmanual","Installation manual")}</span>
+    <span>${L("Teknisk pakke","Technical package")}</span>
+    <span>${L("Kontrollrapport","Inspection report")}</span>
+    <span>${L("Samsvarserklæring","Declaration of conformity")}</span>
+  </div>
+</section>
+
+<section class="story-block">
+  <div class="story-kicker">${L("6 — Hvordan motoren virker","6 — How the engine works")}</div>
+  <h2>${L("AI-en foreslår. Koden bestemmer.","AI proposes. Code decides.")}</h2>
+  <p class="subline">${L("Dette er hvorfor tallene kan stoles på. Modellen skriver setninger — men den holder aldri fasiten. Alt som må stemme, lages i kode.",
+    "This is why the numbers can be trusted. The model writes sentences — but it never holds the ground truth. Everything that must be correct is built in code.")}</p>
+  <div class="pipe" id="pipe">
+    <div class="pipe-lane ai">
+      <div class="lane-k">${L("AI · foreslår","AI · proposes")}</div>
+      <div class="pstep" data-p="ai">${L("Uttrekk fra filer","Extract from files")}<small>${L("foto, PDF, tegning → fakta","photo, PDF, drawing → facts")}</small></div>
+      <div class="pstep" data-p="ai">${L("Forstå prosjektet","Understand the project")}<small>${L("hva er dette? hvilken mal?","what is this? which template?")}</small></div>
+      <div class="pstep" data-p="ai">${L("Skriv setninger","Write sentences")}<small>${L("prosa, sitert til fakta","prose, cited to facts")}</small></div>
+    </div>
+    <div class="pipe-mid" aria-hidden="true"><div class="gate">${L("hver verdi valideres","every value is validated")}</div></div>
+    <div class="pipe-lane code">
+      <div class="lane-k">${L("KODE · bestemmer","CODE · decides")}</div>
+      <div class="pstep" data-p="code">${L("Indeks &amp; faktabase","Index &amp; fact base")}<small>${L("én sannhet, sporbar","one truth, traceable")}</small></div>
+      <div class="pstep" data-p="code">${L("Mangler &amp; sitering","Gaps &amp; citation")}<small>${L("en verdi uten kilde slippes ikke gjennom","a value without a source does not pass")}</small></div>
+      <div class="pstep" data-p="code">${L("Tabeller, figurer, sider","Tables, figures, pages")}<small>${L("bygget, ikke skrevet","built, not written")}</small></div>
+      <div class="pstep" data-p="code">${L("Eksport","Export")}<small>PDF · HTML · PPTX · DOCX</small></div>
+    </div>
+  </div>
+</section>
+
+<section class="story-block">
+  <div class="story-kicker">${L("7 — Hvordan AI-en virker","7 — How the AI works")}</div>
+  <h2>${L("Vi holder AI-en i kort snor — med vilje.","We keep the AI on a short leash — on purpose.")}</h2>
+  <p class="subline">${L("En vanlig AI får skrive fritt og gjette. Foldok gir modellen fire faste regler, håndhevet i kode.","A typical AI is free to write and guess. Foldok gives the model four fixed rules, enforced in code.")}</p>
+  <div class="aicards" id="aicards">
+    <button class="aic" data-i="0"><span class="aic-n">01</span><b>${L("Starter fra filene dine — ikke et tomt felt","Starts from your files — not a blank field")}</b><span class="aic-d">${L("Konteksten er prosjektmappen.","Context is the project folder.")}</span><span class="aic-vs">${L("generisk AI: blank prompt","generic AI: blank prompt")}</span></button>
+    <button class="aic" data-i="1"><span class="aic-n">02</span><b>${L("Bruker bare siterte fakta","Uses only cited facts")}</b><span class="aic-d">${L("Verdier uten kilde blir","Values without a source become")} <span class="mangler" style="font-size:.85em">${L("MANGLER","MISSING")}</span>.</span><span class="aic-vs">${L("generisk AI: kan dikte","generic AI: can invent")}</span></button>
+    <button class="aic" data-i="2"><span class="aic-n">03</span><b>${L("Skriver setninger — bygger ikke dokumentet","Writes sentences — does not build the document")}</b><span class="aic-d">${L("Struktur lages i kode.","Structure is built in code.")}</span><span class="aic-vs">${L("generisk AI: fri tekst","generic AI: free text")}</span></button>
+    <button class="aic" data-i="3"><span class="aic-n">04</span><b>${L("Foreslår — du bekrefter","Proposes — you confirm")}</b><span class="aic-d">${L("Ingenting er endelig før du sier ja.","Nothing is final until you say yes.")}</span><span class="aic-vs">${L("generisk AI: klipp og lim","generic AI: cut and paste")}</span></button>
+  </div>
+</section>
+
+<section class="story-block">
+  <div class="story-kicker">${L("8 — Arbeidsflyt","8 — Workflow")}</div>
+  <h2>${L("Prosjektet er sentrum. Dokumentet er et resultat.","The project is the center. The document is an output.")}</h2>
+  <p class="subline">${L("Andre verktøy lager ett dokument av gangen. Foldok bygger ett prosjektminne.","Other tools make one document at a time. Foldok builds one project memory.")}</p>
+  <div class="orbit" id="orbit">
+    <svg viewBox="0 0 560 400" class="orbitsvg" aria-hidden="true"><ellipse cx="240" cy="200" rx="150" ry="150" fill="none" stroke="var(--line)" stroke-width="1.5" stroke-dasharray="3,5"/></svg>
+    <button class="core" data-s="index" id="core"><span class="cico">📁</span><b>${L("Prosjektet","The project")}</b><small id="core-sub">${L("20 filer · 20 fakta","20 files · 20 facts")}</small></button>
+    <button class="node n1" data-s="index" style="--a:-90"><i>1</i><span>${L("Indekser mappen","Index the folder")}</span></button>
+    <button class="node n2" data-s="choose" style="--a:-38"><i>2</i><span>${L("Velg dokument","Choose document")}</span></button>
+    <button class="node n3" data-s="gaps" style="--a:14"><i>3</i><span>${L("Se mangler","See gaps")}</span></button>
+    <button class="node n4" data-s="resolve" style="--a:66"><i>4</i><span>${L("Løs / bekreft","Resolve / confirm")}</span></button>
+    <button class="node n5" data-s="compose" style="--a:128"><i>5</i><span>${L("Kompilér","Compile")}</span></button>
+    <button class="node n6" data-s="export" style="--a:180"><i>6</i><span>${L("Eksportér","Export")}</span></button>
+  </div>
+  <div class="orbit-detail" id="orbit-detail">
+    <div class="od-k" id="od-k">${L("STEG 1","STEP 1")}</div>
+    <h3 id="od-t">${L("Pek på en prosjektmappe","Point at a project folder")}</h3>
+    <p id="od-p">${L("Foldok indekserer filene lokalt. Ingenting lastes opp.","Foldok indexes files locally. Nothing is uploaded.")}</p>
+    <div class="od-note" id="od-note">${L("Kjører på din maskin · fakta blir sporbare","Runs on your machine · facts become traceable")}</div>
+  </div>
+</section>
+
+<section class="story-block">
+  <div class="story-kicker">${L("9 — Hvem det er for","9 — Who it’s for")}</div>
+  <h2>${L("For dem som bygger samme dokumentasjon på nytt hver gang.","For people who rebuild the same documentation from scratch.")}</h2>
+  <div class="story-who">
+    <div><b>${L("Enkeltpersonforetak &amp; små entreprenører","Sole traders &amp; small contractors")}</b>${L("Elektrikere, rørleggere, montører","Electricians, plumbers, installers")}</div>
+    <div><b>${L("Ingeniører","Engineers")}</b>${L("Prototyper og leveransepakker","Prototypes and delivery packages")}</div>
+    <div><b>${L("EPC-er og verft","EPCs and yards")}</b>${L("Strukturerte overleveringsdokumenter","Structured handover documents")}</div>
+    <div><b>${L("Compliance-orienterte team","Compliance-minded teams")}</b>${L("Evidenspakker på tvers av regioner","Evidence packages across regions")}</div>
+  </div>
+</section>
+
+<section class="story-block">
+  <div class="story-kicker">${L("10 — Eksempler","10 — Examples")}</div>
+  <h2>${L("Fra mappe til dokument — noen typiske kjøringer.","From folder to document — a few typical runs.")}</h2>
+  <div class="runs">
+    <div class="run"><b>${L("Minirenseanlegg","Mini treatment plant")}</b><div class="m"><i>20</i> ${L("filer","files")} · ${L("teknisk pakke","technical package")} · <i>${fmtMoney(0.11)}</i></div></div>
+    <div class="run"><b>${L("Elektroinstallasjon, enebolig","Electrical install, house")}</b><div class="m"><i>28</i> ${L("filer","files")} · <i>3</i> ${L("mangler","gaps")} · <i>${fmtMoney(0.14)}</i></div></div>
+    <div class="run"><b>${L("Løfteutstyr, kontroll","Lifting gear, inspection")}</b><div class="m"><i>34</i> ${L("filer","files")} · <i>1</i> ${L("blokkerende","blocking")} · <i>${fmtMoney(0.19)}</i></div></div>
+  </div>
+</section>
+
+<section class="story-block">
+  <div class="story-kicker">${L("11 — Priser","11 — Pricing")}</div>
+  <h2>${L("Betal for det du bruker. Se hva hvert klikk koster.","Pay for what you use. See what each click costs.")}</h2>
+  <p class="subline">${L("Ingen abonnement. Du fyller på kreditt og bruker den når du vil.","No subscription. You top up credit and spend when you want.")}</p>
+  <div class="pricecard">
+    <div class="pc-bal">
+      <span class="pc-k">${L("SALDO","BALANCE")}</span>
+      <span class="pc-v">${fmtMoney(12.40)}</span>
+      <span class="pc-note">${L("fyll på","top up")} ${fmtMoney(10)} · ${fmtMoney(25)} · ${fmtMoney(50)}</span>
+    </div>
+    <div class="pc-ledger">
+      <div class="pc-row"><span>${L("Indeksere en fil","Index a file")}</span><b class="free">${free}–${fmtMoney(0.01)}</b></div>
+      <div class="pc-row"><span>${L("Se mangler · flytte blokker","See gaps · move blocks")}</span><b class="free">${free}</b></div>
+      <div class="pc-row"><span>${L("Skrive et avsnitt (AI)","Write a paragraph (AI)")}</span><b>${fmtMoney(0.01)}</b></div>
+      <div class="pc-row"><span>${L("Kompilere et helt dokument","Compile a full document")}</span><b>${moneyRange(0.11, 0.20)}</b></div>
+      <div class="pc-row"><span>${L("Eksportere ferdig PDF","Export finished PDF")}</span><b>${L("fra","from")} ${fmtMoney(9)}</b></div>
+      <div class="pc-row"><span>${L("Re-eksport av betalt dokument","Re-export of a paid document")}</span><b class="free">${free}</b></div>
+    </div>
+  </div>
+</section>
+
+<section class="story-block">
+  <div class="story-kicker">${L("12 — Personvern &amp; eierskap","12 — Privacy &amp; ownership")}</div>
+  <h2>${L("Vi ser aldri dokumentene dine. Det er hele poenget.","We never see your documents. That is the point.")}</h2>
+  <p class="subline">${L("Foldok er en <b>privat motor</b>: filene blir liggende på din maskin.","Foldok is a <b>private engine</b>: files stay on your machine.")}</p>
+</section>
+
+<section class="story-block">
+  <div class="story-kicker">${L("13 — Én motor, mer enn dokumenter","13 — One engine, more than documents")}</div>
+  <h2>${L("Fordi motoren komponerer og tegner selv — får du litt av flere verktøy på kjøpet.","Because the engine composes and draws itself — you get a bit of several tools included.")}</h2>
+</section>
+
+<section class="story-block">
+  <div class="story-kicker">${L("14 — Hvorfor ikke bare ChatGPT, NotebookLM, Word eller Figma","14 — Why not just ChatGPT, NotebookLM, Word or Figma")}</div>
+  <h2>${L("Foldok sitter i gapet mellom dem.","Foldok sits in the gap between them.")}</h2>
+</section>
+
+<section class="story-block" id="cta">
+  <div class="story-kicker">${L("15 — Kom i gang","15 — Get started")}</div>
+  <h2>${L("Kjør lokal workbench — eller deploy denne siden.","Run the local workbench — or deploy this page.")}</h2>
+  <div class="story-cta-row">
+    <a class="btn" href="https://github.com/" id="gh">${L("Åpne på GitHub","Open on GitHub")}</a>
+    <a class="btn ghost" href="#start">${L("Tilbake til toppen","Back to top")}</a>
+  </div>
+  <p class="story-reassure">${L("Ingen abonnement kreves for å starte.","No subscription required to start.")}</p>
+</section>`;
+      // Re-bind interactive demos after re-render
+      if (typeof window.__foldok_bindStoryDemos === "function") window.__foldok_bindStoryDemos();
+    }
+
+    function applyUiLang(lang) {
+      lang = lang === "no" ? "no" : "en";
+      localStorage.setItem("foldok_ui_lang", lang);
+      document.documentElement.lang = lang === "no" ? "nb" : "en";
+      document.documentElement.setAttribute("data-lang", lang);
+      document.body.setAttribute("data-lang", lang);
+      const pack = UI_I18N[lang];
+      document.querySelector("header .brand-home")?.setAttribute("title", pack.brandTitle);
+      const cta = document.querySelector("header a.cta");
+      if (cta) cta.textContent = pack.cta;
+      document.getElementById("meta-lang-no-btn")?.classList.toggle("on", lang === "no");
+      document.getElementById("meta-lang-en-btn")?.classList.toggle("on", lang === "en");
+      document.getElementById("meta-lang-no")?.classList.toggle("on", lang === "no");
+      document.getElementById("meta-lang-en")?.classList.toggle("on", lang === "en");
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (key && pack[key] != null) el.textContent = pack[key];
+      });
+      const input = document.getElementById("chatinput");
+      if (input) input.placeholder = pack.hubPh;
+      const send = document.getElementById("chatsend");
+      if (send) send.textContent = pack.hubSend;
+      const meter = document.getElementById("cmeter");
+      if (meter && !meter.dataset.live) meter.textContent = fmtMoney(0).replace(/0([.,]0+)?$/, m => m.includes(",") || m.includes(".") ? (getCurrency()==="NOK" ? "0" : "0.000".replace(".", getUiLang()==="no"?",":".")) : "0");
+      applyStoryI18n();
+    }
+
+    function setUiLang(lang, ev) {
+      ev?.preventDefault?.();
+      applyUiLang(lang === "no" ? "no" : "en");
+    }
+
+    function toggleUiLang(ev) {
+      setUiLang(getUiLang() === "en" ? "no" : "en", ev);
+    }
+
+    async function loadHeaderMeta() {
+      let version = "";
+      let meta = { document: "FOLDOK-WEB-001", revision: "C", date: "auto" };
+      try {
+        const [vRes, mRes] = await Promise.all([
+          fetch("./VERSION"),
+          fetch("./site-meta.json"),
+        ]);
+        if (vRes.ok) version = (await vRes.text()).trim();
+        if (mRes.ok) meta = { ...meta, ...(await mRes.json()) };
+      } catch (_) {}
+      if (!version) version = meta.version || "";
+      const rev = meta.revision || "C";
+      let date = meta.date;
+      if (!date || date === "auto" || date === "—") date = todayISO();
+      const verEl = document.getElementById("ver");
+      if (verEl && version) verEl.textContent = "v" + version.replace(/^v/i, "");
+      const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+      set("meta-doc", meta.document || "FOLDOK-WEB-001");
+      set("meta-rev", rev);
+      set("meta-date", date);
+      document.querySelectorAll(".meta-compiled-rev").forEach(el => {
+        el.textContent = `REV ${rev} · ${date}`;
+      });
+      applyUiLang(getUiLang());
+    }
+
+    loadHeaderMeta();
+  </script>
+
+
+</body>
+</html>

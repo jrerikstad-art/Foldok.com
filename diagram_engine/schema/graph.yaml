@@ -1,0 +1,75 @@
+# Shared connection graph schema (all domains)
+# Canonical contract for DiagramEngine — electrical / piping / mechanical / hybrid.
+#
+# Domains differ by symbol pack + connection attributes, not by separate products.
+# Same component may appear in multiple diagram types (e.g. motor in wiring + arrangement).
+
+Component:
+  id: string                    # unique in diagram, e.g. "P-101"
+  domain: electrical | piping | mechanical | hybrid
+  type: string                  # symbol id, e.g. "centrifugal_pump"
+  label: string                 # display name
+  tag: string | null            # equipment tag, e.g. "P-101"
+  symbol: string | null         # alias of type when set
+  specs: object                 # free metadata (kW, DN, rpm, …)
+  position: { x: number, y: number } | null
+  rotation: 0 | 90 | 180 | 270
+  ports: Port[]
+  terminals: Port[]             # electrical alias of ports (merged at load)
+
+Port:
+  id: string                    # local to component, e.g. "suction"
+  name: string                  # human label
+  side: left | right | top | bottom
+  kind: electrical | fluid | mechanical | signal
+  allowed_media: string[]       # e.g. ["water", "wire", "shaft"]
+  order: number                 # for multiple ports on same side
+
+Connection:
+  id: string
+  from: { component_id: string, port_id: string }
+  to:   { component_id: string, port_id: string }
+  medium: wire | pipe | shaft | duct | belt | signal
+  attributes:
+    color: string | null        # wire color or pipe paint code
+    designation: string | null  # e.g. "L1", "DN50", "S1"
+    size: string | null         # e.g. "2.5mm²", "DN50", "Ø20"
+    dn: number | string | null  # pipe nominal (promoted into size as DN…)
+    size_class: small | medium | large | null
+    media: string | null        # water | oil | air | steam | …
+    material: string | null
+    cable_ref: string | null
+    cross_section: string | null
+    flow_direction: forward | reverse | none
+
+Diagram:
+  id: string
+  type: single_line | wiring | piping | pid | mechanical | hybrid | block
+  title: string | null
+  domain: electrical | piping | mechanical | hybrid | null
+  components: Component[]
+  connections: Connection[]
+  legend: object | null         # auto-built from colors / media when absent
+  palette: iec_no | project | null
+
+# First-20 piping+mechanical symbol ids (see symbols/CATALOG.md):
+# piping: pipe_straight, pipe_elbow, pipe_tee, pipe_reducer,
+#   valve_ball, valve_gate, valve_check, valve_control,
+#   centrifugal_pump, tank_vertical, strainer, instrument_pt
+# mechanical: motor_ac, gearbox, coupling, fan, cylinder_pneumatic,
+#   bearing_block, skid_frame
+# hybrid: pump_motor_set
+
+rules:
+  - every connection endpoint must reference an existing port (or terminal)
+  - medium must be compatible with both ports' kind / allowed_media
+  - same component can appear in multiple diagram types
+  - keep symbols simple and readable at print size
+
+compatibility:
+  wire:    { port_kind: [electrical, signal], media: [wire, signal] }
+  pipe:    { port_kind: [fluid], media: [water, oil, air, steam, fluid, chemical, drain, vent] }
+  shaft:   { port_kind: [mechanical], media: [shaft] }
+  belt:    { port_kind: [mechanical], media: [belt, shaft] }
+  duct:    { port_kind: [fluid], media: [air] }
+  signal:  { port_kind: [signal, electrical], media: [signal, wire] }

@@ -1,0 +1,59 @@
+system_types:
+  - cable_tray
+  - cable_ladder
+  - mesh_cable_tray
+  - fittings_and_supports
+
+classification_axes:
+  material:
+    - metallic
+    - non_metallic
+    - composite
+  flame_propagation_resistance: [declared, not_declared]
+  electrical_continuity: [with_continuity, without]
+  electrical_conductivity: [conductive, non_conductive]
+  corrosion_resistance:
+    applies_to: [metallic, non_metallic]
+    link_pack: corrosion_materials
+  temperature:
+    min_service: quantity_c
+    max_service: quantity_c
+  base_perforation_class: string | null
+  free_base_area_class: string | null
+  impact_resistance: string | null
+
+mechanical:
+  concept: safe_working_load_swl
+  installation_patterns:
+    - horizontal_running_horizontal_multi_span
+    - horizontal_running_horizontal_single_span
+    - horizontal_running_vertical_plane
+    - vertical_running_vertical
+  support_devices:
+    - cantilever_bracket
+    - pendant_ceiling
+    - equal_tee
+    - equal_cross
+    - bend_90
+  evidence_fields:
+    - swl_declared
+    - span
+    - load_type
+    - coupling_and_joints_reviewed
+    - support_spacing
+
+electrical_properties:
+  - continuity_path_documented
+  - pe_function_considered
+  - impedance_or_continuity_test_ref
+
+fire_and_environment:
+  - reaction_to_fire_declared
+  - resistance_to_fire_if_required
+  - external_influences_reviewed
+
+documentation_expected:
+  - product_identification_marking
+  - manufacturer_documentation_on_file
+  - classification_summary_in_project
+  - installation_method_statement

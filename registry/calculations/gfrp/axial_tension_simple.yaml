@@ -1,0 +1,58 @@
+id: gfrp_axial_tension_simple
+name: GFRP axial tension utilization (simple, datasheet-based)
+label: GFRP longitudinal tension (simple)
+profile: gfrp_axial_tension_simple
+version: "1.0"
+domains: [machinery, construction, general]
+material_pack: gfrp_frp
+safety_critical: true
+aliases: [gfrp_tension_simple]
+
+formula_latex: |
+  N_{Rd,simple} = A \cdot X_t
+  U = N_{Ed} / N_{Rd,simple}
+formula_code: "N_rd = A * Xt / 1000; U = N_ed / N_rd"
+
+required:
+  material: [Xt]
+  section: [A]
+  loads: [N_ed]
+
+binds:
+  Xt: { from: material.Xt, unit: MPa }
+
+inputs:
+  - key: Xt
+    label: Longitudinal tensile strength
+    unit: MPa
+    required: true
+    fact_keys: [Xt, ft1, f_t1, tensile_strength]
+    quantity: { value: null, unit: MPa, source: null, status: missing }
+  - key: A
+    label: Cross-section area
+    unit: mm2
+    required: true
+    fact_keys: [A, area]
+    quantity: { value: null, unit: mm2, source: null, status: missing }
+  - key: N_ed
+    label: Design axial force (tension)
+    unit: kN
+    required: true
+    fact_keys: [N_ed, NEd, axial_force]
+    quantity: { value: null, unit: kN, source: null, status: missing }
+
+outputs:
+  - key: N_rd
+    label: Simple resistance using Xt (no factors)
+    unit: kN
+    quantity: { value: null, unit: kN, source: null, status: missing }
+  - key: U
+    label: Utilization (unfactored simple)
+    unit: "-"
+    quantity: { value: null, unit: "-", source: null, status: missing }
+
+assumptions:
+  - "Uses longitudinal tensile strength Xt only."
+  - "No laminate theory, buckling, or manufacturer partial factors."
+  - "Valid only when datasheet values are bound and user confirms method."
+  - "Not a composite structure approval."

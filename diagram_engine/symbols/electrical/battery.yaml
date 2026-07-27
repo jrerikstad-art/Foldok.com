@@ -1,0 +1,21 @@
+id: battery
+domain: electrical
+label: Battery
+svg: battery.svg
+default_orientation: 0
+standard_hint: IEC-style
+ports:
+- id: pos
+  name: +
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: neg
+  name: −
+  side: bottom
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1

@@ -1,0 +1,44 @@
+material_families:
+  carbon_steel:
+    needs_protection_in_most_atmospheres: true
+    notes:
+      - Bare carbon steel generally requires coating or alloy strategy outdoors.
+      - Alkaline concrete can passivate steel when cover and quality are adequate
+        (structural concrete rules are out of scope of this pack).
+
+  zinc_coated_steel:
+    systems:
+      - id: electroplated_zn
+        typical_thickness_um: [5, 15]
+        guidance: >
+          Usually limited to dry indoor / mild exposure unless combined with
+          further protection.
+      - id: hot_dip_galvanized
+        guidance: >
+          Thicker zinc/alloy layers; common for outdoor atmospheric use when
+          thickness and environment match.
+      - id: zinc_plus_organic
+        guidance: >
+          Metallic layer plus paint/powder for higher aggressivity or appearance.
+
+  stainless_steel:
+    notes:
+      - Resistance relies on a passive surface film.
+      - >
+        Localized attack (pitting, crevice, SCC) dominates risk ranking, not
+        uniform rust like carbon steel.
+    resistance_classes_structural:
+      - id: CRC_I
+        intent: lower aggressivity atmospheres
+      - id: CRC_II
+        intent: moderate
+      - id: CRC_III
+        intent: higher chloride / outdoor general
+      - id: CRC_IV
+        intent: severe
+      - id: CRC_V
+        intent: very severe / special environments
+
+  aluminium_copper:
+    notes:
+      - Atmospheric behaviour differs from steel; use dedicated data when relevant.

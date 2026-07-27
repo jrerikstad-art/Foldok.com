@@ -1,0 +1,126 @@
+{
+  "template_key": "samsvarserklaering_el",
+  "name": "Declaration of Conformity — Electrical Installation",
+  "name_no": "Samsvarserklæring — elektrisk installasjon",
+  "description": "Norwegian declaration of conformity for electrical installation work per FEL §12 and NEK 400. Structure aligned with DSB expectations. Boilerplate legal text is fixed; AI fills installation-specific data only.",
+  "applies_to": ["electrical_installation"],
+  "version": 1,
+  "language_default": "no",
+  "export_price_tier": "basic",
+  "sections": [
+    {
+      "section_key": "responsible_company",
+      "title": "Responsible Enterprise",
+      "title_no": "Ansvarlig foretak",
+      "position": 1,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "company_name", "fact_type": "identifier", "severity": "blocking", "label": "Company name", "label_no": "Foretakets navn" },
+        { "key": "org_no", "fact_type": "identifier", "severity": "blocking", "label": "Organisation number", "label_no": "Organisasjonsnummer" },
+        { "key": "el_virksomhet_id", "fact_type": "identifier", "severity": "blocking", "label": "Registered electrical enterprise ID (Elvirksomhetsregisteret)", "label_no": "Elvirksomhets-ID" },
+        { "key": "company_address", "fact_type": "identifier", "severity": "warning", "label": "Company address", "label_no": "Foretakets adresse" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Facts come from company profile, not project files. Missing elvirksomhets-ID blocks export — legally required."
+    },
+    {
+      "section_key": "installation_site",
+      "title": "Installation Site",
+      "title_no": "Anleggsadresse",
+      "position": 2,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "site_address", "fact_type": "identifier", "severity": "blocking", "label": "Installation address", "label_no": "Anleggsadresse" },
+        { "key": "client_name", "fact_type": "identifier", "severity": "warning", "label": "Client / owner name", "label_no": "Kunde / eier" },
+        { "key": "meter_no", "fact_type": "identifier", "severity": "warning", "label": "Meter number", "label_no": "Målernummer" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" }
+    },
+    {
+      "section_key": "work_description",
+      "title": "Description of Work Performed",
+      "title_no": "Beskrivelse av utført arbeid",
+      "position": 3,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "work_type", "fact_type": "instruction", "severity": "blocking", "label": "Type of work (new install / extension / modification)", "label_no": "Arbeidstype (nyanlegg / utvidelse / endring)" }
+      ],
+      "required_media": { "min_photos": 0, "preferred_roles": ["overview", "wiring"] },
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 200, "fact_citation": "required" },
+      "notes": "Concise factual description compiled from observations/photos. No marketing language, no adjectives."
+    },
+    {
+      "section_key": "circuit_schedule",
+      "title": "Circuit Schedule",
+      "title_no": "Kursfortegnelse",
+      "position": 4,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "circuit", "fact_type": "spec", "severity": "blocking", "label": "At least one circuit with breaker rating and cable cross-section", "label_no": "Minst én kurs med sikringsstørrelse og kabeltverrsnitt", "cardinality": "one_or_more" }
+      ],
+      "required_media": { "min_photos": 1, "preferred_roles": ["wiring", "nameplate"] },
+      "required_content": ["table_format", "no_uncited_specs", "units_si"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Columns: kurs nr | sikring (A) | kabeltype/tverrsnitt (mm²) | rom/formål | jordfeilbryter. Each row must trace to facts. Incomplete rows render the missing cell as [MANGLER]."
+    },
+    {
+      "section_key": "test_results",
+      "title": "Verification & Test Results",
+      "title_no": "Sluttkontroll og måleresultater",
+      "position": 5,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "insulation_resistance", "fact_type": "measurement", "severity": "blocking", "label": "Insulation resistance (MΩ)", "label_no": "Isolasjonsresistans (MΩ)" },
+        { "key": "earth_continuity", "fact_type": "measurement", "severity": "blocking", "label": "Earth/protective conductor continuity", "label_no": "Kontinuitet beskyttelsesleder" },
+        { "key": "rcd_test", "fact_type": "measurement", "severity": "warning", "label": "RCD trip test result", "label_no": "Test av jordfeilbryter" }
+      ],
+      "required_media": { "min_photos": 0, "preferred_roles": ["test_result"] },
+      "required_content": ["table_format", "no_uncited_specs", "units_si"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Measurements must come from extracted facts (photo of instrument display, test report, or user-entered verified values). NEVER inferred or defaulted."
+    },
+    {
+      "section_key": "standards_declaration",
+      "title": "Declaration of Conformity",
+      "title_no": "Samsvarserklæring",
+      "position": 6,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "nek400_edition", "fact_type": "standard_ref", "severity": "warning", "label": "NEK 400 edition applied", "label_no": "Anvendt NEK 400-utgave" }
+      ],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": { "structure": "boilerplate" },
+      "boilerplate": "It is hereby declared that the installation described above has been carried out and verified in accordance with the requirements of the Regulation on Electrical Low Voltage Installations (FEL) and NEK 400. The installation is handed over in safe and compliant condition.",
+      "boilerplate_no": "Det erklæres herved at anlegget beskrevet ovenfor er utført og kontrollert i samsvar med kravene i forskrift om elektriske lavspenningsanlegg (FEL) og NEK 400. Anlegget er overlevert i forskriftsmessig stand.",
+      "notes": "FIXED TEXT — never AI-generated, never AI-modified. Only the NEK 400 edition reference is a fillable fact."
+    },
+    {
+      "section_key": "signature",
+      "title": "Signature",
+      "title_no": "Signatur",
+      "position": 7,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "installer_name", "fact_type": "identifier", "severity": "blocking", "label": "Responsible installer name", "label_no": "Ansvarlig montørs navn" },
+        { "key": "sign_date", "fact_type": "date", "severity": "blocking", "label": "Date of signing", "label_no": "Dato for signering" }
+      ],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": { "structure": "signature_block" },
+      "notes": "QES tier document — BankID signature when integration live; draw + audit log in MVP with explicit user acknowledgement of signature level."
+    }
+  ]
+}

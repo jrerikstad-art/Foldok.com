@@ -1,0 +1,58 @@
+id: steel_bending_simple
+name: Elastic bending utilization (simple)
+label: Steel major-axis bending (simple, unfactored)
+profile: steel_bending_simple
+version: "1.0"
+domains: [machinery, construction, general]
+material_pack: steel_structural
+safety_critical: true
+
+formula_latex: |
+  M_{Rd,simple} = W_y \cdot f_y
+  U = M_{Ed} / M_{Rd,simple}
+# Wy[mm³]·fy[MPa]/1e6 → kNm
+formula_code: "M_rd = Wy * fy / 1e6; U = M_ed / M_rd"
+
+required:
+  material: [fy]
+  section: [Wy]
+  loads: [M_ed]
+
+binds:
+  fy: { from: material.fy, unit: MPa }
+  Wy: { from: section.Wy, unit: mm3 }
+
+inputs:
+  - key: fy
+    label: Yield strength
+    unit: MPa
+    required: true
+    fact_keys: [fy, f_y, yield]
+    quantity: { value: null, unit: MPa, source: null, status: missing }
+  - key: Wy
+    label: Elastic section modulus about y
+    unit: mm3
+    required: true
+    fact_keys: [Wy, Wel, section_modulus]
+    quantity: { value: null, unit: mm3, source: null, status: missing }
+  - key: M_ed
+    label: Design bending moment
+    unit: kNm
+    required: true
+    fact_keys: [M_ed, MEd, M_Ed, bending_moment]
+    quantity: { value: null, unit: kNm, source: null, status: missing }
+
+outputs:
+  - key: M_rd
+    label: Simple elastic moment resistance (no factors)
+    unit: kNm
+    quantity: { value: null, unit: kNm, source: null, status: missing }
+  - key: U
+    label: Utilization (unfactored simple)
+    unit: "-"
+    quantity: { value: null, unit: "-", source: null, status: missing }
+
+assumptions:
+  - "Elastic section modulus; no plastic modulus, LTB, or factors."
+  - "User confirms code method before formal use."
+  - "Not automatic Eurocode 3 compliance."

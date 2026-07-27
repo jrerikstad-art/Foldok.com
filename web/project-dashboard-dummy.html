@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Foldok — Project Dashboard (design dummy)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #16181D;
+      --paper: #F2F0EA;
+      --sheet: #fff;
+      --line: #DCD9D0;
+      --steel: #5A6472;
+      --signal: #F5C400;
+      --ok: #1E7A46;
+      --okbg: #E8F5EC;
+      --warn: #A67C00;
+      --warnbg: #FFF6CE;
+      --block: #C74E19;
+      --blockbg: #FDF0E8;
+      --ai: #1450B4;
+      --aibg: #EAF1FD;
+      --info: #5A6472;
+      --infobg: #F2F0EA;
+      --dummy: #6B4FA0;
+      --dummybg: #F3EEFC;
+      --rail: 232px;
+      --status-h: 36px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Archivo, sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    button, input, select { font-family: inherit; }
+    button { cursor: pointer; }
+    .mono { font-family: "IBM Plex Mono", monospace; }
+
+    /* Dummy bar */
+    .dummy-bar {
+      height: 36px;
+      background: var(--dummybg);
+      border-bottom: 1px solid #d9ccef;
+      padding: 0 14px;
+      font-size: 12px;
+      color: var(--dummy);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .dummy-bar strong { font-weight: 800; }
+    .dummy-bar .pill {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 99px;
+      background: #fff;
+      border: 1px solid #d9ccef;
+    }
+    .dummy-bar .right { margin-left: auto; display: flex; gap: 8px; }
+    .dummy-bar button {
+      font-size: 11px; font-weight: 700; padding: 4px 10px;
+      border-radius: 6px; border: 1px solid #d9ccef; background: #fff; color: var(--dummy);
+    }
+    .dummy-bar button.on { background: var(--dummy); color: #fff; border-color: var(--dummy); }
+
+    /* Shell */
+    .shell {
+      display: grid;
+      grid-template-columns: var(--rail) minmax(0, 1fr);
+      height: calc(100vh - 36px - var(--status-h));
+    }
+
+    /* Left nav */
+    nav.rail {
+      background: var(--sheet);
+      border-right: 1px solid var(--line);
+      padding: 14px 10px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .rail-label {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      color: var(--steel);
+      padding: 6px 10px 10px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 600;
+      text-align: left;
+      width: 100%;
+    }
+    .nav-item:hover { background: var(--paper); }
+    .nav-item.active { background: var(--ink); color: #fff; }
+    .nav-item .ic {
+      width: 22px; text-align: center; font-size: 14px; flex-shrink: 0;
+    }
+    .nav-item .badge {
+      margin-left: auto;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 99px;
+      background: var(--blockbg);
+      color: var(--block);
+    }
+    .nav-item.active .badge { background: #ffffff22; color: #fff; }
+    .nav-item .badge.warn { background: var(--warnbg); color: var(--warn); }
+    .nav-item.active .badge.warn { background: #ffffff22; color: #fff; }
+    .nav-sep { height: 1px; background: var(--line); margin: 10px 8px; }
+
+    /* Main */
+    .main {
+      overflow-y: auto;
+      padding: 18px 22px 40px;
+      position: relative;
+    }
+
+    /* Mission header */
+    .mission {
+      background: var(--ink);
+      color: #fff;
+      border-radius: 12px;
+      padding: 18px 22px 16px;
+      margin-bottom: 16px;
+    }
+    .mission h1 {
+      margin: 0 0 6px;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: .01em;
+    }
+    .mission .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      align-items: baseline;
+      margin-bottom: 14px;
+      font-size: 13px;
+    }
+    .mission .meta .pct { color: var(--signal); font-weight: 800; font-size: 15px; }
+    .mission .meta .eta { color: #ffffff99; }
+    .mission .bar {
+      height: 10px;
+      background: #ffffff18;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+    .mission .bar > i {
+      display: block;
+      height: 100%;
+      width: 91%;
+      background: var(--signal);
+      border-radius: 99px;
+    }
+    .mission .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+      font-size: 12.5px;
+      color: #c8ccd2;
+    }
+    .mission .stats b { color: #fff; font-weight: 700; }
+    .mission .stats .bad { color: #ffb08a; }
+    .mission .stats .warn { color: var(--signal); }
+
+    /* Grid cards */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 980px) {
+      .dash-grid { grid-template-columns: 1fr; }
+      .shell { grid-template-columns: 56px minmax(0, 1fr); }
+      .nav-item span.lbl { display: none; }
+      .rail-label { display: none; }
+      .nav-item { justify-content: center; padding: 10px; }
+      .nav-item .badge { display: none; }
+      :root { --rail: 56px; }
+    }
+    .card {
+      background: var(--sheet);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--steel);
+    }
+    .card.span2 { grid-column: 1 / -1; }
+
+    /* Health meters */
+    .health-big {
+      display: flex;
+      align-items: flex-end;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .health-big .num {
+      font-size: 42px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -.02em;
+    }
+    .health-big .sub { color: var(--steel); font-size: 12.5px; padding-bottom: 6px; }
+    .meter {
+      display: grid;
+      grid-template-columns: 110px 1fr 40px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 7px;
+      font-size: 12.5px;
+    }
+    .meter .track {
+      height: 7px;
+      background: var(--paper);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .meter .track > i {
+      display: block;
+      height: 100%;
+      border-radius: 99px;
+      background: var(--ok);
+    }
+    .meter .track > i.warn { background: var(--warn); }
+    .meter .track > i.block { background: var(--block); }
+    .meter .val { font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 700; text-align: right; }
+
+    /* Blocking issues */
+    .issue {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .issue:last-child { margin-bottom: 0; }
+    .issue .dot {
+      width: 10px; height: 10px; border-radius: 99px;
+      background: var(--block); margin-top: 4px; flex-shrink: 0;
+    }
+    .issue .dot.warn { background: var(--warn); }
+    .issue .body { flex: 1; min-width: 0; }
+    .issue b { display: block; font-size: 13.5px; margin-bottom: 2px; }
+    .issue .why { color: var(--steel); font-size: 12px; margin-bottom: 8px; }
+    .issue .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+    .btn {
+      font-weight: 800; font-size: 12px;
+      background: var(--signal); color: var(--ink);
+      border: none; border-radius: 7px; padding: 7px 12px;
+    }
+    .btn.ghost {
+      background: transparent; border: 1px solid var(--line); color: var(--steel); font-weight: 700;
+    }
+    .btn.dark { background: var(--ink); color: #fff; }
+    .btn.sm { padding: 5px 10px; font-size: 11.5px; }
+    .btn:disabled { opacity: .5; cursor: default; }
+
+    /* Activity */
+    .act-day {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px; font-weight: 700; letter-spacing: .08em;
+      color: var(--steel); margin: 4px 0 8px; text-transform: uppercase;
+    }
+    .act-row {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 6px 0; border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .act-row:last-child { border-bottom: none; }
+    .act-row .mark { width: 16px; flex-shrink: 0; font-weight: 800; }
+    .act-row .mark.ok { color: var(--ok); }
+    .act-row .mark.warn { color: var(--warn); }
+
+    /* Assistant recommendations */
+    .rec-block { margin-bottom: 12px; font-size: 13.5px; line-height: 1.5; }
+    .rec-block ul { margin: 6px 0 0; padding-left: 18px; }
+    .rec-block li { margin-bottom: 3px; }
+    .rec-block .ok { color: var(--ok); font-weight: 700; }
+    .rec-block .warn { color: var(--warn); font-weight: 700; }
+
+    /* Source / KG / Req bars */
+    .cat-row {
+      display: grid;
+      grid-template-columns: 120px 1fr 36px;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .cat-row .track {
+      height: 12px; background: var(--paper); border-radius: 4px; overflow: hidden;
+    }
+    .cat-row .track > i {
+      display: block; height: 100%; background: var(--ink); border-radius: 4px;
+    }
+    .kg-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+    }
+    .kg-cell {
+      background: var(--paper);
+      border-radius: 10px;
+      padding: 14px 12px;
+      text-align: center;
+    }
+    .kg-cell .n { font-size: 28px; font-weight: 900; line-height: 1; }
+    .kg-cell .l { font-size: 11.5px; color: var(--steel); margin-top: 4px; }
+
+    .req-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 0; border-bottom: 1px solid var(--line);
+      font-size: 13.5px; cursor: pointer;
+    }
+    .req-row:hover { background: #FBFAF6; margin: 0 -8px; padding-left: 8px; padding-right: 8px; }
+    .req-row .st { width: 18px; font-weight: 800; flex-shrink: 0; }
+    .req-row .st.ok { color: var(--ok); }
+    .req-row .st.warn { color: var(--warn); }
+    .req-row .st.block { color: var(--block); }
+    .req-row .go { margin-left: auto; color: var(--steel); font-size: 12px; }
+
+    .doc-row, .fig-stat {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--line);
+      font-size: 13.5px;
+    }
+    .doc-row .st { width: 18px; font-weight: 800; }
+    .doc-row .st.ok { color: var(--ok); }
+    .doc-row .st.warn { color: var(--warn); }
+    .doc-row .st.block { color: var(--block); }
+    .doc-row button { margin-left: auto; }
+
+    .publish-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .dest {
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .dest button {
+      padding: 10px 14px; border-radius: 8px;
+      border: 1.5px solid var(--line); background: var(--sheet);
+      font-weight: 700; font-size: 12.5px;
+    }
+    .dest button.on { border-color: var(--ink); background: var(--ink); color: #fff; }
+    .dest button:disabled { opacity: .4; }
+
+    .evidence {
+      display: grid; gap: 10px;
+    }
+    .evidence .box {
+      background: var(--paper); border-radius: 10px; padding: 14px 16px;
+    }
+    .evidence .box .k {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--steel); margin-bottom: 6px;
+    }
+
+    /* Floating assistant */
+    .float-assist {
+      position: fixed;
+      right: 18px;
+      bottom: calc(var(--status-h) + 18px);
+      width: 300px;
+      background: var(--sheet);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 12px 40px rgba(22,24,29,.14);
+      z-index: 20;
+      overflow: hidden;
+    }
+    .float-assist .hd {
+      background: var(--ink); color: #fff;
+      padding: 12px 14px;
+      display: flex; align-items: center; gap: 8px;
+      font-weight: 800; font-size: 13px;
+    }
+    .float-assist .hd .cnt {
+      margin-left: auto;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      background: var(--block); color: #fff;
+      padding: 2px 7px; border-radius: 99px;
+    }
+    .float-assist .bd { padding: 10px 12px; max-height: 220px; overflow-y: auto; }
+    .fa-row {
+      display: flex; gap: 8px; align-items: flex-start;
+      padding: 8px 0; border-bottom: 1px solid var(--line);
+      font-size: 12.5px;
+    }
+    .fa-row:last-child { border-bottom: none; }
+    .fa-row .mark { color: var(--warn); font-weight: 800; }
+    .float-assist .ft {
+      padding: 10px 12px; border-top: 1px solid var(--line);
+      display: flex; gap: 6px; flex-wrap: wrap;
+      background: #FBFAF6;
+    }
+    .float-assist.collapsed .bd,
+    .float-assist.collapsed .ft { display: none; }
+
+    /* Status bar */
+    .statusbar {
+      height: var(--status-h);
+      background: var(--ink);
+      color: #c8ccd2;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 0 18px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+    .statusbar b { color: #fff; }
+    .statusbar .sep { width: 1px; height: 14px; background: #ffffff22; }
+    .statusbar .right { margin-left: auto; color: var(--signal); }
+
+    /* Constraint overlay badges */
+    body.show-constraints .constraint-tag { display: inline-flex; }
+    .constraint-tag {
+      display: none;
+      align-items: center;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 8px;
+      vertical-align: middle;
+      text-transform: uppercase;
+    }
+    .constraint-tag.ready { background: var(--okbg); color: var(--ok); }
+    .constraint-tag.partial { background: var(--warnbg); color: var(--warn); }
+    .constraint-tag.aspirational { background: var(--dummybg); color: var(--dummy); }
+    .constraint-tag.conflict { background: var(--blockbg); color: var(--block); }
+
+    .page-title {
+      display: flex; align-items: baseline; gap: 10px;
+      margin: 0 0 14px;
+    }
+    .page-title h1 { margin: 0; font-size: 22px; font-weight: 900; }
+    .page-title .sub { color: var(--steel); font-size: 13px; }
+
+    .toast {
+      position: fixed; top: 52px; left: 50%; transform: translateX(-50%);
+      background: var(--ink); color: #fff;
+      padding: 10px 16px; border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+      z-index: 50; display: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,.2);
+    }
+    .toast.show { display: block; }
+
+    .doc-preview {
+      background: var(--sheet);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 28px 32px;
+      max-width: 720px;
+      min-height: 420px;
+      box-shadow: 0 4px 20px rgba(22,24,29,.06);
+    }
+    .doc-preview h3 { margin: 0 0 8px; font-size: 20px; }
+    .doc-preview .outline {
+      margin: 18px 0; padding: 12px 14px;
+      background: var(--paper); border-radius: 8px;
+      font-size: 12.5px; line-height: 1.7;
+    }
+    .crumb { font-size: 12.5px; color: var(--steel); margin-bottom: 12px; }
+    .crumb button {
+      background: none; border: none; color: var(--ai);
+      font-weight: 700; font-size: 12.5px; padding: 0;
+    }
+
+    .notes-panel {
+      position: fixed; right: 0; top: 36px; width: 320px;
+      max-height: calc(100vh - 36px - var(--status-h));
+      overflow-y: auto; background: var(--sheet);
+      border: 1px solid var(--line); border-right: none;
+      border-radius: 10px 0 0 10px; padding: 16px 18px;
+      box-shadow: -4px 0 24px rgba(22,24,29,.08);
+      transform: translateX(100%); transition: transform .2s;
+      z-index: 30; font-size: 12.5px; line-height: 1.55;
+    }
+    .notes-panel.open { transform: translateX(0); }
+    .notes-panel h3 {
+      margin: 0 0 10px; font-size: 11px; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--dummy);
+    }
+    .notes-panel ul { margin: 0 0 14px; padding-left: 18px; color: var(--steel); }
+    .notes-panel li { margin-bottom: 6px; }
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;
+    }
+    .legend span {
+      font-family: "IBM Plex Mono", monospace; font-size: 9px; font-weight: 700;
+      padding: 3px 7px; border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="dummy-bar">
+  <strong>Project Dashboard dummy</strong>
+  <span class="pill">no backend</span>
+  <span class="pill">ExcavatorBrain scenario</span>
+  <span style="color:var(--steel)">Apple test: can you answer the 5 questions in 10 seconds?</span>
+  <div class="right">
+    <button type="button" id="btn-constraints" onclick="toggleConstraints()">Show constraints</button>
+    <button type="button" onclick="toggleNotes()">Constraint notes</button>
+    <button type="button" onclick="location.href='design-dummy.html'">← Home dummy</button>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="rail" id="rail"></nav>
+  <div class="main" id="main"></div>
+</div>
+
+<div class="float-assist" id="float-assist">
+  <div class="hd" onclick="toggleFloat()" style="cursor:pointer">
+    Assistant
+    <span class="constraint-tag partial">partial</span>
+    <span class="cnt" id="fa-cnt">4</span>
+  </div>
+  <div class="bd" id="fa-bd"></div>
+  <div class="ft">
+    <button class="btn sm" type="button" onclick="toast('Mock: would auto-resolve actionable gaps')">Fix all</button>
+    <button class="btn ghost sm" type="button" onclick="toast('Mock: dismissed from queue')">Ignore</button>
+    <button class="btn ghost sm" type="button" onclick="expandChat()">Explain…</button>
+  </div>
+</div>
+
+<div class="statusbar" id="statusbar"></div>
+<div class="toast" id="toast"></div>
+
+<aside class="notes-panel" id="notes">
+  <h3>Constraint legend</h3>
+  <div class="legend">
+    <span class="constraint-tag ready" style="display:inline-flex">ready</span>
+    <span class="constraint-tag partial" style="display:inline-flex">partial</span>
+    <span class="constraint-tag aspirational" style="display:inline-flex">aspirational</span>
+    <span class="constraint-tag conflict" style="display:inline-flex">conflict</span>
+  </div>
+  <p style="margin:0 0 12px;color:var(--steel)">
+    Mapped against <code class="mono">ENGINE_CONTRACT</code>, gaps in compile,
+    <code class="mono">V0_60_PLAN</code> (Requirement Engine = Phase 2), and
+    current NAVIGATION_SPEC (KILDER / DOKUMENTER explorer).
+  </p>
+  <div><strong>Verdict</strong></div>
+  <ul>
+    <li>The <em>product thesis is correct</em> — dashboard-first is Foldok’s differentiator.</li>
+    <li>Most headline numbers are <em>aggregations</em> of data the engine already owns.</li>
+    <li>Hard blockers: no project-level Requirement Engine yet; “Ready in ~18 min” is fiction; Knowledge Graph UI ≠ HybridKnowledge yet.</li>
+    <li>Conflict: NAVIGATION_SPEC still says VS Code explorer (KILDER/DOKUMENTER), not engineering domains.</li>
+  </ul>
+  <div><strong>Do not fake</strong></div>
+  <ul>
+    <li>Overall % without a defined formula (must be code, not AI).</li>
+    <li>“Requirements Met” as a chat claim — must come from gap severity + required_facts.</li>
+    <li>ETA to ready — no engine signal exists today.</li>
+  </ul>
+</aside>
+
+<script>
+const STATE = {
+  view: "dashboard",
+  constraints: false,
+  floatOpen: true,
+  blocking: [
+    { id: "risk", title: "Risk Assessment missing", why: "Required by Machinery Directive", action: "Create", done: false },
+    { id: "elec", title: "Electrical Drawing missing", why: "Required by NEK 400", action: "Locate", done: false },
+    { id: "photos", title: "Installation photos missing", why: "Template requires ≥3 site photos", action: "Import", done: false },
+  ],
+  docOpen: null,
+};
+
+const NAV = [
+  { id: "dashboard", label: "Dashboard", ic: "⌂", constraint: "partial" },
+  { id: "sources", label: "Sources", ic: "▣", constraint: "ready" },
+  { id: "knowledge", label: "Knowledge", ic: "◈", constraint: "partial" },
+  { id: "requirements", label: "Requirements", ic: "☑", constraint: "aspirational", badge: "heart" },
+  { id: "documents", label: "Documents", ic: "▤", constraint: "ready" },
+  { id: "figures", label: "Figures", ic: "▭", constraint: "partial" },
+  { id: "tables", label: "Tables", ic: "▦", constraint: "partial" },
+  { id: "evidence", label: "Evidence", ic: "◇", constraint: "partial" },
+  { id: "gaps", label: "Gaps", ic: "!", constraint: "ready", badgeKey: "blocking" },
+  { id: "publish", label: "Publish", ic: "↑", constraint: "partial" },
+  { id: "settings", label: "Settings", ic: "⚙", constraint: "ready" },
+];
+
+function esc(s) {
+  return String(s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+function tag(kind) {
+  return `<span class="constraint-tag ${kind}">${kind}</span>`;
+}
+
+function remainingBlocking() {
+  return STATE.blocking.filter(b => !b.done).length;
+}
+
+function pctNow() {
+  // Mock formula stand-in: 91% with 3 open blockers → 100% when cleared.
+  // Real formula must be engine code over gaps/required_facts — never AI.
+  return 100 - remainingBlocking() * 3;
+}
+
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove("show"), 2200);
+}
+
+function toggleConstraints() {
+  STATE.constraints = !STATE.constraints;
+  document.body.classList.toggle("show-constraints", STATE.constraints);
+  document.getElementById("btn-constraints").classList.toggle("on", STATE.constraints);
+  document.getElementById("btn-constraints").textContent =
+    STATE.constraints ? "Hide constraints" : "Show constraints";
+}
+
+function toggleNotes() {
+  document.getElementById("notes").classList.toggle("open");
+}
+
+function toggleFloat() {
+  STATE.floatOpen = !STATE.floatOpen;
+  document.getElementById("float-assist").classList.toggle("collapsed", !STATE.floatOpen);
+}
+
+function expandChat() {
+  toast("Mock: expands to scoped chat — only when needed (ONE_AGENT_SPEC)");
+}
+
+function fixIssue(id) {
+  const item = STATE.blocking.find(b => b.id === id);
+  if (!item || item.done) return;
+  item.done = true;
+  toast("Resolved: " + item.title);
+  render();
+}
+
+function go(view, extra) {
+  STATE.view = view;
+  if (extra && extra.doc) STATE.docOpen = extra.doc;
+  if (view !== "document") STATE.docOpen = null;
+  render();
+}
+
+function renderRail() {
+  const open = remainingBlocking();
+  document.getElementById("rail").innerHTML = `
+    <div class="rail-label">PROJECT</div>
+    ${NAV.map(n => {
+      const badge = n.badgeKey === "blocking" && open
+        ? `<span class="badge">${open}</span>`
+        : (n.id === "requirements" ? `<span class="badge warn">♥</span>` : "");
+      return `<button type="button" class="nav-item ${STATE.view === n.id || (STATE.view === "document" && n.id === "documents") ? "active" : ""}" onclick="go('${n.id}')">
+        <span class="ic">${n.ic}</span>
+        <span class="lbl">${esc(n.label)}</span>
+        ${tag(n.constraint)}
+        ${badge}
+      </button>`;
+    }).join("")}
+    <div class="nav-sep"></div>
+    <div style="padding:8px 10px;font-size:11px;color:var(--steel);line-height:1.4">
+      Engineering concepts, not files.
+      ${tag("conflict")}
+      <div style="margin-top:6px">Conflicts with NAVIGATION_SPEC (KILDER / DOKUMENTER).</div>
+    </div>
+  `;
+}
+
+function renderMission() {
+  const pct = pctNow();
+  const open = remainingBlocking();
+  return `
+    <div class="mission">
+      <h1>ExcavatorBrain — Huina 1593 Autonomous RC Excavator ${tag("ready")}</h1>
+      <div class="meta">
+        <span>Project Status: <span class="pct mono">${pct}% Complete</span></span>
+        <span class="eta">Ready in ~18 min ${tag("aspirational")}</span>
+      </div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="stats">
+        <span>✓ <b>128</b> Sources Indexed ${tag("ready")}</span>
+        <span>✓ <b>31</b> Documents Generated ${tag("partial")}</span>
+        <span>✓ <b>412</b> Facts ${tag("ready")}</span>
+        <span>✓ <b>94</b> Requirements Met ${tag("aspirational")}</span>
+        <span class="warn">⚠ <b>8</b> Warnings ${tag("ready")}</span>
+        <span class="bad">✗ <b>${open}</b> Blocking Issues ${tag("ready")}</span>
+      </div>
+    </div>`;
+}
+
+function renderDashboard() {
+  const open = STATE.blocking.filter(b => !b.done);
+  const pct = pctNow();
+  return `
+    ${renderMission()}
+    <div class="dash-grid">
+      <div class="card">
+        <h2>Project Health ${tag("aspirational")}</h2>
+        <div class="health-big">
+          <div class="num">${pct}%</div>
+          <div class="sub">Overall — formula TBD<br/>(must be engine code, never AI)</div>
+        </div>
+        ${[
+          ["Requirements", 94, ""],
+          ["Traceability", 96, ""],
+          ["Figures", 84, "warn"],
+          ["Tables", 100, ""],
+          ["References", 91, ""],
+          ["Standards", 89, "warn"],
+        ].map(([l, v, cls]) => `
+          <div class="meter">
+            <span>${l}</span>
+            <div class="track"><i class="${cls}" style="width:${v}%"></i></div>
+            <span class="val">${v}%</span>
+          </div>`).join("")}
+      </div>
+
+      <div class="card">
+        <h2>Blocking Issues ${tag("ready")}</h2>
+        ${open.length === 0
+          ? `<div style="color:var(--ok);font-weight:700;padding:20px 0">All blockers cleared. Ready to publish.</div>`
+          : open.map(b => `
+            <div class="issue">
+              <div class="dot"></div>
+              <div class="body">
+                <b>${esc(b.title)}</b>
+                <div class="why">→ ${esc(b.why)}</div>
+                <div class="acts">
+                  <button class="btn sm" type="button" onclick="fixIssue('${b.id}')">${esc(b.action)}</button>
+                </div>
+              </div>
+            </div>`).join("")}
+        <p style="margin:12px 0 0;font-size:11.5px;color:var(--steel)">
+          Engine already has <code class="mono">severity:blocking</code> gaps + export gate.
+          Action labels (Create / Locate / Import) need a small action-router.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Recent Activity ${tag("partial")}</h2>
+        <div class="act-day">Today</div>
+        ${[
+          ["ok", "Indexed 136 files"],
+          ["ok", "Extracted 412 facts"],
+          ["ok", "Updated Technical Package"],
+          ["ok", "Generated Wiring Diagram"],
+          ["ok", "Created BOM"],
+          ["warn", "Figure 7 has no caption"],
+        ].map(([k, t]) => `
+          <div class="act-row">
+            <span class="mark ${k}">${k === "ok" ? "✓" : "⚠"}</span>
+            <span>${t}</span>
+          </div>`).join("")}
+        <p style="margin:10px 0 0;font-size:11.5px;color:var(--steel)">
+          Partial: <code class="mono">token_ledger</code> + document_versions exist;
+          unified activity feed does not.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>AI Recommendations ${tag("partial")}</h2>
+        <div class="rec-block">
+          <div class="ok">I found — enough information to create</div>
+          <ul>
+            <li>Declaration of Conformity</li>
+            <li>Wiring Specification</li>
+            <li>Installation Manual</li>
+          </ul>
+        </div>
+        <div class="rec-block">
+          <div class="warn">I cannot generate</div>
+          <ul>
+            <li>Risk Assessment — <em>no evidence exists</em></li>
+          </ul>
+        </div>
+        <button class="btn" type="button" onclick="toast('Mock: batch generate from detect_suggestions()')">Generate All</button>
+        <p style="margin:10px 0 0;font-size:11.5px;color:var(--steel)">
+          Maps to <code class="mono">detect_suggestions()</code> (zero-token) + gap set.
+          “Enough information” = required_facts covered, not a model opinion.
+        </p>
+      </div>
+    </div>`;
+}
+
+function renderSources() {
+  const cats = [
+    ["Drawings", 18, 80],
+    ["Photos", 43, 100],
+    ["Specifications", 11, 48],
+    ["Code", 23, 70],
+    ["Manuals", 8, 35],
+    ["Videos", 2, 12],
+    ["BOM", 1, 8],
+  ];
+  return `
+    <div class="page-title">
+      <h1>Sources</h1>
+      <span class="sub">Visual breakdown of the index ${tag("ready")}</span>
+    </div>
+    <div class="card">
+      ${cats.map(([n, c, w]) => `
+        <div class="cat-row">
+          <span>${n}</span>
+          <div class="track"><i style="width:${w}%"></i></div>
+          <span class="mono" style="font-weight:700;text-align:right">${c}</span>
+        </div>`).join("")}
+      <p style="margin:14px 0 0;font-size:12px;color:var(--steel)">
+        Ready: mime / kind / doc_role_hints already on indexed files. Category buckets are a UI grouping, not new AI.
+        Videos/CAD stay searchable-only per ENGINE_CONTRACT (MVP skipped).
+      </p>
+    </div>`;
+}
+
+function renderKnowledge() {
+  const cells = [
+    ["Components", 128], ["Subsystems", 14], ["Sensors", 7],
+    ["Actuators", 9], ["Interfaces", 18], ["Requirements", 102], ["Facts", 412],
+  ];
+  return `
+    <div class="page-title">
+      <h1>Project Knowledge</h1>
+      <span class="sub">Simple counts — expandable graph later ${tag("partial")}</span>
+    </div>
+    <div class="card">
+      <div class="kg-grid">
+        ${cells.map(([l, n]) => `
+          <div class="kg-cell">
+            <div class="n">${n}</div>
+            <div class="l">${l}</div>
+          </div>`).join("")}
+      </div>
+      <p style="margin:14px 0 0;font-size:12px;color:var(--steel)">
+        Partial: artifact_model has components/hazards; HybridKnowledge has findings.
+        Typed “Sensors / Actuators / Interfaces” needs vocabulary + extraction rules — not a free graph DB.
+        Expandable graph UI is post-v1 polish.
+      </p>
+    </div>`;
+}
+
+function renderRequirements() {
+  const rows = [
+    ["ok", "Product Description"],
+    ["ok", "Installation"],
+    ["ok", "Wiring"],
+    ["ok", "Maintenance"],
+    ["ok", "Safety"],
+    ["ok", "EMC"],
+    ["warn", "Calibration"],
+    ["warn", "Functional Test"],
+    ["block", "Risk Assessment"],
+  ];
+  return `
+    <div class="page-title">
+      <h1>Requirements</h1>
+      <span class="sub">The heart of the product ${tag("aspirational")}</span>
+    </div>
+    <div class="card">
+      ${rows.map(([st, label]) => `
+        <div class="req-row" onclick="go('evidence')">
+          <span class="st ${st}">${st === "ok" ? "✓" : st === "warn" ? "⚠" : "✗"}</span>
+          <span>${label}</span>
+          <span class="go">evidence →</span>
+        </div>`).join("")}
+      <div style="margin-top:16px;display:flex;align-items:baseline;gap:10px">
+        <span style="font-size:28px;font-weight:900">94%</span>
+        <span style="color:var(--steel);font-size:13px">Progress</span>
+      </div>
+      <p style="margin:14px 0 0;font-size:12px;color:var(--steel)">
+        <strong>Aspirational / Phase 2:</strong> V0_60_PLAN names Requirement Engine as not started.
+        Today gaps are <em>per-document template</em> (<code class="mono">required_facts</code>), not a project-wide requirement set spanning Machinery Directive / NEK 400.
+        This is the moat — but it must be deterministic code over the index, never LLM scoring.
+      </p>
+    </div>`;
+}
+
+function renderEvidence() {
+  return `
+    <div class="page-title">
+      <h1>Evidence</h1>
+      <span class="sub">Every requirement ↔ sources ${tag("partial")}</span>
+    </div>
+    <div class="card evidence">
+      <div class="box">
+        <div class="k">Requirement</div>
+        <b style="font-size:16px">Cable Routing</b>
+      </div>
+      <div class="box">
+        <div class="k">Satisfied By</div>
+        <div>✓ wiring.pdf</div>
+        <div>✓ photo_023.jpg</div>
+        <div>✓ bom.xlsx</div>
+      </div>
+      <div class="box">
+        <div class="k">Confidence</div>
+        <span class="mono" style="font-size:22px;font-weight:800">98%</span>
+        ${tag("conflict")}
+        <div style="font-size:12px;color:var(--steel);margin-top:6px">
+          Conflict risk: “98%” feels like AI judgment. Prefer fact coverage
+          (3/3 required sources) + min confidence of cited facts — code-computed.
+        </div>
+      </div>
+      <div class="box">
+        <div class="k">Traceability</div>
+        <span class="mono">NEK 400 §823</span>
+        ${tag("aspirational")}
+        <div style="font-size:12px;color:var(--steel);margin-top:6px">
+          Standards clause linking needs a standards vocabulary / template annotations.
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderDocuments() {
+  const docs = [
+    ["ok", "Technical Package"],
+    ["ok", "Wiring Specification"],
+    ["ok", "Installation Manual"],
+    ["ok", "BOM"],
+    ["warn", "Declaration"],
+    ["block", "Risk Assessment"],
+  ];
+  return `
+    <div class="page-title">
+      <h1>Documents</h1>
+      <span class="sub">Status first — not tabs ${tag("ready")}</span>
+    </div>
+    <div class="card">
+      ${docs.map(([st, name]) => `
+        <div class="doc-row">
+          <span class="st ${st}">${st === "ok" ? "✓" : st === "warn" ? "⚠" : "✗"}</span>
+          <b>${name}</b>
+          <button class="btn ghost sm" type="button" onclick="go('document', {doc:'${name}'})">Open</button>
+        </div>`).join("")}
+    </div>`;
+}
+
+function renderDocument() {
+  const name = STATE.docOpen || "Technical Package";
+  return `
+    <div class="crumb">
+      <button type="button" onclick="go('dashboard')">Project</button> →
+      <button type="button" onclick="go('documents')">Documents</button> →
+      <b>${esc(name)}</b>
+    </div>
+    <div class="page-title">
+      <h1>${esc(name)}</h1>
+      <span class="sub">Outline → Preview — not a markdown editor ${tag("partial")}</span>
+    </div>
+    <div class="doc-preview">
+      <h3>${esc(name)}</h3>
+      <p style="color:var(--steel);font-size:13.5px;margin:0 0 8px">Huina 1593 · rev B · generated from index</p>
+      <div class="outline">
+        1. Product description<br/>
+        2. System overview<br/>
+        3. Wiring<br/>
+        4. Installation<br/>
+        5. Maintenance<br/>
+        6. Safety &amp; EMC<br/>
+        <span style="color:var(--block)">7. Risk assessment — [MANGLER]</span>
+      </div>
+      <p style="font-size:14px;line-height:1.6">
+        Preview surface over composed blocks. Editing is section-scoped chat / form fields —
+        never a free markdown buffer as the primary UX.
+      </p>
+      <button class="btn" type="button" onclick="go('publish')">Publish →</button>
+    </div>`;
+}
+
+function renderFigures() {
+  return `
+    <div class="page-title">
+      <h1>Figures</h1>
+      <span class="sub">First-class — not buried in docs ${tag("partial")}</span>
+    </div>
+    <div class="card">
+      <div class="kg-grid" style="margin-bottom:16px">
+        ${[
+          ["Total", 24], ["Drawings", 12], ["Photos", 8],
+          ["Diagrams", 4], ["Missing captions", 2], ["Unused", 3],
+        ].map(([l, n]) => `
+          <div class="kg-cell">
+            <div class="n" style="font-size:24px">${n}</div>
+            <div class="l">${l}</div>
+          </div>`).join("")}
+      </div>
+      <p style="font-size:12px;color:var(--steel)">
+        Partial: figure pool + captions exist in compile/editorial layer.
+        Dedicated Figure Engine is V0_60 Phase 3. “Unused” needs unused-in-any-doc query.
+      </p>
+    </div>`;
+}
+
+function renderTables() {
+  return `
+    <div class="page-title"><h1>Tables</h1><span class="sub">${tag("partial")}</span></div>
+    <div class="card">
+      <p style="margin:0;font-size:14px;line-height:1.5">
+        BOM, circuit schedules, spec overviews — already code-built from facts.
+        This page is a project-level inventory of those tables (status, missing cells).
+        Dedicated Table Engine = Phase 3.
+      </p>
+    </div>`;
+}
+
+function renderGaps() {
+  return `
+    <div class="page-title"><h1>Gaps</h1><span class="sub">Same engine gaps, project lens ${tag("ready")}</span></div>
+    <div class="card">
+      ${STATE.blocking.map(b => `
+        <div class="issue" style="opacity:${b.done ? .45 : 1}">
+          <div class="dot"></div>
+          <div class="body">
+            <b>${esc(b.title)}${b.done ? " — resolved" : ""}</b>
+            <div class="why">${esc(b.why)}</div>
+            ${b.done ? "" : `<div class="acts"><button class="btn sm" type="button" onclick="fixIssue('${b.id}')">${esc(b.action)}</button></div>`}
+          </div>
+        </div>`).join("")}
+      <div class="issue">
+        <div class="dot warn"></div>
+        <div class="body">
+          <b>Figure 7 has no caption</b>
+          <div class="why">Warning — does not block export</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderPublish() {
+  const open = remainingBlocking();
+  return `
+    <div class="page-title">
+      <h1>Publish</h1>
+      <span class="sub">No editing. Just shipping. ${tag("partial")}</span>
+    </div>
+    <div class="publish-grid">
+      <div class="card">
+        <h2>Destination</h2>
+        <div class="dest">
+          <button type="button" class="on">PDF</button>
+          <button type="button">HTML</button>
+          <button type="button">DOCX</button>
+          <button type="button">ZIP</button>
+          <button type="button" disabled>SharePoint</button>
+          <button type="button" disabled>Confluence</button>
+        </div>
+        <p style="margin:12px 0 0;font-size:12px;color:var(--steel)">
+          PDF/HTML path exists via publishing pipeline. SharePoint/Confluence = post-revenue.
+        </p>
+      </div>
+      <div class="card">
+        <h2>Package</h2>
+        <div class="act-row"><span>31 Documents</span></div>
+        <div class="act-row"><span>18 Drawings</span></div>
+        <div class="act-row"><span>43 Images</span></div>
+        <div class="act-row"><span>412 References</span></div>
+        <div style="margin-top:16px">
+          <button class="btn dark" type="button" ${open ? "disabled" : ""} onclick="toast(open ? 'Blocked' : 'Mock: export started')">
+            ${open ? `Publish blocked · ${open} issues` : "Publish"}
+          </button>
+        </div>
+        <p style="margin:10px 0 0;font-size:12px;color:var(--steel)">
+          Ready: blocking gaps already disable export (ENGINE_CONTRACT §3).
+        </p>
+      </div>
+    </div>`;
+}
+
+function renderSettings() {
+  return `
+    <div class="page-title"><h1>Settings</h1></div>
+    <div class="card">
+      <p style="margin:0;color:var(--steel);font-size:13.5px">
+        Project folder, API key, template defaults, budget guards — already in local_app.
+        Semantic color tokens should live in Design System (v0.60), not green switches everywhere.
+      </p>
+    </div>`;
+}
+
+function renderMain() {
+  const map = {
+    dashboard: renderDashboard,
+    sources: renderSources,
+    knowledge: renderKnowledge,
+    requirements: renderRequirements,
+    documents: renderDocuments,
+    document: renderDocument,
+    figures: renderFigures,
+    tables: renderTables,
+    evidence: renderEvidence,
+    gaps: renderGaps,
+    publish: renderPublish,
+    settings: renderSettings,
+  };
+  document.getElementById("main").innerHTML = (map[STATE.view] || renderDashboard)();
+}
+
+function renderFloat() {
+  const items = [
+    "Missing drawing",
+    "Figure without caption",
+    "Wrong template",
+    "Requirement not satisfied",
+  ];
+  document.getElementById("fa-bd").innerHTML = items.map(t => `
+    <div class="fa-row">
+      <span class="mark">⚠</span>
+      <span>${t}</span>
+    </div>`).join("");
+  document.getElementById("fa-cnt").textContent = String(remainingBlocking() + 1);
+}
+
+function renderStatus() {
+  const pct = pctNow();
+  const open = remainingBlocking();
+  document.getElementById("statusbar").innerHTML = `
+    <span><b>136</b> Sources</span>
+    <span class="sep"></span>
+    <span><b>412</b> Facts</span>
+    <span class="sep"></span>
+    <span><b>102</b> Requirements</span>
+    <span class="sep"></span>
+    <span><b>${pct}%</b></span>
+    <span class="sep"></span>
+    <span style="color:${open ? "#ffb08a" : "#8fdfb0"}"><b>${open}</b> Blocking</span>
+    <span class="right">Autosaved</span>
+  `;
+}
+
+function render() {
+  renderRail();
+  renderMain();
+  renderFloat();
+  renderStatus();
+}
+
+render();
+</script>
+</body>
+</html>

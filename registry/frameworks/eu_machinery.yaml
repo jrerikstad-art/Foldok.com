@@ -1,0 +1,58 @@
+id: eu_machinery
+regions: [eu, eea]
+domains: [machinery]
+label: EU Machinery (structural profile)
+description: >
+  Structural evidence profile for machinery technical documentation.
+  Not full Machinery Regulation text — evidence categories only.
+evidence_requirements:
+  - id: risk_assessment
+    framework_ref: EU-Machinery
+    clause_family: Risk assessment
+    evidence_type: risk_assessment
+    severity: blocking
+    description: Risk assessment present in package
+    satisfied_by:
+      fact_keys: [risk_assessment, hazard_analysis]
+      document_sections: [risk_assessment]
+      media_roles: []
+  - id: technical_drawings
+    framework_ref: EU-Machinery
+    clause_family: Design documentation
+    evidence_type: drawing
+    severity: blocking
+    description: Design / assembly drawings available
+    satisfied_by:
+      fact_keys: []
+      document_sections: [design_documentation]
+      media_roles: [drawing, schematic, as_built]
+  - id: test_evidence
+    framework_ref: EU-Machinery
+    clause_family: Verification
+    evidence_type: test_record
+    severity: warning
+    description: Relevant verification / test records
+    satisfied_by:
+      fact_keys: [test_result, verification]
+      document_sections: [verification, results]
+      media_roles: [test_result]
+  - id: declaration
+    framework_ref: EU-Machinery
+    clause_family: Declaration of Conformity
+    evidence_type: declaration
+    severity: blocking
+    description: Declaration of Conformity draft or signed
+    satisfied_by:
+      fact_keys: [declaration, doc_signed]
+      document_sections: [declaration]
+      media_roles: []
+  - id: user_instructions
+    framework_ref: EU-Machinery
+    clause_family: Instructions for use
+    evidence_type: procedure
+    severity: blocking
+    description: Instructions for use / residual risk information
+    satisfied_by:
+      fact_keys: []
+      document_sections: [user_instructions, operation, residual_risk]
+      media_roles: []

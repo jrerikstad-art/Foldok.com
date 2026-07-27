@@ -1,0 +1,21 @@
+id: disconnect
+domain: electrical
+label: Disconnector / isolator
+svg: disconnect.svg
+default_orientation: 0
+standard_hint: IEC-style
+ports:
+- id: line
+  name: Line
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: load
+  name: Load
+  side: bottom
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1

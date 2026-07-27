@@ -1,0 +1,15 @@
+galvanic:
+  risk_increases_when:
+    - dissimilar_metals_in_electrical_contact
+    - shared_electrolyte
+    - small_anode_large_cathode_area_ratio
+  mitigation:
+    - select compatible couples
+    - electrically isolate dissimilar metals
+    - avoid small critical fasteners as the anodic partner outdoors
+    - dry indoor atmospheric coupling often lower risk than wet outdoor
+  report_fields:
+    fastened_material: string
+    fastener_material: string
+    exposure: dry_indoor | outdoor_atmospheric | wet | immersed
+    user_accepted_risk: bool

@@ -1,0 +1,15 @@
+id: instrument_pt
+domain: piping
+label: Pressure/Temp point
+svg: instrument_pt.svg
+default_rotation: 0
+ports:
+- id: process
+  name: Process
+  side: bottom
+  kind: fluid
+  allowed_media:
+  - water
+  - oil
+  - fluid
+  order: 1

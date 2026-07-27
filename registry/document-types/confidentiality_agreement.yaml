@@ -1,0 +1,185 @@
+id: confidentiality_agreement
+name: Confidentiality agreement
+aliases:
+  - NDA
+  - confidentiality agreement
+  - taushetserklæring
+  - konfidensialitetsavtale
+version: "1.0"
+industries: [construction, energy, process, manufacturing, maritime, general]
+regions: [international, eu, "no", us, uk]
+domains: [general, electrical, construction, process, marine]
+obligation_types: [handover, project_admin]
+evidence_types: [declaration, signature]
+
+purpose: >
+  Project-scoped confidentiality between a disclosing party and a recipient
+  for defined use (e.g. installation and documentation). Structural template only.
+  Legal text must be supplied or approved by the user / their counsel.
+
+description: >
+  Project-scoped confidentiality between a disclosing party and a recipient.
+  Structural template only — user or counsel supplies jurisdiction-appropriate wording.
+
+disclaimer: >
+  Feltdok does not provide legal advice. This profile structures fields and
+  sections. Parties must use text appropriate to their jurisdiction.
+
+legal_compliance_claimed: false
+
+structure:
+  required: [parties, purpose, definition, recipient_obligations, signatures]
+  recommended: []
+  optional: [term_and_return]
+
+preferred_blocks:
+  parties: [EngineeringTable]
+  purpose: [Paragraph, CalloutBox]
+  definition: [Paragraph]
+  recipient_obligations: [Procedure]
+  term_and_return: [Paragraph]
+  signatures: [Paragraph, RevisionHistory]
+
+sections:
+  - id: parties
+    title: Parties
+    required: true
+    fields:
+      - key: disclosing_party
+        label: Disclosing party
+        type: text
+        required: true
+      - key: recipient
+        label: Recipient
+        type: text
+        required: true
+      - key: effective_date
+        label: Effective date
+        type: date
+        required: false
+
+  - id: purpose
+    title: Purpose of disclosure
+    required: true
+    fields:
+      - key: permitted_purpose
+        label: Permitted purpose
+        type: textarea
+        required: true
+        placeholder: "e.g. installation and project documentation only"
+      - key: prohibited_use
+        label: Prohibited use
+        type: textarea
+        required: false
+        placeholder: "e.g. not for design, specification, or copying of products/services"
+
+  - id: definition
+    title: Definition of confidential information
+    required: true
+    fields:
+      - key: confidential_info_scope
+        label: Scope of confidential information
+        type: textarea
+        required: true
+      - key: exclusions
+        label: Exclusions (if any)
+        type: textarea
+        required: false
+
+  - id: recipient_obligations
+    title: Recipient obligations
+    required: true
+    fields:
+      - key: care_standard
+        label: Standard of care
+        type: textarea
+        required: true
+        placeholder: "At least as protective as for recipient’s own proprietary information"
+      - key: use_limitation
+        label: Use limitation
+        type: textarea
+        required: true
+      - key: non_disclosure
+        label: Non-disclosure rule
+        type: textarea
+        required: true
+      - key: permitted_internal_access
+        label: Permitted internal access
+        type: textarea
+        required: false
+        placeholder: "Employees / officers / directors with need to know"
+      - key: consultants
+        label: Consultants
+        type: textarea
+        required: false
+        placeholder: "Need-to-know; written obligations at least as restrictive"
+
+  - id: term_and_return
+    title: Term, return, residual
+    required: false
+    fields:
+      - key: duration
+        label: Duration / survival
+        type: text
+        required: false
+      - key: return_or_destroy
+        label: Return or destruction
+        type: textarea
+        required: false
+
+  - id: signatures
+    title: Signatures
+    required: true
+    fields:
+      - key: disclosing_signatory
+        label: Disclosing party signatory
+        type: signature
+        required: true
+      - key: disclosing_title
+        label: Title
+        type: text
+        required: false
+      - key: recipient_signatory
+        label: Recipient signatory
+        type: signature
+        required: true
+      - key: recipient_title
+        label: Title
+        type: text
+        required: false
+
+gaps:
+  - id: parties_incomplete
+    severity: blocking
+    description: Disclosing party or recipient missing
+  - id: purpose_missing
+    severity: blocking
+    description: Permitted purpose not stated
+  - id: definition_missing
+    severity: blocking
+    description: Confidential information not defined
+  - id: obligations_missing
+    severity: blocking
+    description: Core recipient obligations incomplete
+  - id: signatures_missing
+    severity: blocking
+    description: Signature blocks not completed
+
+project_evidence:
+  evidence_type: confidentiality_agreement_executed
+  links_to:
+    - handover_package
+    - technical_file
+    - project_admin
+  status: draft | signed
+
+compliance_notes:
+  - Feltdok structures fields and tracks completeness; user or counsel owns legal sufficiency
+  - Legal body text must be user template or pasted text — engine does not invent law
+  - Do not claim conformity with any jurisdiction's NDA requirements
+
+skills:
+  primary: [document-type-router, force-blocks]
+  supporting: [technical-writer, compliance-manager]
+tools: [compose_document, run_qa, get_document_type, materialise_template]
+workbench_template: null

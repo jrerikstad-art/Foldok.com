@@ -1,0 +1,28 @@
+id: socket
+domain: electrical
+label: Socket outlet
+svg: socket.svg
+default_orientation: 0
+standard_hint: IEC-style
+ports:
+- id: l
+  name: L
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: n
+  name: N
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 2
+- id: pe
+  name: PE
+  side: bottom
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1

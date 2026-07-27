@@ -1,0 +1,115 @@
+{
+  "template_key": "tender_compliance_matrix",
+  "name": "Tender Compliance Matrix & Response Skeleton",
+  "name_no": "Anbuds-samsvarsmatrise med svarutkast",
+  "description": "Two-corpus compilation: extracts every requirement from tender documents (fact_type='requirement', one row each, clause-cited), then maps the company's own material (past project docs, certificates, CVs, procedures) against each requirement — coverage where evidence exists, blocking gaps where it does not. Uses grammar v2 repeat_for to instantiate one response block per requirement. This is the requirements traceability matrix EPC teams build by hand over weeks.",
+  "applies_to": ["tender", "bid", "rfq"],
+  "version": 1,
+  "language_default": "no",
+  "export_price_tier": "complex",
+  "sections": [
+    {
+      "section_key": "tender_overview",
+      "title": "Tender Overview",
+      "title_no": "Anbudsoversikt",
+      "position": 1,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "tender_ref", "fact_type": "identifier", "severity": "blocking", "label": "Tender reference", "label_no": "Anbudsreferanse" },
+        { "key": "issuer", "fact_type": "identifier", "severity": "blocking", "label": "Issuing party", "label_no": "Oppdragsgiver" },
+        { "key": "deadline", "fact_type": "deadline", "severity": "blocking", "label": "Submission deadline", "label_no": "Innleveringsfrist" },
+        { "key": "scope_statement", "fact_type": "instruction", "severity": "warning", "label": "Scope of work summary", "label_no": "Sammendrag av arbeidsomfang" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" }
+    },
+    {
+      "section_key": "requirements_register",
+      "title": "Requirements Register",
+      "title_no": "Kravregister",
+      "position": 2,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "requirement", "fact_type": "requirement", "severity": "blocking", "label": "Extracted requirements", "label_no": "Uttrukne krav", "cardinality": "one_or_more" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "clause_ref_per_row", "mandatory_vs_evaluated_split", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "One row per 'shall/must/skal' in the tender: req ID | requirement (near-verbatim) | type (mandatory/evaluated/info) | tender clause. Modal precision preserved. Checkpoint: user confirms the register BEFORE mapping runs (outline gate pattern) — a missed requirement here is a disqualified bid, so this list is the product."
+    },
+    {
+      "section_key": "compliance_matrix",
+      "title": "Compliance Matrix",
+      "title_no": "Samsvarsmatrise",
+      "position": 3,
+      "required": true,
+      "gap_severity": "blocking",
+      "repeat_for": "requirements",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["evidence_or_gap_per_requirement", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "GRAMMAR V2: one instance per confirmed requirement. Engine maps the company corpus (linked folders: past projects, certs, CVs, procedures) against each: status Dekket (evidence cited: which document, what it shows) / Delvis / GAP. Every 'Dekket' cites company-source facts; the engine NEVER asserts compliance without evidence — an unmapped mandatory requirement is a blocking gap, which is exactly the point: know your gaps three weeks before the deadline, not three days."
+    },
+    {
+      "section_key": "response_skeleton",
+      "title": "Response Skeleton",
+      "title_no": "Svarutkast",
+      "position": 4,
+      "required": false,
+      "gap_severity": "info",
+      "repeat_for": "requirements",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["author_placeholder_for_win_themes", "no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 200, "fact_citation": "required" },
+      "notes": "Per requirement: a factual response paragraph compiled from cited company evidence + an author_placeholder '[AUTHOR: win theme / differentiation]'. The engine assembles proof; the bid team writes the persuasion. Same honesty split as the thesis discussion chapter."
+    },
+    {
+      "section_key": "risk_flags",
+      "title": "Commercial & Delivery Flags",
+      "title_no": "Kommersielle flagg og leveranseflagg",
+      "position": 5,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [
+        { "key": "penalty", "fact_type": "penalty", "severity": "info", "label": "LDs / bonds / liability terms found", "label_no": "Dagbøter / garantier / ansvarsvilkår funnet" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "clause_ref_per_row", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Extraction-only: LD rates, bond requirements, unusual payment terms, missing caps — each 'found in clause X' or 'not found in provided documents'. What it means commercially is the bid manager's call."
+    },
+    {
+      "section_key": "source_register",
+      "title": "Source Register (Tender + Company Corpus)",
+      "title_no": "Kilderegister (anbud + eget materiale)",
+      "position": 6,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["reference_source_documents", "table_format"],
+      "writing_rules": { "structure": "table", "fact_citation": "optional" },
+      "notes": "Both corpora listed separately. Referenced-but-missing tender appendices surface here."
+    },
+    {
+      "section_key": "declaration",
+      "title": "Declaration",
+      "title_no": "Erklæring",
+      "position": 7,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": { "structure": "boilerplate" },
+      "boilerplate": "This matrix was compiled by extraction from the tender documents and mapping against the company material listed in the Source Register; every requirement and every claimed coverage is traceable to cited sources. Completeness of the requirements register must be verified by the bid team. This document records findings; it is not legal or commercial advice.",
+      "boilerplate_no": "Denne matrisen er sammenstilt ved uttrekk fra anbudsdokumentene og kartlegging mot eget materiale oppført i kilderegisteret; hvert krav og hver angitt dekning er sporbar til siterte kilder. Kravregisterets fullstendighet må verifiseres av tilbudsteamet. Dokumentet gjengir funn; det er ikke juridisk eller kommersiell rådgivning.",
+      "notes": "Fixed text, zero AI."
+    }
+  ]
+}

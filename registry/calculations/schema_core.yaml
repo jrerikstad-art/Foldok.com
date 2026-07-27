@@ -1,0 +1,21 @@
+# Conceptual schema — Quantity + shared units (implement as dataclasses / JSON Schema later)
+# See MATERIALS_SPEC.md and CALCULATION_SPEC.md
+
+units:
+  stress: [MPa, N/mm2, ksi]
+  force: [N, kN, MN]
+  length: [mm, m]
+  area: [mm2, m2]
+  moment: [Nmm, Nm, kNm]
+  modulus: [MPa, GPa]
+  density: [kg/m3]
+  inertia: [mm4, m4]
+  section_modulus: [mm3, m3]
+
+# Every numeric field used in formal reports should carry:
+Quantity:
+  value: "number | null"
+  unit: string
+  source: "fact_id | datasheet_ref | user_entry | profile_default | catalog | formula | null"
+  status: "bound | missing | user_provided | assumed"
+  note: "string | null"

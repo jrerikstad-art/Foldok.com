@@ -1,0 +1,57 @@
+id: user_manual
+name: User Manual
+aliases: ["brukermanual", "instruction manual", "operator manual", "user guide", "bruksanvisning"]
+industries: [manufacturing, aquaculture, energy, construction, maritime, process]
+description: >
+  Complete instructions for safe assembly, installation, operation and maintenance of a product or system.
+
+regions: [eu, eea, uk, "no", us, international]
+domains: [general, machinery, electrical, process, marine]
+obligation_types: [operation, maintenance, handover]
+evidence_types: [procedure, drawing, photo, declaration]
+
+structure:
+  required:
+    - cover
+    - legal
+    - symbols
+    - summary
+    - product_description
+    - technical_specifications
+    - identification
+    - revision_history
+  recommended:
+    - glossary
+    - assembly
+    - installation
+    - operation
+    - maintenance
+    - transport_storage
+  optional:
+    - interface
+    - system_overview
+    - missing_facts
+
+preferred_blocks:
+  technical_specifications: [EngineeringTable, ParameterGrid]
+  assembly: [Procedure, ImageBlock, CalloutBox]
+  installation: [Procedure, ImageBlock, CalloutBox]
+  maintenance: [Procedure, EngineeringTable, CalloutBox]
+  symbols: [CalloutBox]
+
+compliance_notes:
+  - Must contain clear safety warnings
+  - Revision history is mandatory
+  - Manufacturer and product identification is mandatory
+
+skills:
+  primary: [user-manual, force-blocks, technical-writer]
+  supporting: [cad-inspector, compliance-manager, graphic-design, lead-engineer]
+
+tools:
+  - load_template
+  - compose_document
+  - run_qa
+
+# Workbench compile/gap template (facts layer) — optional bridge
+workbench_template: user_manual.json

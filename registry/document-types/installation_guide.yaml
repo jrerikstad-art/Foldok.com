@@ -1,0 +1,46 @@
+id: installation_guide
+name: Installation Guide
+aliases: ["installasjonsveiledning", "mounting instruction", "installation manual", "installasjonsmanual"]
+industries: [construction, manufacturing, energy, maritime, process]
+description: >
+  Step-by-step instructions for correct and safe installation of a product or system.
+
+regions: [eu, eea, uk, "no", us, international]
+domains: [electrical, machinery, construction, general]
+obligation_types: [installation]
+evidence_types: [procedure, drawing, photo, test_record]
+
+structure:
+  required:
+    - cover
+    - summary
+    - installation
+    - identification
+  recommended:
+    - symbols
+    - tools_required
+    - safety
+    - verification
+    - revision_history
+  optional:
+    - interface
+    - transport_storage
+
+preferred_blocks:
+  installation: [Procedure, ImageBlock, CalloutBox, DiagramBlock]
+  safety: [CalloutBox]
+  verification: [Procedure, EngineeringTable]
+
+compliance_notes:
+  - Safety warnings must be prominent
+  - Verification / function test steps recommended
+
+skills:
+  primary: [force-blocks, lead-engineer, technical-writer]
+  supporting: [cad-inspector, compliance-manager]
+
+tools:
+  - compose_document
+  - run_qa
+
+workbench_template: installation_manual.json

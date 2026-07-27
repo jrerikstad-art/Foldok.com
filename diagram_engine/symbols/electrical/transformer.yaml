@@ -1,0 +1,35 @@
+id: transformer
+domain: electrical
+label: Transformer
+svg: transformer.svg
+default_orientation: 0
+standard_hint: IEC-style
+ports:
+- id: pri_a
+  name: H1
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: pri_b
+  name: H2
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 2
+- id: sec_a
+  name: X1
+  side: bottom
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: sec_b
+  name: X2
+  side: bottom
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 2

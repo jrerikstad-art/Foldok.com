@@ -1,0 +1,25 @@
+blocks:
+  - type: CableSupportSystemNote
+    fields:
+      system_type: tray | ladder | mesh | mixed
+      material_class: metallic | non_metallic | composite
+      corrosion_link: ref_to_corrosion_note
+      swl_span_summary: string
+      support_summary: string
+      status: draft | confirmed
+
+  - type: WiringSystemSelectionNote
+    fields:
+      wiring_types_used: string[]
+      external_influences: string[]
+      installation_methods: string[]
+      ccc_basis: string
+      voltage_drop_reviewed: bool
+      fire_sealing_reviewed: bool
+      status: draft | confirmed
+
+document_types_bind:
+  - installation_guide
+  - technical_file
+  - inspection_package
+  - handover_package

@@ -1,0 +1,312 @@
+id: product_strategy
+name: Product strategy
+aliases:
+  - product strategy document
+  - produktstrategi
+  - R&D strategy
+version: "1.0"
+industries: [general, manufacturing, energy, process, construction, infrastructure]
+regions: [international]
+domains: [general, product, r_and_d]
+obligation_types: [project_admin, proposal]
+evidence_types: [analysis, narrative, plan]
+
+purpose: >
+  Structured product strategy document covering mission/vision,
+  value proposition, product vs solution framing, strategic pillars,
+  roadmap thinking, and innovation practices.
+
+description: >
+  Mission, value, strategy overview, product vs solution, pillars, portfolio,
+  roadmap, innovation practice, and governance — generic planning structure only.
+
+disclaimer: >
+  Planning structure only. Market and competitive claims should be
+  supported by cited project sources where used.
+
+legal_compliance_claimed: false
+
+structure:
+  required: [mission_vision, value_proposition, strategy_overview, product_vs_solution]
+  recommended: [strategic_pillars, portfolio_and_priorities, roadmap]
+  optional: [innovation_practice, success_measures, governance]
+
+preferred_blocks:
+  mission_vision: [Paragraph, CalloutBox]
+  value_proposition: [Paragraph, FeatureCard, StakeholderCard]
+  strategy_overview: [Paragraph, EngineeringTable, EvaluationMatrix]
+  product_vs_solution: [Paragraph, CalloutBox, ComparisonTable]
+  strategic_pillars: [FeatureCard, EngineeringTable]
+  portfolio_and_priorities: [EvaluationMatrix, EngineeringTable]
+  roadmap: [Timeline, Paragraph]
+  innovation_practice: [Paragraph, Procedure]
+  success_measures: [EngineeringTable]
+  governance: [Paragraph, RevisionHistory]
+
+sections:
+  - id: mission_vision
+    title: Mission and vision
+    required: true
+    fields:
+      - key: mission
+        label: Mission
+        type: textarea
+        required: true
+        prompt: >
+          Why the product organization exists — customers served,
+          quality bar, role in projects/markets.
+      - key: vision
+        label: Vision
+        type: textarea
+        required: true
+        prompt: >
+          Desired future state — product quality, functionality,
+          cost position, innovation leadership, sustainability if relevant.
+
+  - id: value_proposition
+    title: Value proposition
+    required: true
+    fields:
+      - key: value_for_customers
+        label: Value for customers
+        type: textarea
+        required: true
+        prompt: How offerings better meet needs and solve problems.
+      - key: value_for_stakeholders
+        label: Value for project stakeholders
+        type: textarea
+        required: false
+        prompt: Ideas, methods, and solutions that support project success.
+      - key: value_for_organization
+        label: Value for the organization
+        type: textarea
+        required: true
+        prompt: Innovation, competitiveness, capability building.
+
+  - id: strategy_overview
+    title: Product strategy overview
+    required: true
+    fields:
+      - key: strategy_summary
+        label: Strategy summary
+        type: textarea
+        required: true
+        prompt: >
+          How the organization develops, positions, and delivers products
+          in line with overall business goals.
+      - key: focus_areas
+        label: Focus areas
+        type: repeating_group
+        required: true
+        item_fields:
+          - key: name
+            label: Focus area
+            type: text
+          - key: intent
+            label: Intent
+            type: textarea
+          - key: success_signal
+            label: Success signal
+            type: text
+
+  - id: product_vs_solution
+    title: Product vs solution
+    required: true
+    fields:
+      - key: product_definition
+        label: What we mean by product
+        type: textarea
+        required: true
+        prompt: Tangible goods, software, or services offered as discrete offerings.
+      - key: solution_definition
+        label: What we mean by solution
+        type: textarea
+        required: true
+        prompt: >
+          Problem-solving combination of products, services, and methods
+          aimed at a desired outcome.
+      - key: positioning_choice
+        label: Positioning choice
+        type: select
+        required: true
+        options: [product_led, solution_led, hybrid]
+      - key: positioning_notes
+        label: Positioning notes
+        type: textarea
+        required: false
+        prompt: When to sell a product vs a full solution (analogy optional).
+
+  - id: strategic_pillars
+    title: Strategic pillars
+    required: false
+    fields:
+      - key: pillars
+        label: Pillars
+        type: repeating_group
+        required: false
+        item_fields:
+          - key: name
+            label: Pillar
+            type: text
+          - key: description
+            label: Description
+            type: textarea
+          - key: owner
+            label: Owner
+            type: text
+          - key: horizon
+            label: Horizon
+            type: select
+            options: [near_term, mid_term, long_term]
+
+  - id: portfolio_and_priorities
+    title: Portfolio and priorities
+    required: false
+    fields:
+      - key: portfolio_segments
+        label: Portfolio segments
+        type: repeating_group
+        required: false
+        item_fields:
+          - key: segment
+            label: Segment
+            type: text
+          - key: priority
+            label: Priority
+            type: select
+            options: [core, grow, explore, retire]
+          - key: rationale
+            label: Rationale
+            type: textarea
+      - key: priority_rules
+        label: Priority rules
+        type: textarea
+        required: false
+        prompt: How initiatives are ranked (customer impact, risk, cost, capability).
+
+  - id: roadmap
+    title: Roadmap
+    required: false
+    fields:
+      - key: time_horizon
+        label: Time horizon
+        type: text
+        required: false
+        placeholder: "e.g. 2026–2029"
+      - key: themes
+        label: Roadmap themes
+        type: repeating_group
+        required: false
+        item_fields:
+          - key: theme
+            label: Theme
+            type: text
+          - key: outcomes
+            label: Outcomes
+            type: textarea
+          - key: period
+            label: Period
+            type: text
+      - key: dependencies
+        label: Key dependencies
+        type: textarea
+        required: false
+
+  - id: innovation_practice
+    title: Innovation practice
+    required: false
+    fields:
+      - key: innovation_model
+        label: Innovation model
+        type: textarea
+        required: false
+        prompt: How new ideas are encouraged, selected, and funded.
+      - key: innovation_events
+        label: Innovation events
+        type: textarea
+        required: false
+        prompt: >
+          e.g. innovation days — format, frequency, goals
+          (brainstorming, workshops, demos, open exploration).
+      - key: intake_to_pipeline
+        label: From idea to pipeline
+        type: textarea
+        required: false
+        prompt: Criteria and steps from concept to active development.
+
+  - id: success_measures
+    title: Success measures
+    required: false
+    fields:
+      - key: metrics
+        label: Metrics
+        type: repeating_group
+        required: false
+        item_fields:
+          - key: metric
+            label: Metric
+            type: text
+          - key: target
+            label: Target
+            type: text
+          - key: review_cadence
+            label: Review cadence
+            type: text
+      - key: review_process
+        label: Review process
+        type: textarea
+        required: false
+
+  - id: governance
+    title: Governance
+    required: false
+    fields:
+      - key: decision_rights
+        label: Decision rights
+        type: textarea
+        required: false
+      - key: change_control
+        label: Strategy change control
+        type: textarea
+        required: false
+
+summary_block:
+  block_type: ProductStrategySummary
+  fields:
+    mission_one_liner: string
+    vision_one_liner: string
+    positioning: product_led | solution_led | hybrid
+    top_focus_areas: string[]
+    time_horizon: string
+    status: draft | confirmed
+
+gaps:
+  - id: mission_vision_missing
+    severity: blocking
+    description: Mission or vision not defined
+  - id: value_proposition_incomplete
+    severity: blocking
+    description: Customer or organization value not stated
+  - id: strategy_summary_missing
+    severity: blocking
+    description: Strategy overview missing
+  - id: product_solution_unclear
+    severity: warning
+    description: Product vs solution positioning not chosen
+  - id: no_focus_areas
+    severity: warning
+    description: No strategic focus areas listed
+  - id: roadmap_empty
+    severity: warning
+    description: Roadmap horizon/themes not defined (if used)
+
+compliance_notes:
+  - Agent may draft from project notes; user owns wording and confirms export
+  - Optional sections deepen the strategy without blocking minimum export
+  - Feltdok does not verify market or competitive claims
+
+skills:
+  primary: [document-type-router, technical-writer]
+  supporting: [research-assistant, force-blocks, lead-engineer]
+tools: [compose_document, run_qa, get_document_type, materialise_template]
+workbench_template: null

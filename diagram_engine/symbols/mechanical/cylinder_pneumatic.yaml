@@ -1,0 +1,27 @@
+id: cylinder_pneumatic
+domain: mechanical
+label: Pneumatic cylinder
+svg: cylinder_pneumatic.svg
+default_rotation: 0
+ports:
+- id: port_a
+  name: Port A
+  side: left
+  kind: fluid
+  allowed_media:
+  - air
+  order: 1
+- id: port_b
+  name: Port B
+  side: right
+  kind: fluid
+  allowed_media:
+  - air
+  order: 1
+- id: rod
+  name: Rod
+  side: right
+  kind: mechanical
+  allowed_media:
+  - shaft
+  order: 2

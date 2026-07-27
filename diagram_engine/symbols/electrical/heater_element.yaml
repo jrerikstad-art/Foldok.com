@@ -1,0 +1,21 @@
+id: heater_element
+domain: electrical
+label: Heating element
+svg: heater_element.svg
+default_orientation: 0
+standard_hint: IEC-style resistor / heater
+ports:
+- id: l
+  name: L / phase
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: n
+  name: Return
+  side: bottom
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1

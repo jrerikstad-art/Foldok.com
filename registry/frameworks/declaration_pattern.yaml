@@ -1,0 +1,36 @@
+id: declaration_pattern
+regions: [eu, eea, uk, "no", international]
+domains: [general, machinery, electrical, construction]
+label: Declaration pattern (structural profile)
+description: Short formal declaration evidence pattern (DoC / completion).
+evidence_requirements:
+  - id: subject_identified
+    framework_ref: Declaration-Pattern
+    clause_family: Identification
+    evidence_type: declaration
+    severity: blocking
+    description: Subject of declaration identified
+    satisfied_by:
+      fact_keys: [product_id, installation_id, site]
+      document_sections: [identification]
+      media_roles: []
+  - id: frameworks_cited
+    framework_ref: Declaration-Pattern
+    clause_family: Applicable rules
+    evidence_type: declaration
+    severity: blocking
+    description: Applicable frameworks / standards cited from sources or user
+    satisfied_by:
+      fact_keys: [standard_ref, nek400_edition]
+      document_sections: [standards]
+      media_roles: []
+  - id: signed_statement
+    framework_ref: Declaration-Pattern
+    clause_family: Signature
+    evidence_type: declaration
+    severity: blocking
+    description: Signed or draft declaration statement with responsible person
+    satisfied_by:
+      fact_keys: [signatory, signature_date]
+      document_sections: [declaration, signature]
+      media_roles: []

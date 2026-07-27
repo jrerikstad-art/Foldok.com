@@ -1,0 +1,37 @@
+# IEC / Nordic practice wire color keys for electrical diagrams.
+# Connection.attributes.color may be a key below or a raw CSS color.
+
+palette: iec_no
+colors:
+  L1:
+    hex: "#A0522D"
+    label: "L1 (brown)"
+  L2:
+    hex: "#16181D"
+    label: "L2 (black)"
+  L3:
+    hex: "#6B7280"
+    label: "L3 (grey)"
+  N:
+    hex: "#0055A4"
+    label: "N (blue)"
+  PE:
+    hex: "#5B8C2A"
+    label: "PE (green-yellow)"
+    stripe: "#F5C400"
+  PEN:
+    hex: "#5B8C2A"
+    label: "PEN"
+    stripe: "#F5C400"
+  DC_POS:
+    hex: "#C62828"
+    label: "DC+ (red)"
+  DC_NEG:
+    hex: "#1565C0"
+    label: "DC− (blue)"
+  SIGNAL:
+    hex: "#6A1B9A"
+    label: "Signal"
+  DEFAULT:
+    hex: "#16181D"
+    label: "Conductor"

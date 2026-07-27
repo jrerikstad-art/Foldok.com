@@ -1,0 +1,24 @@
+id: IPE200
+family: ipe
+designation: IPE 200
+material_hint: steel
+source: catalog
+status: profile
+pack: steel_structural
+series: IPE
+
+geometry:
+  h:  { value: 200, unit: mm, source: profile_default, status: assumed }
+  b:  { value: 100, unit: mm, source: profile_default, status: assumed }
+  tw: { value: 5.6, unit: mm, source: profile_default, status: assumed }
+  tf: { value: 8.5, unit: mm, source: profile_default, status: assumed }
+
+properties:
+  A:  { value: 2850, unit: mm2, source: profile_default, status: assumed }
+  Iy: { value: 19430000, unit: mm4, source: profile_default, status: assumed }
+  Iz: { value: 1424000, unit: mm4, source: profile_default, status: assumed }
+  Wy: { value: 194300, unit: mm3, source: profile_default, status: assumed }
+  Wz: { value: 28480, unit: mm3, source: profile_default, status: assumed }
+  iy: { value: 82.6, unit: mm, source: profile_default, status: assumed }
+  iz: { value: 22.4, unit: mm, source: profile_default, status: assumed }
+  mass_per_m: { value: 22.4, unit: kg/m, source: profile_default, status: assumed }

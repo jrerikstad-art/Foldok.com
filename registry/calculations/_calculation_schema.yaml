@@ -1,0 +1,29 @@
+# Calculation profile schema (conceptual)
+
+Calculation:
+  id: string
+  name: string
+  profile: string
+  version: string
+  material_id: "string | null"       # runtime
+  section_id: "string | null"        # runtime
+  formula_latex: string
+  formula_code: string               # engine-evaluated; may be multi-statement with ;
+  required:
+    material: "string[]"
+    section: "string[]"
+    loads: "string[]"
+  binds: object                      # optional: fy: { from: material.fy, unit: MPa }
+  inputs:
+    - key: string
+      label: string
+      quantity: Quantity
+  outputs:
+    - key: string
+      label: string
+      quantity: Quantity
+  assumptions: "string[]"
+  status: "draft | needs_input | ready_for_review | confirmed"
+  confirmed_by: "string | null"
+  confirmed_at: "string | null"
+  report_block_id: "string | null"

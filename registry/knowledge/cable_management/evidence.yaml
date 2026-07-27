@@ -1,0 +1,36 @@
+evidence_types:
+  - system_classification_sheet
+  - swl_span_table_or_calc
+  - support_layout_drawing
+  - corrosion_protection_note
+  - continuity_or_pe_arrangement
+  - installation_method
+  - external_influence_assessment
+  - current_carrying_basis
+  - voltage_drop_check
+  - fire_stopping_record
+  - as_built_photos
+  - test_or_inspection_record
+
+gaps:
+  - id: tray_class_missing
+    severity: blocking
+    description: Tray/ladder classification not stated (material, corrosion, temp)
+  - id: swl_span_missing
+    severity: blocking
+    description: Safe working load / span basis not documented
+  - id: support_spacing_missing
+    severity: warning
+    description: Support devices and spacing not shown
+  - id: external_influences_missing
+    severity: warning
+    description: External influences on wiring system not reviewed
+  - id: grouping_or_ccc_missing
+    severity: warning
+    description: Current-carrying / grouping basis not referenced
+  - id: penetration_seal_missing
+    severity: warning
+    description: Fire barrier penetrations not recorded
+  - id: pe_continuity_missing
+    severity: warning
+    description: PE / continuity arrangement for metallic systems not noted

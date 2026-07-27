@@ -1,0 +1,60 @@
+{
+  "tool": "wireframe-sketch",
+  "version": 5,
+  "pages": [
+    {
+      "id": 1,
+      "name": "Foldok — Home (arbeidsbenk)",
+      "width": 1200,
+      "heightMode": "endless",
+      "height": null,
+      "boxes": [
+        {
+          "id": 15,
+          "x": 440,
+          "y": 50,
+          "width": 420,
+          "height": 220,
+          "label": "NYTT PROSJEKT — KOBLE TIL MAPPE",
+          "color": "#3b6fed",
+          "note": "Velg mappe-knapp + manuell lim inn mappesti. Knapp: + Opprett prosjekt"
+        }
+      ],
+      "description": "Page \"Foldok — Home (arbeidsbenk)\" — width 1200px, scrolls indefinitely downward (normal long webpage).\nSections top to bottom:\n  - \"NYTT PROSJEKT — KOBLE TIL MAPPE\" at (x:440, y:50), size 420x220px (has agent instructions — see note below)\n    AGENT NOTE: Velg mappe-knapp + manuell lim inn mappesti. Knapp: + Opprett prosjekt"
+    }
+  ],
+  "sideMenu": [
+    {
+      "id": 1,
+      "fromPage": "Foldok — Home (arbeidsbenk)",
+      "label": "Demo løfteheis",
+      "x": 0,
+      "y": 50,
+      "width": 400,
+      "height": 76,
+      "color": "#ae3ec9"
+    },
+    {
+      "id": 2,
+      "fromPage": "Foldok — Home (arbeidsbenk)",
+      "label": "Foldok",
+      "x": 0,
+      "y": 140,
+      "width": 400,
+      "height": 76,
+      "color": "#ae3ec9"
+    },
+    {
+      "id": 3,
+      "fromPage": "Foldok — Home (arbeidsbenk)",
+      "label": "Demo løfteheis",
+      "x": 0,
+      "y": 230,
+      "width": 400,
+      "height": 76,
+      "color": "#ae3ec9",
+      "note": "Prosjektkort — klikk åpner prosjekt"
+    }
+  ],
+  "description": "This is a rough wireframe / skeleton sketch for a website, made by hand as structural guidance\nfor an AI coding agent — not exact pixels. It may describe one page or several pages of a site.\n\"Fixed\" pages represent a single screen/viewport where content is deliberately cut off at the edge\n(e.g. a landing hero, a mobile app screen). \"Endless\" pages represent normal pages that scroll.\nSome boxes include a referenceImage (base64 data URL of a screenshot) — decode/view it to see\nexactly how the person wants that specific section to look.\nBoxes may also include a \"note\" field with direct instructions or copy for the agent to implement.\nReproduce the relative order, grouping, and rough proportions of the sections below using\nsemantic, responsive HTML/CSS — adapt the fixed pixel numbers to a responsive layout.\n\nPage \"Foldok — Home (arbeidsbenk)\" — width 1200px, scrolls indefinitely downward (normal long webpage).\nSections top to bottom:\n  - \"NYTT PROSJEKT — KOBLE TIL MAPPE\" at (x:440, y:50), size 420x220px (has agent instructions — see note below)\n    AGENT NOTE: Velg mappe-knapp + manuell lim inn mappesti. Knapp: + Opprett prosjekt"
+}

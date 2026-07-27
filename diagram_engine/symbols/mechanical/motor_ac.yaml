@@ -1,0 +1,20 @@
+id: motor_ac
+domain: mechanical
+label: AC motor
+svg: motor_ac.svg
+default_rotation: 0
+ports:
+- id: electrical
+  name: Power
+  side: left
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: shaft
+  name: Shaft
+  side: right
+  kind: mechanical
+  allowed_media:
+  - shaft
+  order: 1

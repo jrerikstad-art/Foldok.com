@@ -1,0 +1,43 @@
+id: datasheet
+name: Product Datasheet
+aliases: ["data sheet", "technical data sheet", "spec sheet", "datablad"]
+industries: [manufacturing, aquaculture, energy, process, electronics]
+description: >
+  Concise technical overview of a product or system with key specifications and features.
+
+regions: [eu, eea, uk, "no", us, international]
+domains: [general, machinery, electrical, process]
+obligation_types: [design, handover]
+evidence_types: [drawing, material_certificate, photo]
+
+structure:
+  required:
+    - cover
+    - summary
+    - technical_specifications
+    - identification
+  recommended:
+    - system_overview
+    - features
+  optional:
+    - interface
+    - revision_history
+
+preferred_blocks:
+  technical_specifications: [EngineeringTable, ParameterGrid]
+  features: [FeatureGrid]
+  system_overview: [FeatureGrid, DiagramBlock, ImageBlock]
+
+compliance_notes:
+  - Key performance data must be sourced
+  - Clear product identification required
+
+skills:
+  primary: [force-blocks, technical-writer, graphic-design]
+  supporting: [cad-inspector, compliance-manager]
+
+tools:
+  - compose_document
+  - run_qa
+
+workbench_template: technical_doc_package.json

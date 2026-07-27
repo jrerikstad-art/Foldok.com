@@ -1,0 +1,47 @@
+id: us_electrical_structural
+regions: [us]
+domains: [electrical]
+label: US electrical (structural profile)
+description: >
+  NEC / OSHA-oriented structural evidence categories — not full code text.
+evidence_requirements:
+  - id: wiring_method_docs
+    framework_ref: NEC-style
+    clause_family: Wiring methods
+    evidence_type: drawing
+    severity: blocking
+    description: Wiring method / schematic documentation
+    satisfied_by:
+      fact_keys: [circuit, wiring_method]
+      document_sections: [design_documentation, system_overview]
+      media_roles: [wiring, schematic, drawing]
+  - id: inspection_evidence
+    framework_ref: NEC-style
+    clause_family: Inspection
+    evidence_type: inspection_record
+    severity: blocking
+    description: Inspection or AHJ-related record evidence
+    satisfied_by:
+      fact_keys: [inspection]
+      document_sections: [checklist, results]
+      media_roles: [inspection]
+  - id: test_evidence
+    framework_ref: NEC-style
+    clause_family: Testing
+    evidence_type: test_record
+    severity: warning
+    description: Relevant electrical test records
+    satisfied_by:
+      fact_keys: [test_result]
+      document_sections: [measurements, results]
+      media_roles: [test_result]
+  - id: listing_or_label_evidence
+    framework_ref: UL-NRTL-pattern
+    clause_family: Listing / labeling
+    evidence_type: material_certificate
+    severity: warning
+    description: Listing / labeling / equipment identification evidence
+    satisfied_by:
+      fact_keys: [ul_listing, nrtl, equipment_id]
+      document_sections: [identification, attachments]
+      media_roles: [nameplate, photo]

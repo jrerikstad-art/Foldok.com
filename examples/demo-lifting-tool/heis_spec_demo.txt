@@ -1,0 +1,17 @@
+SPESIFIKASJON — LØFTEHEIS DEMO-HEIS-0042
+Verkstedveien 1, 4000 Demo
+
+Type: Elektrisk løfteheis, 500 kg SWL
+Produsent: Demo Lift AS (fiktiv)
+Serienummer: DEMO-HEIS-0042
+Installasjonsår: 2022
+
+Last: maks 500 kg
+Hastighet: 0,15 m/s
+Slaglengde: 3,2 m
+
+Inspeksjonsintervall: [MANGLER: inspection_interval]
+Siste inspeksjon: 2024-06-15
+Neste inspeksjon: [MANGLER: next_inspection_date]
+
+Dokumentasjon: CE-merking Demo-LIFT-CE-2022-0042

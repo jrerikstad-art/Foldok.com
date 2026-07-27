@@ -1,0 +1,24 @@
+# Section schema (conceptual)
+
+Section:
+  id: string                    # IPE200, HEA200, RHS100x50x5, custom_001
+  family: "ipe | hea | heb | rhs | chs | plate | custom"
+  designation: string
+  material_hint: "steel | null"
+  geometry:
+    h: Quantity
+    b: Quantity
+    tw: "Quantity | null"
+    tf: "Quantity | null"
+    t: "Quantity | null"
+    d: "Quantity | null"
+  properties:
+    A: Quantity
+    Iy: Quantity
+    Iz: Quantity
+    Wy: Quantity
+    Wz: Quantity
+    iy: "Quantity | null"
+    iz: "Quantity | null"
+  source: "catalog | project_drawing | user_entry"
+  status: "profile | user_defined"

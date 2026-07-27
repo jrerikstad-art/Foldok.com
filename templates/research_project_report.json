@@ -1,0 +1,151 @@
+{
+  "template_key": "research_project_report",
+  "name": "Research Project Report",
+  "name_no": "Forskningsprosjektrapport",
+  "description": "Structured project/progress report for a research project (master, PhD, funded project). Compiles experiment records, data files, photos and notes into a documented report with full claim-to-source traceability. NOT a thesis writer: it assembles and cites what exists, and flags what is missing. Structure aligned with common institutional progress-report and lab-report conventions.",
+  "applies_to": ["research_project", "experiment", "prototype", "study"],
+  "version": 1,
+  "language_default": "en",
+  "export_price_tier": "standard",
+  "sections": [
+    {
+      "section_key": "cover",
+      "title": "Project Identification",
+      "title_no": "Prosjektidentifikasjon",
+      "position": 1,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "project_title", "fact_type": "identifier", "severity": "blocking", "label": "Project title", "label_no": "Prosjekttittel" },
+        { "key": "author_name", "fact_type": "identifier", "severity": "blocking", "label": "Author / researcher", "label_no": "Forfatter / forsker" },
+        { "key": "institution", "fact_type": "identifier", "severity": "warning", "label": "Institution / department", "label_no": "Institusjon / avdeling" },
+        { "key": "supervisor", "fact_type": "identifier", "severity": "info", "label": "Supervisor(s)", "label_no": "Veileder(e)" },
+        { "key": "report_period", "fact_type": "date", "severity": "warning", "label": "Reporting period", "label_no": "Rapporteringsperiode" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" }
+    },
+    {
+      "section_key": "objective",
+      "title": "Objective & Research Question",
+      "title_no": "Mål og forskningsspørsmål",
+      "position": 2,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "research_question", "fact_type": "instruction", "severity": "blocking", "label": "Research question / objective statement", "label_no": "Forskningsspørsmål / målformulering" },
+        { "key": "hypothesis", "fact_type": "instruction", "severity": "info", "label": "Hypothesis (if stated)", "label_no": "Hypotese (hvis angitt)" }
+      ],
+      "required_media": {},
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 200, "reading_level": "academic", "fact_citation": "required" },
+      "notes": "The objective must come from the sources (proposal, notes, supervisor email). If none found: [MISSING: research_question] — the engine never invents a research aim."
+    },
+    {
+      "section_key": "method",
+      "title": "Method & Experimental Setup",
+      "title_no": "Metode og forsøksoppsett",
+      "position": 3,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "method_description", "fact_type": "instruction", "severity": "blocking", "label": "Method / procedure description", "label_no": "Metode-/prosedyrebeskrivelse" },
+        { "key": "equipment", "fact_type": "identifier", "severity": "warning", "label": "Equipment / instruments used", "label_no": "Utstyr / instrumenter" },
+        { "key": "sample_size", "fact_type": "spec", "severity": "warning", "label": "Sample size / n", "label_no": "Utvalgsstørrelse / n" },
+        { "key": "parameters", "fact_type": "spec", "severity": "info", "label": "Key parameters and settings", "label_no": "Sentrale parametre og innstillinger" }
+      ],
+      "required_media": { "min_photos": 1, "preferred_roles": ["environment", "technical_data", "overview"] },
+      "required_content": ["reproducibility_detail", "no_uncited_specs", "units_si"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 500, "reading_level": "academic", "fact_citation": "required" },
+      "notes": "Reproducibility rule: a competent peer should be able to repeat the setup from this section. Photos of the rig are mapped here. Every parameter cites a source (notebook entry, config screenshot, instrument photo)."
+    },
+    {
+      "section_key": "data_collected",
+      "title": "Data Collected",
+      "title_no": "Innsamlede data",
+      "position": 4,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "measurement", "fact_type": "measurement", "severity": "blocking", "label": "At least one recorded measurement / dataset", "label_no": "Minst én registrert måling / datasett", "cardinality": "one_or_more" },
+        { "key": "data_location", "fact_type": "identifier", "severity": "warning", "label": "Dataset file references", "label_no": "Referanser til datafiler" }
+      ],
+      "required_media": { "min_photos": 0, "preferred_roles": ["test_result", "technical_data"] },
+      "required_content": ["table_format", "no_uncited_specs", "units_si", "reference_source_documents"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "STRICT section: every value cites a fact from a data file, instrument photo, or notebook. CSVs indexed by MarkItDown provide the fact source. Summary statistics only if present in sources — the engine does not compute statistics in v1."
+    },
+    {
+      "section_key": "observations",
+      "title": "Results & Observations",
+      "title_no": "Resultater og observasjoner",
+      "position": 5,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [],
+      "required_media": { "min_photos": 1, "preferred_roles": ["test_result", "overview", "damage"] },
+      "required_content": ["separate_observation_from_interpretation", "no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 500, "reading_level": "academic", "fact_citation": "required" },
+      "notes": "Content rule 'separate_observation_from_interpretation': the generated text states what the sources show, attributed per claim. Interpretation beyond the sources is not generated — that is the researcher's job, and the section ends with an editable block reserved for it."
+    },
+    {
+      "section_key": "deviations",
+      "title": "Deviations & Issues",
+      "title_no": "Avvik og problemer",
+      "position": 6,
+      "required": false,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": { "min_photos": 0, "preferred_roles": ["damage", "environment"] },
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "list", "max_words": 250, "fact_citation": "required" },
+      "notes": "Failed runs, equipment issues, protocol changes — pulled from notes and photos tagged damage/deviation. Honest reporting section; funders and supervisors value it."
+    },
+    {
+      "section_key": "next_steps",
+      "title": "Status & Next Steps",
+      "title_no": "Status og videre arbeid",
+      "position": 7,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [
+        { "key": "next_step", "fact_type": "instruction", "severity": "warning", "label": "At least one stated next step", "label_no": "Minst ett angitt neste steg" }
+      ],
+      "required_media": {},
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "list", "max_words": 200, "fact_citation": "required" },
+      "notes": "Next steps come from the researcher's own notes in the sources. If none exist: [MISSING: next_step] — the plan is the researcher's, not the engine's."
+    },
+    {
+      "section_key": "source_register",
+      "title": "Source Register",
+      "title_no": "Kilderegister",
+      "position": 8,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["reference_source_documents", "table_format"],
+      "writing_rules": { "structure": "table", "fact_citation": "optional" },
+      "notes": "Auto-generated from the project index: every file with its caption and which sections cite it. This is the traceability appendix — for a student, the audit trail that the report reflects real project material; assembled by code, zero AI tokens."
+    },
+    {
+      "section_key": "signature",
+      "title": "Declaration",
+      "title_no": "Erklæring",
+      "position": 9,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [
+        { "key": "author_name", "fact_type": "identifier", "severity": "warning", "label": "Author name", "label_no": "Forfatters navn" }
+      ],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": { "structure": "boilerplate" },
+      "boilerplate": "This report was compiled from the project source material listed in the Source Register. All factual claims are traceable to the cited sources. Interpretations and conclusions are the author's own.",
+      "boilerplate_no": "Denne rapporten er sammenstilt fra prosjektets kildemateriale slik det fremgår av kilderegisteret. Alle faktapåstander er sporbare til de siterte kildene. Tolkninger og konklusjoner er forfatterens egne.",
+      "notes": "The declaration makes the tool's role explicit — assembly and citation, not authorship of ideas. This is the academic-integrity posture, stated in the document itself."
+    }
+  ]
+}

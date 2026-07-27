@@ -1,0 +1,19 @@
+id: circle_area
+label: Circle area
+domains: [general, machinery]
+formula_latex: "A = \\pi r^{2}"
+formula_code: "pi * r ** 2"
+description: Area of a circle from radius.
+safety_critical: false
+assumptions:
+  - Perfect circle; no manufacturing tolerance
+inputs:
+  - key: r
+    label: Radius
+    unit: m
+    required: true
+    fact_keys: [radius, r]
+outputs:
+  - key: A
+    label: Area
+    unit: m2

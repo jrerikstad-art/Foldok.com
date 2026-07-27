@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Demo CCS Feed System</title>
+<style>
+
+@page { size: A4; margin: 14mm; }
+* { box-sizing: border-box; margin: 0; padding: 0;
+ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+html { background: #E9E7E0; }
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9.5pt;
+  color: #16181D;
+  line-height: 1.45;
+  margin: 0;
+  padding: 16px 0;
+}
+.document {
+  max-width: 210mm; margin: 0 auto; background: #FFFFFF;
+  padding: 14mm; box-shadow: 0 2px 14px rgba(0,0,0,.12);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 5mm;
+}
+.span-12 { grid-column: span 12; }
+.span-8 { grid-column: span 8; }
+.span-6 { grid-column: span 6; }
+.span-4 { grid-column: span 4; }
+
+h1 { font-size: 24pt; color: #1450B4; margin: 0 0 8pt;
+ font-weight: 900; letter-spacing: -.02em; }
+h2 { font-size: 13pt; color: #1450B4;
+ border-bottom: 2pt solid #1450B4; padding-bottom: 4pt;
+ margin: 18pt 0 10pt; font-weight: 800; }
+h3 { font-size: 11pt; margin: 10pt 0 4pt; font-weight: 700; }
+.accent-bar { width: 48px; height: 3px; background: #F5C400; margin-bottom: 10pt; }
+.hero {
+  display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 16pt;
+  margin-bottom: 20pt; align-items: center;
+}
+.summary { font-size: 10.5pt; color: #5A6472; }
+.hero-bullets { padding-left: 16pt; margin-top: 10pt; }
+.hero-bullets li { margin-bottom: 4pt; }
+.hero-img { max-width: 100%; height: auto; display: block; }
+.feature-grid { display: grid; gap: 10pt; margin: 12pt 0; }
+.feature-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+.feature-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.feature-card {
+  border: 1px solid #DCD9D0; padding: 10pt 12pt; background: #f7f6f2;
+}
+.feature-card h3 { margin-top: 0; color: #1450B4; }
+.feature-card p { color: #5A6472; font-size: 8pt; }
+.spec-table {
+  width: 100%; border-collapse: collapse; font-size: 8.5pt; margin: 10pt 0;
+}
+.spec-table th {
+  background: #1450B4; color: #fff; padding: 5pt 6pt;
+  text-align: left; font-weight: 700;
+}
+.spec-table td, .spec-table tbody th {
+  border: 1px solid #DCD9D0; padding: 4pt 6pt;
+}
+.spec-table tbody th {
+  background: #eeebe4; color: #16181D; font-weight: 700; width: 22%;
+}
+.spec-table tr:nth-child(even) td { background: #f7f6f2; }
+.cell-note { color: #5A6472; font-size: 8pt; }
+.footnotes { font-size: 8pt; color: #5A6472; margin-top: 6pt; }
+.callout {
+  border-left: 3pt solid #1450B4; padding: 8pt 12pt;
+  margin: 10pt 0; background: #f7f6f2; font-size: 9.5pt;
+}
+.callout-warning { border-left-color: #b45309; background: #fff8eb; }
+.callout-important { border-left-color: #b91c1c; background: #fef2f2; }
+.callout-tip { border-left-color: #F5C400; }
+.p-lead { font-size: 10.5pt; color: #5A6472; }
+.p-caption, .p-note { font-size: 8pt; color: #5A6472; }
+figure { margin: 12pt 0; }
+figcaption { font-size: 8pt; color: #5A6472; margin-top: 4pt; }
+.list-check { list-style: none; padding-left: 0; }
+.list-check li::before { content: "✓ "; color: #1450B4; font-weight: 700; }
+@media print {
+  html { background: #fff; }
+  body { padding: 0; }
+  .document { box-shadow: none; max-width: none; padding: 0; }
+}
+
+</style>
+</head>
+<body>
+<div class="document theme-datasheet" data-foldok="artifact_document" data-type="datasheet">
+
+<header class="hero">
+  <div class="hero-text">
+    <div class="accent-bar"></div>
+    <h1>Demo CCS Feed System</h1>
+    <p class="summary">Reliable feed transport for aquaculture demos</p>
+    <ul class="hero-bullets"><li>Handles multiple feed lines in parallel</li><li>Central interface for tank groups</li><li>Gentle handling for pellet integrity</li></ul>
+  </div>
+  <div class="hero-media"></div>
+</header>
+<section class="section"><h2>SYSTEM OVERVIEW</h2><div class="feature-grid cols-2"><div class="feature-card"><h3>FEED BLOWERS</h3><p>Air supply for transport distances in the demo layout.</p></div><div class="feature-card"><h3>FEED DOSERS</h3><p>Dosing modules with metered output.</p></div><div class="feature-card"><h3>AIR COOLER</h3><p>Lowers air temperature on long runs.</p></div><div class="feature-card"><h3>SELECTOR VALVES</h3><p>Line switching between destinations.</p></div></div></section>
+<section class="section" style="break-before:page"><h2>SPECIFICATIONS</h2>
+<table class="spec-table">
+  
+  <thead><tr><th>System</th><th>S-32</th><th>S-63</th><th>S-90</th><th>Comments</th></tr></thead>
+  <tbody><tr><th scope="row">Pipe size</th><td>32 mm</td><td>63 mm</td><td>90 mm</td><td>Imperial sizes available on request</td></tr><tr><th scope="row">Max feed rate</th><td>—</td><td>—</td><td>—</td><td>Depends on transport distance</td></tr><tr><th scope="row">Max lines</th><td>8</td><td>16</td><td>24</td><td></td></tr></tbody>
+</table>
+<div class="footnotes"><p class="footnote">* Demo values — replace from project facts.</p></div></section>
+</div>
+</body>
+</html>

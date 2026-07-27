@@ -1,0 +1,214 @@
+{
+  "template_key": "technical_doc_package",
+  "name": "Technical Documentation Package",
+  "name_no": "Teknisk dokumentasjonspakke",
+  "description": "Combined user manual, operational guide and service documentation for a physical product, tool or machine. Structure aligned with EN 82079-1 (preparation of instructions for use) and Machinery Directive Annex I 1.7.4 information requirements.",
+  "applies_to": ["lifting_tool", "machine", "tool", "prototype", "equipment"],
+  "version": 1,
+  "language_default": "no",
+  "export_price_tier": "complex",
+  "sections": [
+    {
+      "section_key": "cover",
+      "title": "Cover & Identification",
+      "title_no": "Forside og identifikasjon",
+      "position": 1,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "product_name", "fact_type": "identifier", "severity": "blocking", "label": "Product / project name", "label_no": "Produkt-/prosjektnavn" },
+        { "key": "model_no", "fact_type": "identifier", "severity": "warning", "label": "Model / type designation", "label_no": "Modell / typebetegnelse", "condition": "artifact_type in ('lifting_tool','machine','tool','equipment','prototype')" },
+        { "key": "serial_no", "fact_type": "identifier", "severity": "warning", "label": "Serial number", "label_no": "Serienummer", "condition": "artifact_type in ('lifting_tool','machine','tool','equipment','prototype')" },
+        { "key": "manufacturer", "fact_type": "identifier", "severity": "blocking", "label": "Manufacturer name + address", "label_no": "Produsent navn + adresse", "condition": "artifact_type in ('lifting_tool','machine','tool','equipment','prototype')" },
+        { "key": "doc_revision", "fact_type": "date", "severity": "info", "label": "Document revision / date", "label_no": "Dokumentrevisjon / dato" }
+      ],
+      "required_media": { "min_photos": 1, "preferred_roles": ["overview"] },
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "table", "max_words": 80, "fact_citation": "required" }
+    },
+    {
+      "section_key": "intended_use",
+      "title": "Intended Use & Limitations",
+      "title_no": "Tiltenkt bruk og begrensninger",
+      "position": 2,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "intended_use", "fact_type": "instruction", "severity": "blocking", "label": "Intended use statement", "label_no": "Erklæring om tiltenkt bruk" },
+        { "key": "prohibited_use", "fact_type": "warning", "severity": "warning", "label": "Reasonably foreseeable misuse", "label_no": "Forutsigbar feilbruk" }
+      ],
+      "required_media": {},
+      "required_content": ["no_uncited_specs", "explicit_misuse_statement"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 250, "reading_level": "field_worker", "fact_citation": "required" }
+    },
+    {
+      "section_key": "safety",
+      "title": "Safety Information",
+      "title_no": "Sikkerhetsinformasjon",
+      "position": 3,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "hazard_list", "fact_type": "warning", "severity": "blocking", "label": "At least one identified hazard from artifact model", "label_no": "Minst én identifisert fare" },
+        { "key": "ppe_requirements", "fact_type": "instruction", "severity": "warning", "label": "Required PPE", "label_no": "Påkrevd verneutstyr" }
+      ],
+      "required_media": { "min_photos": 0, "preferred_roles": ["safety", "damage"] },
+      "required_content": [
+        "warning_symbols_present",
+        "hazard_consequence_avoidance_triplet",
+        "no_uncited_specs"
+      ],
+      "writing_rules": { "voice": "imperative", "structure": "list", "max_words": 400, "reading_level": "field_worker", "fact_citation": "required" },
+      "notes": "Each warning follows ANSI Z535 style: signal word (FARE/ADVARSEL/FORSIKTIG) + hazard + consequence + avoidance. Symbols from built-in library, never generated."
+    },
+    {
+      "section_key": "technical_data",
+      "title": "Technical Data",
+      "title_no": "Tekniske data",
+      "position": 4,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "dimensions", "fact_type": "spec", "severity": "warning", "label": "Overall dimensions", "label_no": "Ytre mål" },
+        { "key": "weight", "fact_type": "spec", "severity": "warning", "label": "Weight", "label_no": "Vekt" },
+        { "key": "rated_capacity", "fact_type": "rating", "severity": "blocking", "label": "Rated capacity / SWL (if load-bearing)", "label_no": "Nominell kapasitet / SWL", "condition": "artifact_type in ('lifting_tool','machine')" },
+        { "key": "material", "fact_type": "material", "severity": "info", "label": "Main materials", "label_no": "Hovedmaterialer" },
+        { "key": "test_standard", "fact_type": "standard_ref", "severity": "warning", "label": "Applicable test standard(s)", "label_no": "Gjeldende teststandard(er)" }
+      ],
+      "required_media": { "min_photos": 1, "preferred_roles": ["nameplate", "technical_data"] },
+      "required_content": ["table_format", "no_uncited_specs", "units_si"],
+      "writing_rules": { "voice": "descriptive", "structure": "table", "fact_citation": "required" },
+      "notes": "STRICT: every value in this table must cite a fact_id. A spec without a source renders as [MISSING]. This is the section where hallucination would be most dangerous."
+    },
+    {
+      "section_key": "description",
+      "title": "Product Description & Main Components",
+      "title_no": "Produktbeskrivelse og hovedkomponenter",
+      "position": 5,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [],
+      "required_media": { "min_photos": 2, "preferred_roles": ["overview", "technical_data"] },
+      "required_content": ["component_callouts_match_artifact_model", "no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 350, "fact_citation": "required" },
+      "notes": "Components listed must come from artifact_model.main_components. Annotated overview photo preferred (numbered callouts)."
+    },
+    {
+      "section_key": "installation",
+      "title": "Installation / Assembly",
+      "title_no": "Installasjon / montering",
+      "position": 6,
+      "required": true,
+      "condition": "'install' = any(lifecycle_stages)",
+      "gap_severity": "warning",
+      "required_facts": [
+        { "key": "torque_values", "fact_type": "spec", "severity": "warning", "label": "Torque values for fasteners (if bolted)", "label_no": "Tiltrekkingsmoment" },
+        { "key": "tools_required", "fact_type": "instruction", "severity": "info", "label": "Tools required", "label_no": "Nødvendig verktøy" }
+      ],
+      "required_media": { "min_photos": 2, "preferred_roles": ["installation_step"] },
+      "required_content": ["numbered_steps", "warning_before_hazardous_step", "one_action_per_step", "no_uncited_specs"],
+      "writing_rules": { "voice": "imperative", "structure": "numbered_steps", "max_words": 500, "reading_level": "field_worker", "fact_citation": "required" }
+    },
+    {
+      "section_key": "operation",
+      "title": "Operation",
+      "title_no": "Bruk / drift",
+      "position": 7,
+      "required": true,
+      "condition": "'operate' = any(lifecycle_stages)",
+      "gap_severity": "blocking",
+      "required_facts": [],
+      "required_media": { "min_photos": 1, "preferred_roles": ["installation_step", "overview"] },
+      "required_content": ["numbered_steps", "warning_before_hazardous_step", "pre_use_check_list", "one_action_per_step"],
+      "writing_rules": { "voice": "imperative", "structure": "numbered_steps", "max_words": 600, "reading_level": "field_worker", "fact_citation": "required" },
+      "notes": "Must open with a pre-use inspection checklist (visual check items derived from hazards + components)."
+    },
+    {
+      "section_key": "maintenance",
+      "title": "Maintenance & Inspection",
+      "title_no": "Vedlikehold og inspeksjon",
+      "position": 8,
+      "required": true,
+      "condition": "'maintain' = any(lifecycle_stages) or 'inspect' = any(lifecycle_stages)",
+      "gap_severity": "warning",
+      "required_facts": [
+        { "key": "inspection_interval", "fact_type": "spec", "severity": "blocking", "label": "Inspection / service intervals", "label_no": "Inspeksjons-/serviceintervaller" },
+        { "key": "discard_criteria", "fact_type": "warning", "severity": "warning", "label": "Discard / rejection criteria", "label_no": "Kasseringskriterier" }
+      ],
+      "required_media": { "min_photos": 0, "preferred_roles": ["maintenance", "damage"] },
+      "required_content": ["table_format", "no_uncited_specs"],
+      "writing_rules": { "voice": "imperative", "structure": "table", "fact_citation": "required" },
+      "notes": "Interval table: what / how often / who. Discard criteria must be measurable where possible (e.g. wear >10% of original dimension)."
+    },
+    {
+      "section_key": "test_documentation",
+      "title": "Test & Verification Records",
+      "title_no": "Test- og verifikasjonsdokumentasjon",
+      "position": 9,
+      "required": false,
+      "gap_severity": "info",
+      "required_facts": [
+        { "key": "test_result", "fact_type": "measurement", "severity": "info", "label": "Test results (load test, pull-out, pressure...)", "label_no": "Testresultater" },
+        { "key": "test_body", "fact_type": "identifier", "severity": "info", "label": "Testing body / institute", "label_no": "Testinstans" }
+      ],
+      "required_media": { "min_photos": 0, "preferred_roles": ["test_result", "certificate"] },
+      "required_content": ["no_uncited_specs", "reference_source_documents"],
+      "writing_rules": { "voice": "descriptive", "structure": "table", "fact_citation": "required" },
+      "notes": "Summarises and references test PDFs found in sources. Full reports are appendix references, not re-typed."
+    },
+    {
+      "section_key": "storage_disposal",
+      "title": "Storage, Transport & Disposal",
+      "title_no": "Lagring, transport og avhending",
+      "position": 10,
+      "required": false,
+      "condition": "'transport' = any(lifecycle_stages) or 'dispose' = any(lifecycle_stages)",
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "voice": "imperative", "structure": "list", "max_words": 200, "fact_citation": "optional" }
+    },
+    {
+      "section_key": "declaration",
+      "title": "Declarations & Certificates",
+      "title_no": "Erklæringer og sertifikater",
+      "position": 11,
+      "required": false,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": { "min_photos": 0, "preferred_roles": ["certificate"] },
+      "required_content": ["reference_source_documents"],
+      "writing_rules": { "voice": "descriptive", "structure": "list", "fact_citation": "required" },
+      "notes": "Lists and references CE declaration, samsvarserklæring, certificates found in sources. If a certificate is expected but absent, gap-flag info level."
+    },
+    {
+      "section_key": "bom",
+      "title": "Bill of Materials",
+      "title_no": "Materialliste (BOM)",
+      "position": 12,
+      "required": false,
+      "gap_severity": "info",
+      "condition": "artifact_type in ('lifting_tool','machine','tool','equipment','prototype','structure','building','installation')",
+      "required_facts": [],
+      "required_media": { "min_photos": 0, "preferred_roles": ["drawing", "schematic"] },
+      "required_content": ["table_format", "no_uncited_specs"],
+      "writing_rules": { "structure": "bom_table", "fact_citation": "required" },
+      "notes": "Code-rendered BOM from drawing element facts. Totals summed in code, never estimated."
+    },
+    {
+      "section_key": "signature",
+      "title": "Issued By",
+      "title_no": "Utstedt av",
+      "position": 13,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [
+        { "key": "issuer_name", "fact_type": "identifier", "severity": "warning", "label": "Issuer name", "label_no": "Utsteders navn" }
+      ],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": { "structure": "signature_block" }
+    }
+  ]
+}

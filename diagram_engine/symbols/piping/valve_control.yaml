@@ -1,0 +1,32 @@
+id: valve_control
+domain: piping
+label: Control valve
+svg: valve_control.svg
+default_rotation: 0
+ports:
+- id: in
+  name: In
+  side: left
+  kind: fluid
+  allowed_media:
+  - water
+  - oil
+  - fluid
+  order: 1
+- id: out
+  name: Out
+  side: right
+  kind: fluid
+  allowed_media:
+  - water
+  - oil
+  - fluid
+  order: 1
+- id: signal
+  name: Signal
+  side: top
+  kind: signal
+  allowed_media:
+  - signal
+  - wire
+  order: 1

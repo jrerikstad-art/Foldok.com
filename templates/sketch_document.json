@@ -1,0 +1,27 @@
+{
+  "template_key": "sketch_document",
+  "name": "Sketch Document",
+  "name_no": "Tomt dokument (skisse)",
+  "description": "Blank A4 canvas — draw blocks, label them, fill from sources. WORKORDER 0.59.",
+  "applies_to": [],
+  "version": 1,
+  "language_default": "no",
+  "export_price_tier": "standard",
+  "document_species": "sketch",
+  "origin": "system",
+  "sections": [
+    {
+      "section_key": "canvas",
+      "title": "Canvas",
+      "title_no": "Lerret",
+      "position": 1,
+      "required": false,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": { "structure": "prose", "fact_citation": "required" },
+      "notes": "Placeholders live in doc.sketch.placeholders; this section holds assembled md."
+    }
+  ]
+}

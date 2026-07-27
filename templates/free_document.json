@@ -1,0 +1,50 @@
+{
+  "template_key": "free_document",
+  "name": "Free Document",
+  "name_no": "Fritt dokument",
+  "description": "Escape hatch, not the default: a minimally structured document for users who want the engine (indexing, fact traceability, citation rule, editor, export) without an opinionated template. No blocking requirements. Gap detection limited to citation integrity. Never used in demos or marketing — Foldok's identity is the opinionated templates; this exists so no user ever bounces off structure they did not ask for.",
+  "applies_to": [],
+  "version": 1,
+  "language_default": "no",
+  "export_price_tier": "standard",
+  "sections": [
+    {
+      "section_key": "title",
+      "title": "Title",
+      "title_no": "Tittel",
+      "position": 1,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "structure": "prose", "fact_citation": "required" }
+    },
+    {
+      "section_key": "body",
+      "title": "Content",
+      "title_no": "Innhold",
+      "position": 2,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "structure": "prose", "fact_citation": "required" },
+      "notes": "One open section; the user adds/splits sections freely in the editor ('/' insert, drag). The AI proposes an outline from the artifact model ONLY if asked via chat. The citation rule still applies — even a free document never invents a number. That rule is identity, not template."
+    },
+    {
+      "section_key": "source_register",
+      "title": "Source Register",
+      "title_no": "Kilderegister",
+      "position": 3,
+      "required": false,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["reference_source_documents", "table_format"],
+      "writing_rules": { "structure": "table", "fact_citation": "optional" },
+      "notes": "Optional but on by default — traceability travels with the brand even here."
+    }
+  ]
+}

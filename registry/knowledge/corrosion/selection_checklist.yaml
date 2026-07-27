@@ -1,0 +1,21 @@
+selection_flow:
+  - step: define_exposure
+    fields: [corrosivity_class, indoor_outdoor, chloride_risk, chemical_media, splash]
+  - step: identify_part_role
+    fields: [structural_fastener, installation_channel, enclosure, other]
+  - step: propose_material_family
+    from: [carbon_steel_coated, stainless_crc_class, other]
+  - step: propose_protection_system
+    when: carbon_steel_coated
+  - step: check_galvanic
+    if: dissimilar_metals
+  - step: user_confirm
+    required: true
+  - step: write_report_block
+    include: [exposure, material, protection, assumptions, sources]
+
+blocking_gaps:
+  - missing_exposure_class
+  - missing_material_family
+  - galvanic_pair_unreviewed
+  - chemical_or_splash_exposure_without_note

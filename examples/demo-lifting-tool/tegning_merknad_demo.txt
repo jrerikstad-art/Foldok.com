@@ -1,0 +1,10 @@
+TEGNINGSMERKNAD — Løfteheis Verkstedveien 1
+Tegningsnr: DEMO-TG-0042-01
+Rev: A
+
+Plassering: Verkstedhall, Verkstedveien 1, 4000 Demo
+Fundament: Betongplate min. 200 mm
+Kraftforsyning: 400V 3-fase, 16A
+
+Maks personer: 2
+Nødstopplokalisering: ved inngang

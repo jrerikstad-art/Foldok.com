@@ -1,0 +1,20 @@
+id: coupling
+domain: mechanical
+label: Coupling
+svg: coupling.svg
+default_rotation: 0
+ports:
+- id: in
+  name: In
+  side: left
+  kind: mechanical
+  allowed_media:
+  - shaft
+  order: 1
+- id: out
+  name: Out
+  side: right
+  kind: mechanical
+  allowed_media:
+  - shaft
+  order: 1

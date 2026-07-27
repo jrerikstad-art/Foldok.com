@@ -1,0 +1,24 @@
+id: power_dc
+label: DC power (P = V I)
+domains: [electrical]
+formula_latex: "P = V \\times I"
+formula_code: "V * I"
+description: Electrical power from voltage and current (DC / resistive).
+safety_critical: false
+assumptions:
+  - DC or unity power factor; not three-phase apparent power
+inputs:
+  - key: V
+    label: Voltage
+    unit: V
+    required: true
+    fact_keys: [voltage, V]
+  - key: I
+    label: Current
+    unit: A
+    required: true
+    fact_keys: [current, I, amperage]
+outputs:
+  - key: P
+    label: Power
+    unit: W

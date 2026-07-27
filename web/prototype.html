@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Foldok — UI prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { margin: 0; background: #F2F0EA; font-family: Archivo, sans-serif; }
+    .bar { background: #16181D; padding: 10px 20px; }
+    .bar a { color: #F5C400; text-decoration: none; font-size: 13px; font-weight: 700; }
+  </style>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+</head>
+<body>
+  <div class="bar"><a href="index.html">← Foldok</a></div>
+  <div id="root"></div>
+  <script src="../ui-prototype.compiled.js"></script>
+  <script>
+    if (window.React && window.ReactDOM && window.FoldokCompiler) {
+      ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(window.FoldokCompiler));
+    } else {
+      document.getElementById("root").innerHTML = "<p style='padding:48px'>Prototype failed to load.</p>";
+    }
+  </script>
+</body>
+</html>

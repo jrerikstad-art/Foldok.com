@@ -1,0 +1,20 @@
+id: gearbox
+domain: mechanical
+label: Gearbox
+svg: gearbox.svg
+default_rotation: 0
+ports:
+- id: input_shaft
+  name: Input
+  side: left
+  kind: mechanical
+  allowed_media:
+  - shaft
+  order: 1
+- id: output_shaft
+  name: Output
+  side: right
+  kind: mechanical
+  allowed_media:
+  - shaft
+  order: 1

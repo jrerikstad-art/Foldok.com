@@ -1,0 +1,15 @@
+id: vent
+domain: piping
+label: Vent
+svg: vent.svg
+default_orientation: 0
+standard_hint: ISO-style
+ports:
+- id: in
+  name: In
+  side: bottom
+  kind: fluid
+  allowed_media:
+  - air
+  - fluid
+  order: 1

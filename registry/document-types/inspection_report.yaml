@@ -1,0 +1,51 @@
+id: inspection_report
+name: Inspection Report
+aliases: ["kontrollrapport", "inspection record", "test report", "sjekkliste", "inspection checklist"]
+industries: [construction, energy, maritime, process, manufacturing]
+description: >
+  Record of an inspection, test or verification activity with results and conclusions.
+
+regions: [eu, eea, uk, "no", us, international]
+domains: [electrical, machinery, construction, process, marine, general]
+obligation_types: [inspection]
+evidence_types: [inspection_record, test_record, photo]
+
+structure:
+  required:
+    - identification
+    - scope
+    - checklist
+    - conclusion
+    - signature
+  recommended:
+    - measurements
+    - deviations
+    - method
+    - attachments
+    - revision_history
+  optional:
+    - recommendations
+
+preferred_blocks:
+  checklist: [form_section, EngineeringTable]
+  measurements: [form_section, EngineeringTable]
+  deviations: [form_section, CalloutBox]
+  conclusion: [form_section, Paragraph, CalloutBox]
+  scope: [form_section, Procedure]
+
+compliance_notes:
+  - Results must be factual and sourced
+  - Deviations must be clearly recorded
+  - Responsible inspector and date required
+  - System profile is trade-agnostic — OEM forms (Toyota multipoint etc.) are imports, not this type's default fields
+
+skills:
+  primary: [force-blocks, compliance-manager, technical-writer]
+  supporting: [lead-engineer]
+
+tools:
+  - compose_document
+  - run_qa
+
+# Flexible composition profile — see TEMPLATE_STANDARD.md
+workbench_template: inspection_checklist.json

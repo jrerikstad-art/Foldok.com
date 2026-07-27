@@ -1,0 +1,427 @@
+{
+  "template_key": "structural_design_report",
+  "name": "Structural Design Report",
+  "name_no": "Konstruksjonsrapport / designrapport",
+  "description": "Documents that a design satisfies its design basis: model, loads applied, governing checks, utilizations, deviations. Compiled from calc sheets, FEA result tables, drawings and the design basis. The engine compiles and traces results — it does not verify calculations. Engineering verification and responsibility rest with the signing engineer.",
+  "applies_to": [
+    "structure",
+    "machine",
+    "equipment",
+    "lifting_tool",
+    "installation"
+  ],
+  "version": 1,
+  "language_default": "en",
+  "export_price_tier": "complex",
+  "sections": [
+    {
+      "section_key": "doc_control",
+      "title": "Document Control",
+      "title_no": "Dokumentkontroll",
+      "position": 1,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        {
+          "key": "project_title",
+          "fact_type": "identifier",
+          "severity": "blocking",
+          "label": "Project title",
+          "label_no": "Prosjekttittel"
+        },
+        {
+          "key": "doc_no",
+          "fact_type": "identifier",
+          "severity": "warning",
+          "label": "Document number",
+          "label_no": "Dokumentnummer"
+        },
+        {
+          "key": "revision",
+          "fact_type": "identifier",
+          "severity": "blocking",
+          "label": "Revision + status",
+          "label_no": "Revisjon + status"
+        },
+        {
+          "key": "design_basis_ref",
+          "fact_type": "identifier",
+          "severity": "blocking",
+          "label": "Governing design basis (doc no. + rev)",
+          "label_no": "Styrende designgrunnlag (dok.nr. + rev)"
+        }
+      ],
+      "required_media": {},
+      "required_content": [
+        "table_format",
+        "no_uncited_specs"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "required"
+      },
+      "notes": "Code-rendered from index + artifact (compile_doc_control). Drawing numbers from title blocks when legible; otherwise filename as traceable reference. Zero tokens."
+    },
+    {
+      "section_key": "summary",
+      "title": "Summary & Conclusion",
+      "title_no": "Sammendrag og konklusjon",
+      "position": 2,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        {
+          "key": "floor_area",
+          "fact_type": "measurement",
+          "severity": "blocking",
+          "label": "Floor / extension area",
+          "label_no": "Gulvareal / tilbygg (m²)"
+        },
+        {
+          "key": "property_address",
+          "fact_type": "identifier",
+          "severity": "warning",
+          "label": "Property address",
+          "label_no": "Adresse / eiendom"
+        },
+        {
+          "key": "governing_ur",
+          "fact_type": "measurement",
+          "severity": "blocking",
+          "label": "Governing utilization ratio",
+          "label_no": "Dimensjonerende utnyttelsesgrad"
+        },
+        {
+          "key": "criterion",
+          "fact_type": "criterion",
+          "severity": "warning",
+          "label": "Acceptance criterion compared against",
+          "label_no": "Akseptkriterium det sammenlignes mot"
+        }
+      ],
+      "required_media": {
+        "min_photos": 1,
+        "preferred_roles": ["drawing", "site_plan", "overview", "schematic"]
+      },
+      "required_content": [
+        "conclusion_states_compliance_or_not",
+        "no_uncited_specs"
+      ],
+      "writing_rules": {
+        "voice": "descriptive",
+        "structure": "prose",
+        "max_words": 200,
+        "reading_level": "engineering",
+        "fact_citation": "required"
+      },
+      "notes": "'conclusion_states_compliance_or_not': the summary must state plainly whether criteria are met, citing the governing UR and its criterion. Cite floor_area for tilbygg size (m²) and property_address for site — NEVER use {{missing:criterion}} for area. If governing UR is not in the sources → [MISSING] — the engine never declares compliance on its own. Always show the governing drawing(s) so reader and author share the same visual referent."
+    },
+    {
+      "section_key": "model",
+      "title": "Analysis Model & Boundary Conditions",
+      "title_no": "Beregningsmodell og randbetingelser",
+      "position": 3,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        {
+          "key": "analysis_software",
+          "fact_type": "identifier",
+          "severity": "warning",
+          "label": "Software + version",
+          "label_no": "Programvare + versjon"
+        },
+        {
+          "key": "boundary_conditions",
+          "fact_type": "assumption",
+          "severity": "blocking",
+          "label": "Support / boundary conditions",
+          "label_no": "Opplager-/randbetingelser"
+        },
+        {
+          "key": "element_types",
+          "fact_type": "spec",
+          "severity": "info",
+          "label": "Element types / mesh basis",
+          "label_no": "Elementtyper / mesh-grunnlag"
+        }
+      ],
+      "required_media": {
+        "min_photos": 1,
+        "preferred_roles": [
+          "technical_data",
+          "overview"
+        ]
+      },
+      "required_content": [
+        "reproducibility_detail",
+        "no_uncited_specs"
+      ],
+      "writing_rules": {
+        "voice": "descriptive",
+        "structure": "prose",
+        "max_words": 400,
+        "reading_level": "engineering",
+        "fact_citation": "required"
+      },
+      "notes": "Model screenshots map here. Boundary conditions are typed as assumptions — they carry a source (calc sheet, model file note) and land in the deviation check if they conflict with the basis."
+    },
+    {
+      "section_key": "loads_applied",
+      "title": "Loads Applied",
+      "title_no": "Påførte laster",
+      "position": 4,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        {
+          "key": "load",
+          "fact_type": "load",
+          "severity": "blocking",
+          "label": "Applied loads traceable to the design basis",
+          "label_no": "Påførte laster sporbare til designgrunnlaget",
+          "cardinality": "one_or_more"
+        }
+      ],
+      "required_media": {},
+      "required_content": [
+        "table_format",
+        "units_si",
+        "no_uncited_specs",
+        "loads_match_basis"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "required"
+      },
+      "notes": "'loads_match_basis': cross-check rule — each applied load either matches a basis load fact or is flagged as a deviation. This is the check verifiers do by hand with two documents side by side; here it is code."
+    },
+    {
+      "section_key": "combinations",
+      "title": "Load Combinations",
+      "title_no": "Lastkombinasjoner",
+      "position": 5,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [
+        {
+          "key": "load_factor_set",
+          "fact_type": "decision",
+          "severity": "warning",
+          "label": "Combination scheme + factors (ULS/SLS/ALS)",
+          "label_no": "Kombinasjonsskjema + faktorer (bruddgrense/bruksgrense/ulykke)"
+        }
+      ],
+      "required_media": {},
+      "required_content": [
+        "table_format",
+        "no_uncited_specs"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "required"
+      }
+    },
+    {
+      "section_key": "results",
+      "title": "Results — Governing Checks",
+      "title_no": "Resultater — dimensjonerende kontroller",
+      "position": 6,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        {
+          "key": "utilization",
+          "fact_type": "measurement",
+          "severity": "blocking",
+          "label": "Utilization per governing check (member/check/UR)",
+          "label_no": "Utnyttelse per dimensjonerende kontroll",
+          "cardinality": "one_or_more"
+        }
+      ],
+      "required_media": {
+        "min_photos": 0,
+        "preferred_roles": [
+          "test_result",
+          "technical_data"
+        ]
+      },
+      "required_content": [
+        "table_format",
+        "units_si",
+        "no_uncited_specs",
+        "ur_vs_criterion_per_row",
+        "numeric_facts_from_tables_only"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "required"
+      },
+      "notes": "STRICTEST section. 'ur_vs_criterion_per_row': each row shows member | check type | UR | criterion | pass/fail | source. 'numeric_facts_from_tables_only': UR values must come from result tables/CSVs or calc sheets — values read off contour plots are capped at confidence 0.5 and flagged amber for the engineer to confirm. A plot is an illustration; a table is a source."
+    },
+    {
+      "section_key": "connections",
+      "title": "Connections & Local Details",
+      "title_no": "Forbindelser og lokale detaljer",
+      "position": 7,
+      "required": false,
+      "condition": "artifact_type in ('structure','lifting_tool','installation')",
+      "gap_severity": "warning",
+      "required_facts": [
+        {
+          "key": "connection_check",
+          "fact_type": "measurement",
+          "severity": "warning",
+          "label": "Connection checks (bolts, welds)",
+          "label_no": "Forbindelseskontroller (bolter, sveiser)"
+        }
+      ],
+      "required_media": {
+        "min_photos": 0,
+        "preferred_roles": [
+          "technical_data",
+          "installation_step"
+        ]
+      },
+      "required_content": [
+        "table_format",
+        "no_uncited_specs"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "required"
+      }
+    },
+    {
+      "section_key": "deviations",
+      "title": "Deviations from Design Basis",
+      "title_no": "Avvik fra designgrunnlaget",
+      "position": 8,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": [
+        "deviation_or_none_statement",
+        "no_uncited_specs"
+      ],
+      "writing_rules": {
+        "voice": "descriptive",
+        "structure": "table",
+        "max_words": 300,
+        "fact_citation": "required"
+      },
+      "notes": "'deviation_or_none_statement': the section must exist and either list deviations (with disposition and approver) or state explicitly that none were identified. Pre-populated from the loads_match_basis cross-check and any assumption facts conflicting with basis facts. Silence is not permitted — that is the rule verifiers enforce."
+    },
+    {
+      "section_key": "drawings_register",
+      "title": "Drawings Register",
+      "title_no": "Tegningsliste",
+      "position": 9,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [
+        {
+          "key": "drawing_no",
+          "fact_type": "identifier",
+          "severity": "warning",
+          "label": "At least one referenced drawing",
+          "label_no": "Minst én referert tegning",
+          "cardinality": "one_or_more"
+        }
+      ],
+      "required_media": {
+        "min_photos": 1,
+        "preferred_roles": [
+          "drawing",
+          "site_plan",
+          "schematic"
+        ]
+      },
+      "required_content": [
+        "table_format",
+        "reference_source_documents"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "required"
+      },
+      "notes": "Auto-compiled from drawing-role files + their title-block facts: drawing no | title | rev | scale | source file. Code, zero tokens — the tegningsliste every real design document carries. Drawings without legible title blocks appear with [MANGLER] cells for the user to fill."
+    },
+    {
+      "section_key": "bom",
+      "title": "Bill of Materials",
+      "title_no": "Materialliste (BOM)",
+      "position": 10,
+      "required": false,
+      "gap_severity": "info",
+      "condition": "artifact_type in ('structure','building','bolig_tilbygg','tilbygg','machine','equipment','prototype','installation')",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["table_format", "no_uncited_specs"],
+      "writing_rules": {
+        "structure": "bom_table",
+        "fact_citation": "required"
+      },
+      "notes": "Code-rendered from element facts (bom_engine.aggregate_bom). Totals computed in code by summing dimensioned instances — never estimated. Lines with confidence <0.80 or missing props render as ⚠/[MANGLER] with likely-source guidance."
+    },
+    {
+      "section_key": "source_register",
+      "title": "Source & Calculation Register",
+      "title_no": "Kilde- og beregningsregister",
+      "position": 11,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": [
+        "reference_source_documents",
+        "table_format"
+      ],
+      "writing_rules": {
+        "structure": "table",
+        "fact_citation": "optional"
+      },
+      "notes": "Auto-generated by code, zero tokens: every calc file, result table, drawing and report in the index, with caption and which sections cite it. The TPV audit trail."
+    },
+    {
+      "section_key": "signature",
+      "title": "Responsibility & Sign-off",
+      "title_no": "Ansvar og signering",
+      "position": 12,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        {
+          "key": "prepared_by",
+          "fact_type": "identifier",
+          "severity": "blocking",
+          "label": "Prepared by (engineer)",
+          "label_no": "Utarbeidet av"
+        },
+        {
+          "key": "checked_by",
+          "fact_type": "identifier",
+          "severity": "warning",
+          "label": "Checked by (independent)",
+          "label_no": "Kontrollert av (uavhengig)"
+        },
+        {
+          "key": "approved_by",
+          "fact_type": "identifier",
+          "severity": "warning",
+          "label": "Approved by",
+          "label_no": "Godkjent av"
+        }
+      ],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": {
+        "structure": "boilerplate"
+      },
+      "boilerplate": "This report was compiled from the calculation files, analysis results and reference documents listed in the Source & Calculation Register; all stated values are traceable to the cited sources. The compilation tool does not perform or verify engineering calculations. Verification of the analyses and responsibility for the design rest with the undersigned.",
+      "boilerplate_no": "Denne rapporten er sammenstilt fra beregningsfiler, analyseresultater og referansedokumenter oppført i kilde- og beregningsregisteret; alle angitte verdier er sporbare til de siterte kildene. Sammenstillingsverktøyet utfører eller verifiserer ikke ingeniørberegninger. Verifikasjon av analysene og ansvar for konstruksjonen påhviler undertegnede.",
+      "notes": "Fixed text, zero AI. Prepared/Checked/Approved chain matches standard engineering doc control — checked_by independence is the verifier's first question."
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+<!DOCTYPE html><html lang="no"><head><meta charset="utf-8">
+<title>Multipoint Inspection</title><style>
+@page{size:letter portrait;margin:11mm}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+html{background:#E9E7E0}
+body{font:8.6pt/1.25 Arial,Helvetica,sans-serif;color:#16181D;background:#FFFFFF;
+ width:8.5in;min-height:11in;margin:14px auto;padding:11mm 10mm;
+ box-shadow:0 2px 14px rgba(0,0,0,.15)}
+@media print{html{background:#fff} body{width:auto;margin:0;padding:0;box-shadow:none}}
+.head{display:flex;align-items:flex-end;border-bottom:2.5px solid #16181D;padding-bottom:6px;margin-bottom:9px}
+.head h1{font-size:17pt;font-weight:900;letter-spacing:-.02em}
+.head .sub{font-size:8pt;color:#555;margin-left:auto;text-align:right}
+.logo{font-weight:900;font-size:12pt;margin-right:12px}
+.grid{column-count:2;column-gap:16px;column-fill:balance}
+.grid > *{break-inside:avoid;-webkit-column-break-inside:avoid}
+.hgrid{column-span:all}
+.sec{display:flex;gap:6px;margin-bottom:9px;break-inside:avoid}
+.side{writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;font-weight:700;
+ font-size:7.6pt;padding:2px;border:1px solid #111;background:#f2f2f2;width:16px;flex:0 0 16px;letter-spacing:.02em}
+.sechead{font-weight:800;font-size:9pt;border-bottom:1.5px solid #111;margin-bottom:4px;width:100%}
+.sec:has(.sechead){display:block}
+.secbody{flex:1}
+.row{display:flex;align-items:center;gap:5px;font-size:7.6pt;margin-bottom:2.6px;break-inside:avoid}
+.cbs{display:flex;gap:2.5px;flex:0 0 auto}
+.cb{width:11px;height:11px;border:1.4px solid #111;display:inline-block}
+.cb.g{border-color:#2e7d32} .cb.y{border-color:#fbc02d} .cb.r{border-color:#d32f2f}
+.cb.on{background:#111} .cb.g.on{background:#2e7d32} .cb.y.on{background:#fbc02d} .cb.r.on{background:#d32f2f}
+.lbl{flex:1} .req{color:#d32f2f;font-weight:700}
+.line{flex:1;border-bottom:1px solid #111;height:11px;min-width:60px}
+.sline{flex:1;border-bottom:1px solid #111;height:20px}
+.row.meas{align-items:flex-start;flex-wrap:wrap}
+.meas .lbl{flex:0 0 auto;margin-right:6px}
+.meas .mgrp{display:inline-flex;gap:6px;flex-wrap:wrap;align-items:flex-end;flex:1 1 auto}
+.mcell{font-size:7pt} .mline{display:inline-block;border-bottom:1px solid #111;width:26px;height:9px;margin:0 2px;min-width:26px}
+.unit{font-size:6.5pt;color:#555}
+.chip{font-family:'IBM Plex Mono',monospace;font-size:7.4pt;background:#EAF1FD;color:#1450B4;
+ border-bottom:1.6px solid #1450B4;padding:0 3px;border-radius:2px}
+.legend{display:flex;gap:16px;border-top:1px solid #111;margin-top:8px;padding-top:5px;font-size:7.6pt;font-weight:700;column-span:all}
+.lg{display:flex;align-items:center;gap:4px} .lgb{width:12px;height:12px;border:1px solid #111}
+.hgrid{display:grid;grid-template-columns:1fr 128px 1fr;gap:13px;margin-bottom:9px;
+ border-bottom:2px solid #111;padding-bottom:9px}
+.hg-col{min-width:0}
+.redhead{color:#d32f2f;font-size:7.4pt;font-weight:700;text-transform:uppercase;
+ border-bottom:1px solid #d32f2f;padding-bottom:1px;margin-bottom:4px}
+.vinwrap{display:flex;gap:1.5px;flex-wrap:wrap}
+.vinb{width:13px;height:16px;border:1px solid #111;background:#f7f7f7}
+.row.vin{align-items:flex-start;gap:6px}
+.lbl.b{font-weight:700;flex:0 0 auto}
+.sqbox{width:12px;height:12px;border:1px solid #111;flex:0 0 auto}
+.row.cr{justify-content:space-between}
+.terms{font-size:6.2pt;line-height:1.18;text-align:justify;margin:4px 0 5px}
+.note{font-size:7pt;color:#333;margin:2px 0 4px}
+.mline2{border-bottom:1px solid #111;height:13px;margin-bottom:2px}
+.cardiag{width:118px;height:auto;display:block;margin:6px auto}
+.wchart{display:flex;gap:10px;align-items:flex-start;margin:5px 0 6px}
+.wtri{flex:0 0 auto}
+.wrow{display:flex;align-items:center;margin-top:5px}
+.wg{width:0;height:0;border-top:9px solid transparent;border-bottom:9px solid transparent;border-left:44px solid #2e7d32}
+.wy{width:0;height:0;border-top:9px solid transparent;border-bottom:9px solid transparent;border-left:26px solid #fbc02d}
+.wr{width:0;height:0;border-top:9px solid transparent;border-bottom:9px solid transparent;border-left:17px solid #d32f2f}
+.wlab{display:flex;font-size:6.2pt;color:#333}
+.wlab span{width:44px} .wlab span:nth-child(2){width:26px}
+.wcaps{font-size:6.8pt;font-weight:700;padding-top:4px}
+.wcap{margin-bottom:22px}
+.itemnum{font-size:6.4pt;color:#666;margin-right:3px}
+.foot{text-align:center;font-size:7.4pt;font-weight:700;margin-top:5px;color:#333;column-span:all}
+</style></head><body>
+<div class="head"><div class="logo">VERKSTED AS</div><h1>Multipoint Inspection</h1>
+<div class="sub">Foldok · form_fill · felt-utfyllbar</div></div>
+<div class="grid"><div class="sec"><div class="sechead">Kunde og kjøretøy</div><div class="secbody"><div class="row"><span class="lbl">Dato<span class="req">*</span></span><span class="line"></span></div><div class="row"><span class="lbl">Kunde<span class="req">*</span></span><span class="line"></span></div><div class="row"><span class="lbl">Reg.nr</span><span class="chip cited">AB 12345</span></div><div class="row"><span class="lbl">År/merke/modell</span><span class="chip cited">2013 Eksempel SUV</span></div><div class="row meas"><span class="lbl">Km-stand<span class="req">*</span></span><span class="mgrp"><span class="mcell"><span class="mline"></span><span class="unit">km</span></span></span></div><div class="row"><span class="lbl">VIN<span class="req">*</span></span><span class="line"></span></div></div></div><div class="sec"><div class="side">Eksteriør</div><div class="secbody"><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Horn</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Lys / blinklys / bremselys</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Vindusviskere og spylere</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Frontrute</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Tanklokk-pakning</span></div></div></div><div class="sec"><div class="side">Interiør</div><div class="secbody"><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Innvendig lys / instrumentbelysning</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Kupéfilter</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Parkeringsbrems</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Fastmontering av førermatte</span></div></div></div><div class="sec"><div class="side">Motorrom</div><div class="secbody"><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Luftfilter</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Batteri (kabler/klemmer/korrosjon)</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Batteritilstand</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Kjølesystem (lekkasje)</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Slanger (sprekker/skade/lekkasje)</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Drivremmer (sprekker/skade/slitasje)</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Radiator / AC-kondensator</span></div></div></div><div class="sec"><div class="side">Væsker</div><div class="secbody"><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Spylervæske</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Kjølevæske</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Servostyring</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Bremsevæske</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Girkasse / transaksel</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Differensial</span></div></div></div><div class="sec"><div class="side">Understell</div><div class="secbody"><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Drivaksel / kardang (skade/lekkasje/kryss)</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Drivaksel-mansjetter</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Navlager (skade/lyd)</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Styring (skade/slitasje)</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Fjæring (skade/slitasje)</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Væskelekkasjer</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Eksosanlegg (skade/korrosjon)</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Drivstoffledninger og tank</span></div></div></div><div class="sec"><div class="side">Dekk</div><div class="secbody"><div class="row meas"><span class="lbl">Dekktrykk justert til</span><span class="mgrp"><span class="mcell">VF<span class="mline"></span><span class="unit">bar</span></span> <span class="mcell">HF<span class="mline"></span><span class="unit">bar</span></span> <span class="mcell">VB<span class="mline"></span><span class="unit">bar</span></span> <span class="mcell">HB<span class="mline"></span><span class="unit">bar</span></span> <span class="mcell">Res<span class="mline"></span><span class="unit">bar</span></span></span></div><div class="row meas"><span class="lbl">Mønsterdybde<span class="req">*</span></span><span class="mgrp"><span class="mcell">VF<span class="mline"></span><span class="unit">mm</span></span> <span class="mcell">HF<span class="mline"></span><span class="unit">mm</span></span> <span class="mcell">VB<span class="mline"></span><span class="unit">mm</span></span> <span class="mcell">HB<span class="mline"></span><span class="unit">mm</span></span></span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Dekkskade / unormal slitasje</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Felger / hjulmuttere</span></div><div class="row meas"><span class="lbl">Tiltrekkingsmoment</span><span class="mgrp"><span class="mcell"><span class="mline"></span><span class="unit">Nm</span></span></span></div></div></div><div class="sec"><div class="side">Bremser</div><div class="secbody"><div class="row meas"><span class="lbl">Bremsebelegg<span class="req">*</span></span><span class="mgrp"><span class="mcell">VF<span class="mline"></span><span class="unit">mm</span></span> <span class="mcell">HF<span class="mline"></span><span class="unit">mm</span></span> <span class="mcell">VB<span class="mline"></span><span class="unit">mm</span></span> <span class="mcell">HB<span class="mline"></span><span class="unit">mm</span></span></span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Bremserør / slanger / håndbrekkvaier</span></div><div class="row"><span class="cbs"><span class="cb g"></span><span class="cb y"></span><span class="cb r"></span></span><span class="lbl">Skiver / trommler / kalipere</span></div></div></div><div class="sec"><div class="sechead">Kommentarer og signatur</div><div class="secbody"><div class="row"><span class="lbl">Kommentarer</span><span class="line"></span></div><div class="row"><span class="lbl"></span><span class="line"></span></div><div class="row"><span class="lbl">Tekniker<span class="req">*</span></span><span class="line"></span></div><div class="row sig"><span class="lbl">Signatur</span><span class="sline"></span></div></div></div></div>
+<div class="legend"><span class="lg"><span class="lgb" style="background:#2e7d32"></span>Kontrollert og OK</span><span class="lg"><span class="lgb" style="background:#fbc02d"></span>Kan kreve tiltak senere</span><span class="lg"><span class="lgb" style="background:#d32f2f"></span>Krever tiltak nå</span></div><div class="foot">Øverst — kundekopi / Nederst — verkstedkopi</div>
+</body></html>

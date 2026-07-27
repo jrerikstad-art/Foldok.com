@@ -1,0 +1,27 @@
+id: declaration_of_conformity
+name: Declaration of Conformity
+aliases: ["DoC", "EU declaration", "declaration of conformity"]
+industries: [manufacturing, energy, construction, process]
+regions: [eu, eea, uk, "no", international]
+domains: [machinery, electrical, pressure, construction, general]
+obligation_types: [handover, installation]
+evidence_types: [declaration, drawing, test_record]
+description: >
+  Short formal declaration pattern (EU DoC style, adaptable by region).
+structure:
+  required: [identification, scope, standards, declaration, signature]
+  recommended: [references, revision_history]
+  optional: [attachments]
+preferred_blocks:
+  standards: [EngineeringTable]
+  declaration: [Paragraph, CalloutBox]
+  signature: [Paragraph]
+compliance_notes:
+  - Responsible person and date are mandatory
+  - Scope and applicable frameworks must be unambiguous
+  - Prefer citing customer-provided regulation references from sources
+skills:
+  primary: [compliance-manager, force-blocks]
+  supporting: [technical-writer]
+tools: [compose_document, run_qa]
+workbench_template: samsvarserklaering.json

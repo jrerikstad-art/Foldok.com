@@ -1,0 +1,194 @@
+{
+  "template_key": "phd_materials_draft",
+  "name": "Thesis Evidence Draft — Materials Science",
+  "name_no": "Avhandlingsutkast (evidensdel) — materialvitenskap",
+  "description": "Compiles the EVIDENCE backbone of a materials-science thesis: materials, methods, per-experiment result chapters, characterization data, nomenclature — with full claim-to-source traceability. Interpretation, contribution and discussion are generated as structured scaffolds with [AUTHOR] placeholders: the argument is the researcher's. Demonstrates grammar v2: hierarchy (parent_key), repetition (repeat_for), auto-numbering, symbol registry, equation/figure blocks.",
+  "applies_to": ["research_project", "study", "experiment"],
+  "version": 1,
+  "language_default": "en",
+  "export_price_tier": "complex",
+  "sections": [
+    {
+      "section_key": "front_matter",
+      "title": "Front Matter",
+      "title_no": "Innledende sider",
+      "position": 1,
+      "required": true,
+      "numbering_style": "none",
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "thesis_title", "fact_type": "identifier", "severity": "blocking", "label": "Thesis title" },
+        { "key": "author_name", "fact_type": "identifier", "severity": "blocking", "label": "Author" },
+        { "key": "institution", "fact_type": "identifier", "severity": "warning", "label": "Institution / faculty" },
+        { "key": "supervisor", "fact_type": "identifier", "severity": "warning", "label": "Supervisor(s)" }
+      ],
+      "required_media": {},
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" }
+    },
+    {
+      "section_key": "toc",
+      "title": "Table of Contents",
+      "title_no": "Innholdsfortegnelse",
+      "position": 2,
+      "required": true,
+      "numbering_style": "none",
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": { "structure": "toc" },
+      "notes": "block_type 'toc' — rendered by code from the section tree + ref registry. Zero tokens, always current."
+    },
+    {
+      "section_key": "nomenclature",
+      "title": "Nomenclature & Symbols",
+      "title_no": "Nomenklatur og symboler",
+      "position": 3,
+      "required": true,
+      "numbering_style": "none",
+      "gap_severity": "warning",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": { "structure": "nomenclature" },
+      "notes": "block_type 'nomenclature' — rendered by code from doc_symbols, which auto-assembles from every symbol-bearing fact in the index (σ_y = 355 MPa in a datasheet registers σ_y). The registry is also injected into every generation call: chapter 7 uses σ_y exactly as chapter 2 defined it. Gap: symbol used in prose but absent from registry → warning."
+    },
+    {
+      "section_key": "introduction",
+      "title": "Introduction & Research Questions",
+      "title_no": "Introduksjon og forskningsspørsmål",
+      "position": 4,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "research_question", "fact_type": "instruction", "severity": "blocking", "label": "Research question(s) — from proposal/notes", "cardinality": "one_or_more" }
+      ],
+      "required_media": {},
+      "required_content": ["no_uncited_specs", "author_placeholder_for_motivation"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 500, "reading_level": "academic", "fact_citation": "required" },
+      "notes": "Research questions compiled from sources; the motivation/contribution narrative renders as an author_placeholder block: '[AUTHOR: why this matters — your argument]'. The engine scaffolds, the researcher argues."
+    },
+    {
+      "section_key": "literature",
+      "title": "Background & Literature",
+      "title_no": "Bakgrunn og litteratur",
+      "position": 5,
+      "required": false,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": { "min_photos": 0, "preferred_roles": ["certificate", "technical_data"] },
+      "required_content": ["reference_source_documents", "no_uncited_specs", "author_placeholder_for_synthesis"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 800, "reading_level": "academic", "fact_citation": "required" },
+      "notes": "Compiles ONLY from reference PDFs the user has placed in the project (each indexed paper: citation, stated findings as facts). Per-paper summaries are traceable; the comparative SYNTHESIS is an author_placeholder. The engine must never claim to have surveyed literature it was not given."
+    },
+    {
+      "section_key": "materials",
+      "title": "Materials",
+      "title_no": "Materialer",
+      "position": 6,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "material", "fact_type": "material", "severity": "blocking", "label": "Materials studied — grade/composition", "cardinality": "one_or_more" },
+        { "key": "supplier_batch", "fact_type": "identifier", "severity": "warning", "label": "Supplier / batch / cert references" }
+      ],
+      "required_media": { "min_photos": 0, "preferred_roles": ["certificate", "technical_data", "nameplate"] },
+      "required_content": ["table_format", "units_si", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Composition tables from material certs (indexed PDFs). Every wt% cites its cert."
+    },
+    {
+      "section_key": "methods",
+      "title": "Experimental Methods",
+      "title_no": "Eksperimentelle metoder",
+      "position": 7,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "method_description", "fact_type": "instruction", "severity": "blocking", "label": "Procedure per technique (SEM, XRD, tensile...)", "cardinality": "one_or_more" },
+        { "key": "equipment", "fact_type": "identifier", "severity": "warning", "label": "Instruments + settings" }
+      ],
+      "required_media": { "min_photos": 1, "preferred_roles": ["environment", "technical_data", "overview"] },
+      "required_content": ["reproducibility_detail", "units_si", "no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 900, "reading_level": "academic", "fact_citation": "required" }
+    },
+    {
+      "section_key": "experiment_chapter",
+      "title": "Results: {item}",
+      "title_no": "Resultater: {item}",
+      "position": 8,
+      "required": true,
+      "repeat_for": "experiments",
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "measurement", "fact_type": "measurement", "severity": "blocking", "label": "Recorded results for this experiment", "cardinality": "one_or_more" }
+      ],
+      "required_media": { "min_photos": 1, "preferred_roles": ["test_result", "technical_data", "overview"] },
+      "required_content": ["numeric_facts_from_tables_only", "units_si", "no_uncited_specs", "separate_observation_from_interpretation", "figures_auto_numbered"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 1200, "reading_level": "academic", "fact_citation": "required" },
+      "notes": "GRAMMAR V2 CORE: instantiated once per item in artifact_model.experiments (outline pass proposes the list — 'found: tensile series A, fatigue series B, SEM fracture study — 3 chapters?' — user confirms/edits). Each instance maps only its own files/facts. Micrographs and plots become 'figure' blocks with auto-numbers; stress-strain values cite data CSVs, never read off plots (confidence cap 0.5 rule applies). Each chapter ends with an author_placeholder: '[AUTHOR: interpretation of these results]'."
+    },
+    {
+      "section_key": "exp_setup",
+      "title": "Setup & Parameters",
+      "title_no": "Oppsett og parametre",
+      "position": 1,
+      "parent_key": "experiment_chapter",
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [
+        { "key": "parameters", "fact_type": "spec", "severity": "warning", "label": "Test parameters for this experiment" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "units_si", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Child section (parent_key) — repeats with its parent. Numbered 8.n.1 automatically."
+    },
+    {
+      "section_key": "discussion",
+      "title": "Discussion",
+      "title_no": "Diskusjon",
+      "position": 9,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["cross_reference_results", "author_placeholder_for_argument"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 300, "reading_level": "academic", "fact_citation": "required" },
+      "notes": "The engine generates ONLY a factual bridge: 'Chapter {{ref}} showed X {{fact}}; chapter {{ref}} showed Y {{fact}}' — cross-referenced restatement of what the evidence chapters contain. The comparison's MEANING is an author_placeholder block. This is the hardest honesty boundary in the product; it is enforced by required_content, not by hope."
+    },
+    {
+      "section_key": "source_register",
+      "title": "Data & Source Register",
+      "title_no": "Data- og kilderegister",
+      "position": 10,
+      "required": true,
+      "numbering_style": "appendix",
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["reference_source_documents", "table_format"],
+      "writing_rules": { "structure": "table", "fact_citation": "optional" },
+      "notes": "Every dataset, micrograph, cert and paper in the index — with captions and citing chapters. For a thesis: the reproducibility appendix examiners ask for. Code, zero tokens."
+    },
+    {
+      "section_key": "declaration",
+      "title": "Declaration",
+      "title_no": "Erklæring",
+      "position": 11,
+      "required": true,
+      "numbering_style": "none",
+      "gap_severity": "warning",
+      "required_facts": [
+        { "key": "author_name", "fact_type": "identifier", "severity": "warning", "label": "Author name" }
+      ],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": { "structure": "boilerplate" },
+      "boilerplate": "The evidence chapters of this draft were compiled from the project source material listed in the Data & Source Register; all factual claims are traceable to the cited sources. Sections marked [AUTHOR] and all interpretation, synthesis and argumentation are the author's own work. The compilation tool performed assembly and citation only.",
+      "boilerplate_no": "Evidenskapitlene i dette utkastet er sammenstilt fra kildematerialet i data- og kilderegisteret; alle faktapåstander er sporbare til de siterte kildene. Avsnitt merket [AUTHOR] samt all tolkning, syntese og argumentasjon er forfatterens eget arbeid. Verktøyet har kun utført sammenstilling og sitering.",
+      "notes": "The academic-integrity posture inside the document. This sentence is what makes the tool defensible in front of a supervisor or examination board."
+    }
+  ]
+}

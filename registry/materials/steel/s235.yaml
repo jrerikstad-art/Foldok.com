@@ -1,0 +1,27 @@
+id: steel_s235
+family: steel
+designation: S235
+grade: S235
+standard_family: EN 10025 family
+status: profile
+version: "1.0"
+pack: steel_structural
+fact_keys: [S235, s235]
+
+properties:
+  fy:   { value: 235, unit: MPa, source: profile_default, status: assumed, note: "Nominal for t ≤ 16 mm" }
+  fu:   { value: 360, unit: MPa, source: profile_default, status: assumed, note: "Nominal for t ≤ 16 mm" }
+  E:    { value: 210, unit: GPa, source: profile_default, status: assumed }
+  G:    { value: 81,  unit: GPa, source: profile_default, status: assumed }
+  nu:   { value: 0.3, unit: "-", source: profile_default, status: assumed }
+  density: { value: 7850, unit: kg/m3, source: profile_default, status: assumed }
+
+design_notes:
+  - "Typical S235 profile values; verify for actual product standard and thickness."
+
+limits:
+  temperature_c: { min: null, max: null }
+  other: []
+
+sources:
+  - { label: "EN 10025 family (typical values)", kind: standard_family }

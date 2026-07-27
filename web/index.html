@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Foldok Engine v0.9.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --ink:#16181D; --paper:#F2F0EA; --sheet:#fff; --line:#DCD9D0; --steel:#5A6472; --signal:#F5C400; --ok:#1E7A46; --gap:#C74E19; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Archivo, sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; }
+    header { background: var(--ink); color: #fff; padding: 28px 32px; }
+    header h1 { margin: 0 0 6px; font-size: 28px; font-weight: 800; }
+    header p { margin: 0; color: #c8ccd2; font-size: 14px; }
+    .ver { font-family: "IBM Plex Mono", monospace; color: var(--signal); font-size: 12px; font-weight: 700; letter-spacing: .08em; }
+    main { max-width: 880px; margin: 0 auto; padding: 32px 24px 64px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    a.card { display: block; background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; padding: 22px; text-decoration: none; color: inherit; transition: box-shadow .15s, border-color .15s; }
+    a.card:hover { border-color: var(--ink); box-shadow: 0 4px 20px rgba(22,24,29,.08); }
+    a.card h2 { margin: 0 0 8px; font-size: 18px; font-weight: 800; }
+    a.card p { margin: 0; color: var(--steel); font-size: 14px; line-height: 1.5; }
+    .tag { display: inline-block; margin-top: 12px; font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 99px; background: var(--paper); border: 1px solid var(--line); }
+    .tag.live { background: #EAF1FD; border-color: #1450B4; color: #1450B4; }
+    .tag.demo { background: #FDF0E8; border-color: var(--gap); color: var(--gap); }
+    section { margin-top: 40px; }
+    section h3 { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--steel); margin: 0 0 12px; }
+    ul { margin: 0; padding-left: 18px; color: var(--steel); font-size: 14px; line-height: 1.7; }
+    code { font-family: "IBM Plex Mono", monospace; font-size: 12px; background: var(--sheet); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="ver">FOLDOK ENGINE · v0.11.0</div>
+    <h1>Folder compiler — local preview</h1>
+    <p>Index once → understand → structure → build → export. The workbench now runs the full flow against the real engine (v0.11.0).</p>
+  </header>
+  <main>
+    <div class="grid">
+      <a class="card" href="design-dummy.html">
+        <h2>Design dummy — arbeidsbenk UI</h2>
+        <p>Static mock of home + project screens for layout and copy iteration. No backend. Open directly or run <code>.\scripts\open-design-dummy.ps1</code>.</p>
+        <span class="tag demo">DESIGN · NO BACKEND</span>
+      </a>
+      <a class="card" href="http://127.0.0.1:8766/">
+        <h2>Arbeidsbenk — ekte motor</h2>
+        <p>The full experience: create a project from a folder, index with cost estimate, confirm checkpoint A, pick a template, generate a real draft. Start with <code>.\scripts\workbench.ps1</code>.</p>
+        <span class="tag live">NEW · REAL ENGINE · port 8766</span>
+      </a>
+      <a class="card" href="editor.html">
+        <h2>Editor experience (v3)</h2>
+        <p>The build screen: explorer rail, block toolbar, regenerate with diff preview, inline MANGLER resolve, scoped chat, version history. Norwegian.</p>
+        <span class="tag demo">NEW · INTERACTIVE MOCK</span>
+      </a>
+      <a class="card" href="results.html">
+        <h2>Demo compile result</h2>
+        <p>Synthetic <code>contract_review</code> draft from demo-lifting-tool — obligations, MANGLER gaps to resolve.</p>
+        <span class="tag live">SYNTHETIC DEMO</span>
+      </a>
+      <a class="card" href="prototype.html">
+        <h2>UI prototype (v2)</h2>
+        <p>Interactive mock of the full workflow (Kilder → Forstå → Struktur → Bygg → Eksport). NO / EN / PL.</p>
+        <span class="tag demo">MOCK DATA</span>
+      </a>
+    </div>
+    <section>
+      <h3>Docs in repo</h3>
+      <ul>
+        <li><code>CHANGELOG.md</code> — version history (semver)</li>
+        <li><code>CURSOR_BUILD_PLAN.md</code> — production phases 0–5 + current status</li>
+        <li><code>examples/demo-lifting-tool/</code> — synthetic test data (no real cases)</li>
+      </ul>
+    </section>
+    <section>
+      <h3>Start server</h3>
+      <ul>
+        <li><code>.\scripts\serve.ps1</code> from <code>foldok-engine/</code></li>
+        <li>Open <code>http://localhost:8765/web/</code></li>
+        <li>After editing a <code>.jsx</code>: <code>.\scripts\regenerate_prototype.ps1</code></li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

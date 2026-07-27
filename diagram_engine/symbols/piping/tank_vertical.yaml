@@ -1,0 +1,32 @@
+id: tank_vertical
+domain: piping
+label: Vertical tank
+svg: tank_vertical.svg
+default_rotation: 0
+ports:
+- id: outlet
+  name: Outlet
+  side: bottom
+  kind: fluid
+  allowed_media:
+  - water
+  - oil
+  - fluid
+  order: 1
+- id: inlet
+  name: Inlet
+  side: top
+  kind: fluid
+  allowed_media:
+  - water
+  - oil
+  - fluid
+  order: 1
+- id: vent
+  name: Vent
+  side: top
+  kind: fluid
+  allowed_media:
+  - air
+  - fluid
+  order: 2

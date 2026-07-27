@@ -1,0 +1,24 @@
+id: strainer
+domain: piping
+label: Strainer
+svg: strainer.svg
+default_rotation: 0
+ports:
+- id: in
+  name: In
+  side: left
+  kind: fluid
+  allowed_media:
+  - water
+  - oil
+  - fluid
+  order: 1
+- id: out
+  name: Out
+  side: right
+  kind: fluid
+  allowed_media:
+  - water
+  - oil
+  - fluid
+  order: 1

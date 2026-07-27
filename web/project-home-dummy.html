@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Foldok — Project Home (design dummy)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #16181D;
+      --paper: #F2F0EA;
+      --sheet: #fff;
+      --line: #DCD9D0;
+      --steel: #5A6472;
+      --signal: #F5C400;
+      --ok: #1E7A46;
+      --okbg: #E8F5EC;
+      --warn: #A67C00;
+      --warnbg: #FFF6CE;
+      --block: #C74E19;
+      --blockbg: #FDF0E8;
+      --ai: #1450B4;
+      --dummy: #6B4FA0;
+      --dummybg: #F3EEFC;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Archivo, sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+    button { font-family: inherit; cursor: pointer; }
+    .mono { font-family: "IBM Plex Mono", monospace; }
+
+    .dummy-bar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 8px 18px; background: var(--dummybg);
+      border-bottom: 1px solid #d9ccef; color: var(--dummy); font-size: 12.5px;
+    }
+    .dummy-bar strong { font-weight: 800; }
+    .dummy-bar .pill {
+      font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 700;
+      padding: 2px 7px; border-radius: 99px; background: #fff; border: 1px solid #d9ccef;
+    }
+    .dummy-bar .right { margin-left: auto; display: flex; gap: 8px; }
+    .dummy-bar button {
+      font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px;
+      border: 1px solid #d9ccef; background: #fff; color: var(--dummy);
+    }
+    .dummy-bar button.on { background: var(--dummy); color: #fff; border-color: var(--dummy); }
+
+    body.show-c .ctag { display: inline-flex !important; }
+    .ctag {
+      display: none !important;
+      align-items: center;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px; font-weight: 700; letter-spacing: .04em;
+      text-transform: uppercase; padding: 2px 6px; border-radius: 4px;
+      margin-left: 6px; vertical-align: middle;
+    }
+    .ctag.ready { background: var(--okbg); color: var(--ok); }
+    .ctag.partial { background: var(--warnbg); color: var(--warn); }
+    .ctag.asp { background: var(--dummybg); color: var(--dummy); }
+    .ctag.conf { background: var(--blockbg); color: var(--block); }
+
+    /* App chrome */
+    .top {
+      background: var(--sheet);
+      border-bottom: 1px solid var(--line);
+      padding: 16px 28px 0;
+    }
+    .top-row {
+      display: flex; align-items: flex-start; gap: 16px;
+      max-width: 1080px; margin: 0 auto 14px;
+    }
+    .back {
+      background: none; border: none; color: var(--ai);
+      font-weight: 700; font-size: 13px; padding: 6px 0; white-space: nowrap;
+    }
+    .top-main { flex: 1; min-width: 0; }
+    .top-main h1 {
+      margin: 0; font-size: 26px; font-weight: 900; letter-spacing: -.01em;
+    }
+    .top-meta {
+      margin-top: 4px; font-size: 13px; color: var(--steel);
+    }
+    .quality-box {
+      text-align: right; flex-shrink: 0; padding-top: 2px;
+    }
+    .quality-box .lbl {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--steel);
+    }
+    .quality-box .num {
+      font-size: 36px; font-weight: 900; line-height: 1; letter-spacing: -.02em;
+      color: var(--ink);
+    }
+    .quality-box .num button {
+      background: none; border: none; font: inherit; color: inherit; padding: 0;
+      border-bottom: 2px solid transparent;
+    }
+    .quality-box .num button:hover { border-bottom-color: var(--signal); }
+
+    .tabs {
+      display: flex; gap: 0; max-width: 1080px; margin: 0 auto;
+    }
+    .tabs button {
+      background: none; border: none;
+      padding: 12px 18px; font-size: 13.5px; font-weight: 700;
+      color: var(--steel); border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .tabs button:hover { color: var(--ink); }
+    .tabs button.on {
+      color: var(--ink); border-bottom-color: var(--ink);
+    }
+    .tabs button .dot {
+      display: inline-block; width: 7px; height: 7px; border-radius: 99px;
+      background: var(--block); margin-right: 6px; vertical-align: middle;
+    }
+
+    main {
+      max-width: 1080px; margin: 0 auto;
+      padding: 22px 28px 80px;
+    }
+
+    .panel {
+      background: var(--sheet);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 20px 22px;
+      margin-bottom: 14px;
+    }
+    .panel-h {
+      display: flex; align-items: baseline; gap: 10px;
+      margin: 0 0 16px;
+    }
+    .panel-h h2 {
+      margin: 0;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .12em; text-transform: uppercase;
+      color: var(--steel);
+    }
+
+    /* Health */
+    .health-title {
+      font-size: 15px; font-weight: 700; margin: 0 0 10px;
+    }
+    .bar {
+      height: 14px; background: var(--paper); border-radius: 99px;
+      overflow: hidden; margin-bottom: 8px;
+    }
+    .bar > i {
+      display: block; height: 100%; background: var(--ink); border-radius: 99px;
+      transition: width .35s ease;
+    }
+    .bar-pct {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 13px; font-weight: 700; margin-bottom: 16px;
+    }
+    .cats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 720px) {
+      .cats { grid-template-columns: 1fr 1fr; }
+      .split { grid-template-columns: 1fr !important; }
+      .top-row { flex-wrap: wrap; }
+      .quality-box { text-align: left; }
+    }
+    .cat {
+      background: var(--paper); border-radius: 10px; padding: 12px 14px;
+    }
+    .cat button {
+      background: none; border: none; padding: 0; text-align: left; width: 100%;
+      color: inherit;
+    }
+    .cat .k { font-size: 12px; color: var(--steel); margin-bottom: 4px; }
+    .cat .v { font-size: 22px; font-weight: 900; letter-spacing: -.02em; }
+    .cat .v.warn { color: var(--warn); }
+
+    .counts {
+      display: flex; gap: 18px; flex-wrap: wrap;
+    }
+    .counts button {
+      background: none; border: none; padding: 0;
+      font-size: 14px; font-weight: 700;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .counts button:hover { text-decoration: underline; }
+    .counts .b { color: var(--block); }
+    .counts .w { color: var(--warn); }
+    .counts .pill-n {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px; font-weight: 700;
+      padding: 3px 8px; border-radius: 99px;
+    }
+    .counts .b .pill-n { background: var(--blockbg); }
+    .counts .w .pill-n { background: var(--warnbg); }
+
+    /* Split: next + sources */
+    .split {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .split .panel { margin-bottom: 0; height: 100%; }
+
+    .action {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 9px 0; border-bottom: 1px solid var(--line);
+      font-size: 14px; line-height: 1.4;
+    }
+    .action:last-of-type { border-bottom: none; }
+    .action .bullet {
+      width: 8px; height: 8px; border-radius: 99px;
+      background: var(--ink); margin-top: 6px; flex-shrink: 0;
+    }
+    .action.pri .bullet { background: var(--block); }
+    .cta {
+      margin-top: 16px;
+      font-weight: 800; font-size: 13.5px;
+      background: var(--signal); color: var(--ink);
+      border: none; border-radius: 8px;
+      padding: 12px 16px; width: 100%;
+      text-align: left;
+    }
+    .cta:hover { filter: brightness(.97); }
+    .cta span { float: right; }
+
+    .src-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid var(--line);
+      font-size: 13.5px;
+    }
+    .src-row:last-child { border-bottom: none; }
+    .src-row button {
+      background: none; border: none; padding: 0;
+      font: inherit; color: inherit; width: 100%;
+      display: flex; justify-content: space-between;
+    }
+    .src-row button:hover .name { text-decoration: underline; }
+    .src-row .n { font-family: "IBM Plex Mono", monospace; font-weight: 700; }
+    .src-missing {
+      margin-top: 12px; padding: 10px 12px;
+      background: var(--blockbg); color: var(--block);
+      border-radius: 8px; font-size: 13px; font-weight: 700;
+      display: flex; justify-content: space-between; align-items: center;
+      width: 100%; border: none;
+    }
+
+    /* Requirements chips */
+    .req-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px 16px;
+    }
+    @media (max-width: 720px) { .req-grid { grid-template-columns: 1fr; } }
+    .req {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13.5px; padding: 6px 0;
+      background: none; border: none; text-align: left; color: inherit;
+    }
+    .req:hover { color: var(--ai); }
+    .req .st { font-weight: 800; width: 16px; flex-shrink: 0; }
+    .req .st.ok { color: var(--ok); }
+    .req .st.warn { color: var(--warn); }
+    .link {
+      margin-top: 14px;
+      background: none; border: none;
+      color: var(--ai); font-weight: 700; font-size: 13.5px; padding: 0;
+    }
+
+    /* Documents */
+    .doc {
+      display: grid;
+      grid-template-columns: 1fr 70px 120px auto;
+      gap: 12px; align-items: center;
+      padding: 12px 0; border-bottom: 1px solid var(--line);
+      font-size: 13.5px;
+    }
+    @media (max-width: 720px) {
+      .doc { grid-template-columns: 1fr auto; }
+      .doc .rev, .doc .when { display: none; }
+    }
+    .doc:last-of-type { border-bottom: none; }
+    .doc b { font-size: 14px; }
+    .doc .rev, .doc .when { color: var(--steel); font-size: 12.5px; }
+    .btn {
+      font-weight: 800; font-size: 12.5px;
+      background: var(--ink); color: #fff;
+      border: none; border-radius: 7px; padding: 8px 14px;
+    }
+    .btn.ghost {
+      background: transparent; border: 1px solid var(--line);
+      color: var(--steel); font-weight: 700;
+    }
+    .doc-actions { margin-top: 12px; }
+
+    /* Stub pages */
+    .stub {
+      padding: 48px 20px; text-align: center; color: var(--steel);
+    }
+    .stub h2 { color: var(--ink); font-size: 22px; margin: 0 0 8px; }
+    .stub p { max-width: 420px; margin: 0 auto 18px; line-height: 1.5; }
+
+    /* Slide-over */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(22,24,29,.4);
+      display: none; z-index: 40;
+    }
+    .overlay.show { display: block; }
+    .drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100%);
+      background: var(--sheet); border-left: 1px solid var(--line);
+      z-index: 41; transform: translateX(100%);
+      transition: transform .2s ease;
+      display: flex; flex-direction: column;
+    }
+    .drawer.open { transform: translateX(0); }
+    .drawer .dh {
+      padding: 18px 20px; border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .drawer .dh h3 { margin: 0; font-size: 16px; font-weight: 800; flex: 1; }
+    .drawer .dh button {
+      background: none; border: none; font-size: 20px; color: var(--steel); padding: 4px 8px;
+    }
+    .drawer .db { flex: 1; overflow-y: auto; padding: 12px 16px 24px; }
+    .issue {
+      border: 1px solid var(--line); border-radius: 10px;
+      padding: 12px 14px; margin-bottom: 8px;
+    }
+    .issue .sev {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .issue.blocking .sev { color: var(--block); }
+    .issue.warning .sev { color: var(--warn); }
+    .issue b { display: block; font-size: 13.5px; margin-bottom: 4px; }
+    .issue .why { font-size: 12.5px; color: var(--steel); margin-bottom: 10px; }
+    .issue .acts { display: flex; gap: 6px; }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--ink); color: #fff; padding: 10px 16px;
+      border-radius: 8px; font-size: 13px; font-weight: 600;
+      z-index: 50; display: none;
+    }
+    .toast.show { display: block; }
+
+    .notes {
+      position: fixed; left: 0; top: 40px; width: 300px;
+      max-height: calc(100vh - 48px); overflow-y: auto;
+      background: var(--sheet); border: 1px solid var(--line); border-left: none;
+      border-radius: 0 10px 10px 0; padding: 16px;
+      box-shadow: 4px 0 24px rgba(22,24,29,.08);
+      transform: translateX(-100%); transition: transform .2s; z-index: 30;
+      font-size: 12.5px; line-height: 1.5; color: var(--steel);
+    }
+    .notes.open { transform: translateX(0); }
+    .notes h3 {
+      margin: 0 0 10px; font-size: 11px; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--dummy);
+    }
+    .notes ul { margin: 0 0 12px; padding-left: 18px; }
+    .notes li { margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+
+<div class="dummy-bar">
+  <strong>Project Home dummy</strong>
+  <span class="pill">wireframe-faithful</span>
+  <span class="pill">no backend</span>
+  <span>Entry point = dashboard, not document</span>
+  <div class="right">
+    <button type="button" id="btn-c" onclick="toggleC()">Show constraints</button>
+    <button type="button" onclick="document.getElementById('notes').classList.toggle('open')">Notes</button>
+    <button type="button" onclick="location.href='project-dashboard-dummy.html'">Mission-control v1</button>
+    <button type="button" onclick="location.href='design-dummy.html'">Home dummy</button>
+  </div>
+</div>
+
+<aside class="notes" id="notes">
+  <h3>Constraint snapshot</h3>
+  <ul>
+    <li><b>This layout is better than the 11-item rail</b> for MVP — four workflow tabs match how the engine actually works (index → gaps → docs → export).</li>
+    <li><b>Next Actions</b> is the hardest UI piece: needs a priority ranker over gaps + suggestions + unfinished docs — code, not chat.</li>
+    <li><b>Quality %</b> still needs a frozen formula (sections/figures/tables/traceability weights).</li>
+    <li><b>Requirements chips</b> are aspirational at project scope until Requirement Engine (Phase 2).</li>
+    <li><b>Analyze</b> tab is underspecified — map to artifact confirm + source review, or rename.</li>
+  </ul>
+  <p style="margin:0"><b>Yes — design Resolve Gaps next.</b> It is the natural second screen and is where action-router lives.</p>
+</aside>
+
+<div class="top">
+  <div class="top-row">
+    <button class="back" type="button" onclick="toast('→ All Projects')">← All Projects</button>
+    <div class="top-main">
+      <h1>ExcavatorBrain <span class="ctag ready">ready</span></h1>
+      <div class="top-meta">Last activity  2 hours ago <span class="ctag partial">partial</span></div>
+    </div>
+    <div class="quality-box">
+      <div class="lbl">Quality</div>
+      <div class="num">
+        <button type="button" id="q-num" onclick="openDrawer('all')" title="Open issues">91%</button>
+        <span class="ctag asp">asp</span>
+      </div>
+    </div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+</div>
+
+<main id="main"></main>
+
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer">
+  <div class="dh">
+    <h3 id="drawer-title">Issues</h3>
+    <button type="button" onclick="closeDrawer()" aria-label="Close">×</button>
+  </div>
+  <div class="db" id="drawer-body"></div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TABS = [
+  { id: "analyze", label: "Analyze", constraint: "partial" },
+  { id: "gaps", label: "Resolve Gaps", constraint: "ready", badge: true },
+  { id: "documents", label: "Documents", constraint: "ready" },
+  { id: "publish", label: "Publish", constraint: "partial" },
+];
+
+const ISSUES = [
+  { sev: "blocking", title: "Risk Analysis missing", why: "Required section — no evidence in index", action: "Create" },
+  { sev: "blocking", title: "Calibration section incomplete", why: "required_facts unmet for calibration keys", action: "Generate" },
+  { sev: "blocking", title: "Cable Routing evidence missing", why: "No drawing/photo mapped to requirement", action: "Locate" },
+  { sev: "warning", title: "Figure 7 has no caption", why: "quality_flags from index", action: "Fix" },
+  { sev: "warning", title: "Revision history stale", why: "document_versions out of sync with package", action: "Update" },
+  { sev: "warning", title: "Low-confidence torque fact", why: "confidence < 0.8 — amber in contract", action: "Confirm" },
+];
+
+const SOURCES = [
+  ["Drawings", 18],
+  ["Images", 32],
+  ["Specifications", 11],
+  ["BOM", 3],
+  ["Manuals", 5],
+  ["Code / Config", 9],
+];
+
+const REQS = [
+  ["ok", "Product Description"],
+  ["ok", "Installation"],
+  ["warn", "Calibration"],
+  ["ok", "Safety Information"],
+  ["ok", "Maintenance"],
+  ["warn", "Risk Analysis"],
+  ["ok", "Technical Data"],
+  ["ok", "Drawings"],
+  ["warn", "Cable Routing"],
+];
+
+const DOCS = [
+  { name: "Technical Documentation Package", rev: "Rev A", when: "Updated 2h ago" },
+  { name: "Research Project Report", rev: "Rev –", when: "Draft" },
+];
+
+let tab = "home";
+
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove("show"), 2000);
+}
+
+function toggleC() {
+  document.body.classList.toggle("show-c");
+  const on = document.body.classList.contains("show-c");
+  const b = document.getElementById("btn-c");
+  b.classList.toggle("on", on);
+  b.textContent = on ? "Hide constraints" : "Show constraints";
+}
+
+function ctag(k) {
+  return `<span class="ctag ${k}">${k === "asp" ? "aspirational" : k === "conf" ? "conflict" : k}</span>`;
+}
+
+function blockingCount() {
+  return ISSUES.filter(i => i.sev === "blocking").length;
+}
+
+function openDrawer(filter) {
+  const title = filter === "blocking" ? "Blocking issues"
+    : filter === "warning" ? "Warnings"
+    : "Quality & issues";
+  document.getElementById("drawer-title").innerHTML = title + " " + ctag("ready");
+  const shown = (filter === "all" || filter === "quality") ? ISSUES
+    : ISSUES.filter(i => i.sev === filter);
+
+  document.getElementById("drawer-body").innerHTML = `
+    <p style="font-size:12.5px;color:var(--steel);margin:0 0 12px">
+      Slide-over over <code class="mono">gap_list</code> — already returned by compile APIs.
+      Action buttons need a small router (create section / locate source / import / confirm fact).
+    </p>
+    ${shown.map(i => `
+      <div class="issue ${i.sev}">
+        <div class="sev">${i.sev}</div>
+        <b>${i.title}</b>
+        <div class="why">${i.why}</div>
+        <div class="acts">
+          <button class="btn" type="button" onclick="toast('Mock: ${i.action} → ${i.title}')">${i.action}</button>
+          <button class="btn ghost" type="button" onclick="toast('Mock: explain')">Explain</button>
+        </div>
+      </div>
+    `).join("")}
+  `;
+  document.getElementById("overlay").classList.add("show");
+  document.getElementById("drawer").classList.add("open");
+}
+
+function closeDrawer() {
+  document.getElementById("overlay").classList.remove("show");
+  document.getElementById("drawer").classList.remove("open");
+}
+
+function renderHome() {
+  const b = blockingCount();
+  const w = ISSUES.filter(i => i.sev === "warning").length;
+  return `
+    <div class="panel">
+      <div class="panel-h">
+        <h2>Project Health</h2>
+        ${ctag("asp")}
+      </div>
+      <div class="health-title">Documentation Quality</div>
+      <div class="bar"><i style="width:91%"></i></div>
+      <div class="bar-pct">91%</div>
+      <div class="cats">
+        <div class="cat"><button type="button" onclick="openDrawer('all')"><div class="k">Sections</div><div class="v">98%</div></button></div>
+        <div class="cat"><button type="button" onclick="openDrawer('all')"><div class="k">Figures</div><div class="v warn">82%</div></button></div>
+        <div class="cat"><button type="button" onclick="openDrawer('all')"><div class="k">Tables</div><div class="v">100%</div></button></div>
+        <div class="cat"><button type="button" onclick="openDrawer('all')"><div class="k">Traceability</div><div class="v">94%</div></button></div>
+      </div>
+      <div class="counts">
+        <button type="button" class="b" onclick="openDrawer('blocking')">
+          <span class="pill-n">${b}</span> Blocking issues
+        </button>
+        <button type="button" class="w" onclick="openDrawer('warning')">
+          <span class="pill-n">${w}</span> Warnings
+        </button>
+        ${ctag("ready")}
+      </div>
+      <p style="margin:14px 0 0;font-size:12px;color:var(--steel)">
+        Category % needs a published formula (e.g. sections = applicable sections without blocking gaps / total).
+        Blockers/warnings map 1:1 to existing gap severity.
+      </p>
+    </div>
+
+    <div class="split">
+      <div class="panel">
+        <div class="panel-h"><h2>Next Actions</h2>${ctag("partial")}</div>
+        <div class="action pri"><span class="bullet"></span><span>Resolve ${b} missing items</span></div>
+        <div class="action"><span class="bullet"></span><span>Review Technical Documentation Package</span></div>
+        <div class="action"><span class="bullet"></span><span>Generate missing Calibration section</span></div>
+        <div class="action"><span class="bullet"></span><span>Update revision history</span></div>
+        <button class="cta" type="button" onclick="toast('Smart default → open Technical Documentation Package at first blocking gap')">
+          Continue with Documentation Package <span>→</span>
+        </button>
+        <p style="margin:12px 0 0;font-size:12px;color:var(--steel)">
+          Hardest piece: priority ranker over gaps + suggestions + dirty docs.
+          Primary CTA = most relevant unfinished document (here: package with blockers).
+        </p>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><h2>Sources Overview</h2>${ctag("ready")}</div>
+        ${SOURCES.map(([name, n]) => `
+          <div class="src-row">
+            <button type="button" onclick="toast('→ Sources filtered: ${name}')">
+              <span class="name">${name}</span>
+              <span class="n">${n}</span>
+            </button>
+          </div>
+        `).join("")}
+        <button class="src-missing" type="button" onclick="openDrawer('blocking')">
+          <span>⚠ Missing items</span><span class="mono">${b}</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h"><h2>Requirements &amp; Gaps</h2>${ctag("asp")}</div>
+      <div class="req-grid">
+        ${REQS.map(([st, label]) => `
+          <button type="button" class="req" onclick="openDrawer('${st === "warn" ? "blocking" : "all"}')">
+            <span class="st ${st}">${st === "ok" ? "✓" : "⚠"}</span>
+            <span>${label}</span>
+          </button>
+        `).join("")}
+      </div>
+      <button class="link" type="button" onclick="toast('→ Full Requirements screen (Phase 2 moat)')">View all requirements →</button>
+      <p style="margin:12px 0 0;font-size:12px;color:var(--steel)">
+        Project-wide requirement chips are aspirational until Requirement Engine.
+        Safe MVP stand-in: show <em>template section status</em> for the active/primary document.
+      </p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h"><h2>Recent Documents</h2>${ctag("ready")}</div>
+      ${DOCS.map(d => `
+        <div class="doc">
+          <b>${d.name}</b>
+          <span class="rev">${d.rev}</span>
+          <span class="when">${d.when}</span>
+          <button class="btn ghost" type="button" onclick="toast('Open ${d.name}')">Open</button>
+        </div>
+      `).join("")}
+      <div class="doc-actions">
+        <button class="btn" type="button" onclick="toast('→ Template picker (capabilities / applies_to)')">+ New Document</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderStub(title, body, constraint) {
+  return `
+    <div class="panel stub">
+      <h2>${title} ${ctag(constraint)}</h2>
+      <p>${body}</p>
+      <button class="btn" type="button" onclick="setTab('home')">← Back to project overview</button>
+    </div>`;
+}
+
+function renderMain() {
+  const main = document.getElementById("main");
+  if (tab === "home") {
+    main.innerHTML = renderHome();
+    return;
+  }
+  if (tab === "analyze") {
+    main.innerHTML = renderStub(
+      "Analyze",
+      "Underspecified in the wireframe. Best mapping: artifact model confirmation + source coverage review (Checkpoint A). Or rename to avoid a hollow tab.",
+      "partial"
+    );
+    return;
+  }
+  if (tab === "gaps") {
+    main.innerHTML = `
+      <div class="panel">
+        <div class="panel-h"><h2>Resolve Gaps</h2>${ctag("ready")} <span style="font-size:12px;color:var(--steel);font-family:Archivo,sans-serif;letter-spacing:0;text-transform:none">— design this next</span></div>
+        <p style="margin:0 0 14px;color:var(--steel);font-size:14px;line-height:1.5">
+          Natural second screen. Same issues as the slide-over, but full-page with filters,
+          evidence preview, and Fix / Locate / Import / Dismiss flows.
+        </p>
+        ${ISSUES.map(i => `
+          <div class="issue ${i.sev}">
+            <div class="sev">${i.sev}</div>
+            <b>${i.title}</b>
+            <div class="why">${i.why}</div>
+            <div class="acts">
+              <button class="btn" type="button" onclick="toast('Mock: ${i.action}')">${i.action}</button>
+            </div>
+          </div>
+        `).join("")}
+      </div>`;
+    return;
+  }
+  if (tab === "documents") {
+    main.innerHTML = `
+      <div class="panel">
+        <div class="panel-h"><h2>Documents</h2>${ctag("ready")}</div>
+        ${DOCS.map(d => `
+          <div class="doc">
+            <b>${d.name}</b>
+            <span class="rev">${d.rev}</span>
+            <span class="when">${d.when}</span>
+            <button class="btn ghost" type="button" onclick="toast('Open')">Open</button>
+          </div>
+        `).join("")}
+        <div class="doc-actions">
+          <button class="btn" type="button">+ New Document</button>
+        </div>
+      </div>`;
+    return;
+  }
+  if (tab === "publish") {
+    main.innerHTML = renderStub(
+      "Publish",
+      "Export destinations + package summary. Blocking gaps disable Publish (ENGINE_CONTRACT). PDF/HTML path exists; connectors later.",
+      "partial"
+    );
+  }
+}
+
+function renderTabsFixed() {
+  const n = blockingCount();
+  // Landing is always the overview content when tab==='home'.
+  // Workflow tabs switch pages; no separate "Overview" tab in the wireframe —
+  // clicking project name / logo returns home. We highlight no tab on home,
+  // or treat Analyze as non-selected on landing.
+  document.getElementById("tabs").innerHTML = TABS.map(t => {
+    const on = tab === t.id;
+    return `<button type="button" class="${on ? "on" : ""}" onclick="setTab('${t.id}')">
+      ${t.badge && n ? `<span class="dot"></span>` : ""}${t.label}${ctag(t.constraint)}
+    </button>`;
+  }).join("");
+}
+
+function setTab(id) {
+  tab = id === "home" ? "home" : id;
+  // Project name click returns home
+  render();
+}
+
+// Make title clickable → home
+document.querySelector(".top-main h1").style.cursor = "pointer";
+document.querySelector(".top-main h1").onclick = () => { tab = "home"; render(); };
+
+function render() {
+  renderTabsFixed();
+  renderMain();
+  document.getElementById("q-num").textContent = "91%";
+}
+
+render();
+</script>
+</body>
+</html>

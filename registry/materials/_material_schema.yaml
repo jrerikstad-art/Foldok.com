@@ -1,0 +1,15 @@
+# Material schema (conceptual)
+
+Material:
+  id: string                          # e.g. steel_s355, gfrp_custom_001
+  family: "steel | gfrp | aluminium | timber | other"
+  designation: string                 # S355, E-glass/epoxy, …
+  standard_family: "string | null"    # label only — not full legal text
+  datasheet_ref: "string | null"      # project source id when from customer file
+  properties: object                  # family-specific Quantity map
+  design_notes: "string[]"
+  limits:
+    temperature_c: "{ min: number | null, max: number | null }"
+    other: "string[]"
+  status: "profile | from_datasheet | user_defined"
+  version: string

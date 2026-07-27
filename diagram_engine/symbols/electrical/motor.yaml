@@ -1,0 +1,35 @@
+id: motor
+domain: electrical
+label: AC motor
+svg: motor.svg
+default_orientation: 0
+standard_hint: IEC-style
+ports:
+- id: u
+  name: U
+  side: top
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: v
+  name: V
+  side: left
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: w
+  name: W
+  side: right
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1
+- id: pe
+  name: PE
+  side: bottom
+  kind: electrical
+  allowed_media:
+  - wire
+  order: 1

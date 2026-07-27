@@ -1,0 +1,140 @@
+{
+  "template_key": "installation_manual",
+  "name": "Installation Manual",
+  "name_no": "Installasjonsmanual",
+  "description": "PRESCRIPTIVE document: tells the installer what to do, which no source document contains. Reference implementation of the prescriptive rules (WORKORDER_0.27 §B): all facts inside steps stay cited (depths, capacities, standards, requirements), while the SEQUENCE is AI-drafted, visibly badged 'AI-foreslått rekkefølge', and closed with author placeholders. A mandatory section lists what only the manufacturer's manual can supply. Used for installation, commissioning, and site-work documents across trades and engineering.",
+  "applies_to": ["installation", "system", "machine", "equipment", "structure", "building"],
+  "version": 1,
+  "language_default": "no",
+  "export_price_tier": "standard",
+  "sections": [
+    {
+      "section_key": "identification",
+      "title": "Identification",
+      "title_no": "Identifikasjon",
+      "position": 1,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "project_name", "fact_type": "identifier", "severity": "blocking", "label": "Project/installation name", "label_no": "Prosjekt-/anleggsnavn" },
+        { "key": "address", "fact_type": "identifier", "severity": "warning", "label": "Site address", "label_no": "Anleggsadresse" },
+        { "key": "system_type", "fact_type": "identifier", "severity": "warning", "label": "System/unit type and capacity", "label_no": "Anleggstype og kapasitet" },
+        { "key": "manufacturer", "fact_type": "identifier", "severity": "warning", "label": "Manufacturer / supplier", "label_no": "Leverandør/produsent" }
+      ],
+      "required_media": { "min_photos": 0, "preferred_roles": ["overview", "site_plan", "drawing"] },
+      "required_content": ["table_format", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" }
+    },
+    {
+      "section_key": "system_overview",
+      "title": "System Overview",
+      "title_no": "Systemoversikt",
+      "position": 2,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [],
+      "required_media": { "min_photos": 1, "preferred_roles": ["drawing", "site_plan", "schematic", "overview"] },
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 250, "fact_citation": "required" },
+      "notes": "What the installation consists of and how the parts relate — compiled from cited facts. Natural home for a connection_spec block diagram (WORKORDER_0.24) when one exists."
+    },
+    {
+      "section_key": "prerequisites",
+      "title": "Prerequisites & Requirements",
+      "title_no": "Forutsetninger og krav",
+      "position": 3,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "requirement", "fact_type": "requirement", "severity": "warning", "label": "Requirements from permits/standards", "label_no": "Krav fra tillatelser/standarder", "cardinality": "one_or_more" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Permit conditions, regulatory limits, site constraints, required approvals — all cited. This is the section that makes the manual project-specific rather than generic: e.g. discharge depth minimums, treatment percentages, ground conditions, access restrictions."
+    },
+    {
+      "section_key": "safety",
+      "title": "Safety & Site Hazards",
+      "title_no": "Sikkerhet og farer på stedet",
+      "position": 4,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "hazard", "fact_type": "warning", "severity": "warning", "label": "Hazards documented in sources", "label_no": "Farer dokumentert i kildene" }
+      ],
+      "required_media": {},
+      "required_content": ["safety_before_procedure", "no_uncited_specs"],
+      "writing_rules": { "voice": "imperative", "structure": "bullet_list", "max_words": 200, "fact_citation": "required" },
+      "notes": "Hazards from the sources (rock/blasting, confined space, live systems, lifting) cited; generic trade hazards permitted but marked prescriptive per §B. Always precedes the procedure."
+    },
+    {
+      "section_key": "sequence",
+      "title": "Installation Sequence",
+      "title_no": "Installasjonssekvens",
+      "position": 5,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["prescriptive_banner", "author_placeholder_per_phase", "no_uncited_specs"],
+      "writing_rules": { "voice": "imperative", "structure": "numbered_list", "max_words": 600, "fact_citation": "required", "prescriptive": true },
+      "notes": "THE prescriptive core. Steps drafted by AI from the artifact model, system type and cited constraints; every VALUE inside a step must be cited or [MANGLER]. Section carries the banner 'AI-foreslått rekkefølge — bekreft mot leverandørens anvisning' and ends with [AUTHOR: bekreft rekkefølge mot leverandøranvisning]. The engine proposes a defensible order; the responsible person owns it."
+    },
+    {
+      "section_key": "verification",
+      "title": "Verification & Commissioning Checks",
+      "title_no": "Kontroll og idriftsettelse",
+      "position": 6,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [
+        { "key": "criterion", "fact_type": "criterion", "severity": "warning", "label": "Acceptance criteria from requirements", "label_no": "Akseptkriterier fra kravene" }
+      ],
+      "required_media": {},
+      "required_content": ["checklist_format", "criterion_cited_per_row", "no_uncited_specs"],
+      "writing_rules": { "structure": "checklist", "fact_citation": "required", "prescriptive": true },
+      "notes": "Checklist rows pair a check with its cited criterion (e.g. utslippsdybde ≥ 2 m ← søknad). Rows without a source criterion are marked AI-foreslått. This section is what turns an installation manual into evidence that the installation met its documented requirements."
+    },
+    {
+      "section_key": "supplier_manual_gaps",
+      "title": "What the Manufacturer's Manual Must Cover",
+      "title_no": "Hva leverandørens manual må dekke",
+      "position": 7,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["gap_list_from_engine", "table_format"],
+      "writing_rules": { "structure": "table", "fact_citation": "optional" },
+      "notes": "Auto-compiled honesty section: every [MANGLER] that only the supplier can resolve — chamber layout, torque values, backfill specification, electrical connection details, spare parts. Doubles as the shopping list when requesting documentation from the supplier."
+    },
+    {
+      "section_key": "source_register",
+      "title": "Source Register",
+      "title_no": "Kilderegister",
+      "position": 8,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["reference_source_documents", "table_format"],
+      "writing_rules": { "structure": "table", "fact_citation": "optional" }
+    },
+    {
+      "section_key": "declaration",
+      "title": "Declaration",
+      "title_no": "Erklæring",
+      "position": 9,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": { "structure": "boilerplate" },
+      "boilerplate": "Values, requirements and criteria in this manual are traceable to the sources listed in the Source Register. Procedure sequences are AI-proposed suggestions based on the project's documented conditions — they are not the manufacturer's instructions and do not replace them. Responsibility for the installation, its sequence and its verification rests with the qualified installer.",
+      "boilerplate_no": "Verdier, krav og kriterier i denne manualen er sporbare til kildene i kilderegisteret. Prosedyresekvenser er AI-foreslåtte forslag basert på prosjektets dokumenterte forutsetninger — de er ikke leverandørens anvisning og erstatter den ikke. Ansvaret for installasjonen, rekkefølgen og kontrollen ligger hos kvalifisert utførende.",
+      "notes": "Fixed text, zero AI. States the prescriptive/descriptive split in the document itself."
+    }
+  ]
+}

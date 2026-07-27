@@ -1,0 +1,26 @@
+id: cable_length_simple
+label: Cable length (route + slack)
+domains: [electrical]
+formula_latex: "L_{tot} = L_{route} \\times (1 + s/100)"
+formula_code: "L_route * (1 + s / 100)"
+description: Total cable length from measured route plus slack percent.
+safety_critical: false
+assumptions:
+  - Single continuous route; no branching
+  - Slack percent is an allowance, not a code requirement
+inputs:
+  - key: L_route
+    label: Route length
+    unit: m
+    required: true
+    fact_keys: [cable_length, route_length, length]
+  - key: s
+    label: Slack
+    unit: percent
+    required: true
+    default: 10
+    fact_keys: [slack_percent, slack]
+outputs:
+  - key: L_tot
+    label: Total cable length
+    unit: m

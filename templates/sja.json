@@ -1,0 +1,141 @@
+{
+  "template_key": "sja",
+  "name": "Safe Job Analysis",
+  "name_no": "Sikker jobbanalyse (SJA)",
+  "description": "Pre-task risk assessment required before high-risk work in Norway (hot work, lifting, confined space, work at height). Aligned with Forskrift om utførelse av arbeid and Arbeidstilsynet SJA guidance. Highest-frequency document type from market survey — 5 of 7 respondents named it unprompted.",
+  "applies_to": [],
+  "version": 1,
+  "language_default": "no",
+  "export_price_tier": "basic",
+  "sections": [
+    {
+      "section_key": "job_identification",
+      "title": "Job Identification",
+      "title_no": "Identifikasjon av arbeidet",
+      "position": 1,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "job_description", "fact_type": "instruction", "severity": "blocking", "label": "Description of the task", "label_no": "Beskrivelse av arbeidsoppgaven" },
+        { "key": "location", "fact_type": "identifier", "severity": "blocking", "label": "Location / site", "label_no": "Sted / anlegg" },
+        { "key": "date_time", "fact_type": "date", "severity": "blocking", "label": "Date and time of work", "label_no": "Dato og tidspunkt" },
+        { "key": "sja_leader", "fact_type": "identifier", "severity": "blocking", "label": "SJA leader / responsible person", "label_no": "SJA-ansvarlig" }
+      ],
+      "required_media": { "min_photos": 1, "preferred_roles": ["overview", "environment"] },
+      "required_content": ["table_format", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Location auto-fillable from GPS. Date/time from device clock. Photo of work area strongly recommended — visual context for later review."
+    },
+    {
+      "section_key": "hazard_identification",
+      "title": "Hazard Identification",
+      "title_no": "Fareidentifikasjon",
+      "position": 2,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "hazard", "fact_type": "warning", "severity": "blocking", "label": "At least one identified hazard", "label_no": "Minst én identifisert fare", "cardinality": "one_or_more" }
+      ],
+      "required_media": { "min_photos": 0, "preferred_roles": ["environment", "damage", "safety"] },
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "list", "fact_citation": "required" },
+      "copilot_rules": {
+        "trigger_suggestions_from": ["job_description", "photos"],
+        "suggestion_library": {
+          "hot_work": ["fire/explosion near flammables", "fumes in confined space", "burns"],
+          "lifting": ["suspended load", "crush zone", "load drop", "gear failure"],
+          "confined_space": ["oxygen deficiency", "toxic atmosphere", "entrapment", "restricted escape"],
+          "work_at_height": ["fall from height", "falling objects", "fragile surfaces"],
+          "electrical": ["live parts contact", "arc flash", "stored energy"],
+          "excavation": ["cave-in", "buried services", "water ingress"]
+        }
+      },
+      "notes": "Co-pilot suggests hazards from job type keywords + photo content — user confirms each, never auto-added. Every accepted suggestion becomes a fact with source 'user_confirmed_suggestion'."
+    },
+    {
+      "section_key": "risk_assessment",
+      "title": "Risk Assessment",
+      "title_no": "Risikovurdering",
+      "position": 3,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["table_format", "risk_per_hazard"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "One row per hazard from section 2: hazard | probability (1-3) | consequence (1-3) | risk (P×C) | acceptable? User sets P and C by tap — AI never assigns risk scores, only pre-fills the hazard column."
+    },
+    {
+      "section_key": "control_measures",
+      "title": "Control Measures",
+      "title_no": "Tiltak",
+      "position": 4,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "control_measure", "fact_type": "instruction", "severity": "blocking", "label": "At least one control measure per hazard", "label_no": "Minst ett tiltak per fare", "cardinality": "one_per_hazard" }
+      ],
+      "required_media": {},
+      "required_content": ["table_format", "measure_per_hazard", "responsible_person_per_measure"],
+      "writing_rules": { "voice": "imperative", "structure": "table", "fact_citation": "required" },
+      "copilot_rules": {
+        "suggestion_library": {
+          "fire/explosion near flammables": ["fire watch deployed", "extinguisher within reach", "remove/shield flammables", "hot work permit issued"],
+          "suspended load": ["barrier crush zone", "certified gear only", "banksman assigned", "no personnel under load"],
+          "oxygen deficiency": ["gas measurement before entry", "continuous monitoring", "forced ventilation", "rescue plan + standby person"],
+          "fall from height": ["harness to certified anchor", "guardrails installed", "tool lanyards"],
+          "live parts contact": ["isolate + lock out + verify dead", "voltage tester check", "insulated tools"]
+        },
+        "gap_rule": "every hazard row without at least one measure = blocking gap"
+      },
+      "notes": "Columns: hazard | measure | responsible | done (checkbox). The hazard→measure suggestion mapping is the co-pilot's core value in this template."
+    },
+    {
+      "section_key": "permits_required",
+      "title": "Permits & Preconditions",
+      "title_no": "Arbeidstillatelser og forutsetninger",
+      "position": 5,
+      "required": false,
+      "condition": "hazards match ('hot_work','confined_space','excavation','lifting_heavy')",
+      "gap_severity": "warning",
+      "required_facts": [
+        { "key": "permit_ref", "fact_type": "identifier", "severity": "warning", "label": "Permit reference number (if applicable)", "label_no": "Referanse arbeidstillatelse" }
+      ],
+      "required_media": { "min_photos": 0, "preferred_roles": ["certificate"] },
+      "required_content": ["checklist_format"],
+      "writing_rules": { "structure": "checklist", "fact_citation": "optional" },
+      "notes": "Checklist auto-composed from hazard types: hot work permit, entry permit, lifting plan, dig permit. Unchecked required permit = warning gap."
+    },
+    {
+      "section_key": "emergency",
+      "title": "Emergency Preparedness",
+      "title_no": "Beredskap",
+      "position": 6,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "emergency_contact", "fact_type": "contact", "severity": "blocking", "label": "Emergency contact / number", "label_no": "Nødkontakt / nødnummer" },
+        { "key": "muster_point", "fact_type": "identifier", "severity": "warning", "label": "Muster point / evacuation route", "label_no": "Møteplass / rømningsvei" }
+      ],
+      "required_media": {},
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "voice": "imperative", "structure": "list", "max_words": 120, "fact_citation": "required" },
+      "notes": "Company defaults (site emergency number, standard muster point) pre-fillable from company profile — still shown for confirmation every time."
+    },
+    {
+      "section_key": "participants",
+      "title": "Participants & Sign-off",
+      "title_no": "Deltakere og signering",
+      "position": 7,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "participant", "fact_type": "identifier", "severity": "blocking", "label": "At least one participant besides SJA leader", "label_no": "Minst én deltaker i tillegg til SJA-ansvarlig", "cardinality": "one_or_more" }
+      ],
+      "required_media": {},
+      "required_content": ["signature_per_participant"],
+      "writing_rules": { "structure": "signature_block" },
+      "notes": "Each participant signs on the phone (draw, sequential handoff). All signatures timestamped. SES level sufficient for SJA. Document locked after all signatures collected."
+    }
+  ]
+}

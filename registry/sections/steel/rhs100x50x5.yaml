@@ -1,0 +1,23 @@
+id: RHS100x50x5
+family: rhs
+designation: RHS 100×50×5
+material_hint: steel
+source: catalog
+status: profile
+pack: steel_structural
+series: RHS
+
+geometry:
+  h: { value: 100, unit: mm, source: profile_default, status: assumed }
+  b: { value: 50, unit: mm, source: profile_default, status: assumed }
+  t: { value: 5, unit: mm, source: profile_default, status: assumed }
+
+properties:
+  A:  { value: 1350, unit: mm2, source: profile_default, status: assumed }
+  Iy: { value: 1670000, unit: mm4, source: profile_default, status: assumed }
+  Iz: { value: 536000, unit: mm4, source: profile_default, status: assumed }
+  Wy: { value: 33400, unit: mm3, source: profile_default, status: assumed }
+  Wz: { value: 21400, unit: mm3, source: profile_default, status: assumed }
+  iy: { value: 35.2, unit: mm, source: profile_default, status: assumed }
+  iz: { value: 19.9, unit: mm, source: profile_default, status: assumed }
+  mass_per_m: { value: 10.6, unit: kg/m, source: profile_default, status: assumed }

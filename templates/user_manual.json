@@ -1,0 +1,142 @@
+{
+  "template_key": "user_manual",
+  "name": "User Manual",
+  "name_no": "Brukermanual",
+  "description": "Instructions for use (brukermanual / bruksanvisning) for a product, tool or machine. Structure aligned with EN 82079-1 — identification, intended use, safety, operation, maintenance, troubleshooting. Distinct from the broader technical documentation package and from installation manuals.",
+  "applies_to": ["lifting_tool", "machine", "tool", "prototype", "equipment", "product", "system"],
+  "version": 1,
+  "language_default": "no",
+  "export_price_tier": "standard",
+  "sections": [
+    {
+      "section_key": "identification",
+      "title": "Identification",
+      "title_no": "Identifikasjon",
+      "position": 1,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "product_name", "fact_type": "identifier", "severity": "blocking", "label": "Product name", "label_no": "Produktnavn" },
+        { "key": "model_no", "fact_type": "identifier", "severity": "warning", "label": "Model / type", "label_no": "Modell / type" },
+        { "key": "manufacturer", "fact_type": "identifier", "severity": "warning", "label": "Manufacturer", "label_no": "Produsent" },
+        { "key": "doc_revision", "fact_type": "date", "severity": "info", "label": "Document revision / date", "label_no": "Dokumentrevisjon / dato" }
+      ],
+      "required_media": { "min_photos": 1, "preferred_roles": ["overview", "nameplate"] },
+      "required_content": ["table_format", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" }
+    },
+    {
+      "section_key": "intended_use",
+      "title": "Intended Use & Limitations",
+      "title_no": "Tiltenkt bruk og begrensninger",
+      "position": 2,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "intended_use", "fact_type": "instruction", "severity": "blocking", "label": "Intended use", "label_no": "Tiltenkt bruk" },
+        { "key": "prohibited_use", "fact_type": "warning", "severity": "warning", "label": "Foreseeable misuse", "label_no": "Forutsigbar feilbruk" }
+      ],
+      "required_media": {},
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 250, "reading_level": "field_worker", "fact_citation": "required" }
+    },
+    {
+      "section_key": "safety",
+      "title": "Safety Information",
+      "title_no": "Sikkerhetsinformasjon",
+      "position": 3,
+      "required": true,
+      "gap_severity": "blocking",
+      "required_facts": [
+        { "key": "hazard_list", "fact_type": "warning", "severity": "blocking", "label": "Identified hazard", "label_no": "Identifisert fare" },
+        { "key": "ppe_requirements", "fact_type": "instruction", "severity": "warning", "label": "Required PPE", "label_no": "Påkrevd verneutstyr" }
+      ],
+      "required_media": { "preferred_roles": ["safety"] },
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "voice": "imperative", "structure": "list", "max_words": 350, "reading_level": "field_worker", "fact_citation": "required" }
+    },
+    {
+      "section_key": "operation",
+      "title": "Operation",
+      "title_no": "Betjening",
+      "position": 4,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [
+        { "key": "operating_step", "fact_type": "instruction", "severity": "warning", "label": "Operating step", "label_no": "Betjeningssteg", "cardinality": "one_or_more" }
+      ],
+      "required_media": { "preferred_roles": ["overview", "installation_step"] },
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "voice": "imperative", "structure": "numbered_list", "max_words": 500, "reading_level": "field_worker", "fact_citation": "required" }
+    },
+    {
+      "section_key": "technical_data",
+      "title": "Technical Data",
+      "title_no": "Tekniske data",
+      "position": 5,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [
+        { "key": "dimensions", "fact_type": "spec", "severity": "warning", "label": "Dimensions", "label_no": "Mål" },
+        { "key": "weight", "fact_type": "spec", "severity": "warning", "label": "Weight", "label_no": "Vekt" },
+        { "key": "rated_capacity", "fact_type": "rating", "severity": "warning", "label": "Rated capacity / SWL", "label_no": "Nominell kapasitet / SWL" }
+      ],
+      "required_media": { "preferred_roles": ["nameplate", "technical_data"] },
+      "required_content": ["table_format", "no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" }
+    },
+    {
+      "section_key": "maintenance",
+      "title": "Maintenance",
+      "title_no": "Vedlikehold",
+      "position": 6,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [
+        { "key": "maintenance_interval", "fact_type": "instruction", "severity": "warning", "label": "Maintenance interval", "label_no": "Vedlikeholdsintervall" }
+      ],
+      "required_media": {},
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "voice": "imperative", "structure": "list", "max_words": 300, "fact_citation": "required" }
+    },
+    {
+      "section_key": "troubleshooting",
+      "title": "Troubleshooting",
+      "title_no": "Feilsøking",
+      "position": 7,
+      "required": false,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["no_uncited_specs"],
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Symptom → likely cause → action. Cite sources; mark AI-proposed rows."
+    },
+    {
+      "section_key": "source_register",
+      "title": "Source Register",
+      "title_no": "Kilderegister",
+      "position": 8,
+      "required": true,
+      "gap_severity": "info",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": ["reference_source_documents", "table_format"],
+      "writing_rules": { "structure": "table", "fact_citation": "optional" }
+    },
+    {
+      "section_key": "declaration",
+      "title": "Declaration",
+      "title_no": "Erklæring",
+      "position": 9,
+      "required": true,
+      "gap_severity": "warning",
+      "required_facts": [],
+      "required_media": {},
+      "required_content": [],
+      "writing_rules": { "structure": "boilerplate" },
+      "boilerplate": "This user manual was compiled from the project sources listed in the Source Register. All factual claims are traceable to the cited sources. Safe use remains the responsibility of the operator.",
+      "boilerplate_no": "Denne brukermanualen er sammenstilt fra prosjektkildene i kilderegisteret. Alle faktapåstander er sporbare til de siterte kildene. Sikker bruk er operatørens ansvar."
+    }
+  ]
+}

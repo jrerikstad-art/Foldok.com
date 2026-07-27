@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "description": "LEARNING_AND_BOUNDARIES §3 L3 — content-free telemetry whitelist. Anything not listed is forbidden.",
+  "opt_in_default": false,
+  "allowed_fields": [
+    "schema_version",
+    "event",
+    "template_key",
+    "gap_key",
+    "action",
+    "file_kind",
+    "extraction_conf_bucket",
+    "intent_template_key",
+    "accepted",
+    "suggested_name",
+    "rung3_request",
+    "ts"
+  ],
+  "forbidden": [
+    "values",
+    "excerpts",
+    "captions",
+    "filenames",
+    "prose",
+    "paths",
+    "user_content",
+    "facts"
+  ],
+  "events": [
+    "gap_dismissed_as_irrelevant",
+    "rung3_request",
+    "extraction_conf_bucket",
+    "intent_template_accepted",
+    "chat_attach_classified"
+  ]
+}
