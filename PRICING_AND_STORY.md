@@ -30,13 +30,13 @@ Export (PDF / HTML / DOCX)
 
 ### The problem it solves
 
-Documentation still happens **after** the work is finished:
+**Today**, documentation is still assembled **after** the work is finished:
 
 - Notes on phones, hand sketches, late declarations, incomplete manuals  
-- Hours of unpaid office time per job  
+- Hours of unpaid office time per job — after the field work is done  
 - Incomplete packages = incomplete evidence and late review pain  
 
-People rebuild the same documentation from scratch on every job. Foldok makes the **project** the center and the **document** an output.
+People rebuild the same documentation from scratch on every job. Foldok keeps documentation building **as the project runs** — sources in, knowledge grows, packages stay alive.
 
 ### What it does (only three things)
 
