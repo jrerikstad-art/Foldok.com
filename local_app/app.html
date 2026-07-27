@@ -1248,14 +1248,37 @@ const api = (p, opt) => fetch(p, opt).then(async r => {
 });
 
 async function boot() {
-  BOOT = await api("/api/bootstrap");
+  try {
+    BOOT = await api("/api/bootstrap");
+  } catch (_) {
+    // Static / marketing host (e.g. Vercel) — same UI as local home, no engine APIs
+    let meta = { document: "FOLDOK-WEB-001", revision: "C", date: "auto", default_language: "en" };
+    try {
+      const r = await fetch("/site-meta.json");
+      if (r.ok) meta = await r.json();
+    } catch (_) {}
+    let ver = "0.72.0";
+    try {
+      const vr = await fetch("/VERSION");
+      if (vr.ok) ver = (await vr.text()).trim() || ver;
+    } catch (_) {}
+    BOOT = {
+      version: ver,
+      projects: [],
+      templates: [],
+      capabilities: [],
+      account: { signed_in: false },
+      web_meta: meta,
+      marketing: true,
+    };
+  }
   applyHeaderMeta(BOOT.web_meta || { version: BOOT.version });
   renderAccountHeader();
   // Don't POST /api/pick-folder here — that opens a native dialog and blocks the UI.
   const ver = String(BOOT.version || "0");
   const parts = ver.split(".").map(Number);
-  const stale = (parts[0] || 0) < 0 || (parts[0] === 0 && (parts[1] || 0) < 16) ||
-    (parts[0] === 0 && parts[1] === 16 && (parts[2] || 0) < 6);
+  const stale = !BOOT.marketing && ((parts[0] || 0) < 0 || (parts[0] === 0 && (parts[1] || 0) < 16) ||
+    (parts[0] === 0 && parts[1] === 16 && (parts[2] || 0) < 6));
   if (stale) {
     $("#keystate").textContent = "⚠ Gammel server (v" + ver + ") — restart workbench.ps1";
     $("#keystate").style.color = "var(--gap)";
@@ -2797,6 +2820,15 @@ async function hubSend() {
   input.disabled = true;
   hubBubble("user", esc(text));
   HUB_HISTORY.push({ role: "user", text });
+  if (BOOT?.marketing) {
+    const no = getUiLang() === "no";
+    hubBubble("bot", no
+      ? `Dette er markedsføringssiden. Kjør arbeidsbenken lokalt for prosjekter:<br><code>.\\scripts\\workbench.ps1</code> → <a href="http://127.0.0.1:8766/">http://127.0.0.1:8766/</a>`
+      : `This is the marketing site. Run the workbench locally for projects:<br><code>.\\scripts\\workbench.ps1</code> → <a href="http://127.0.0.1:8766/">http://127.0.0.1:8766/</a>`);
+    input.disabled = false;
+    input.focus();
+    return;
+  }
   hubBubble("bot", "…", { skipTurn: true });
   try {
     let base = BOOT?.settings?.projects_base_dir || "";

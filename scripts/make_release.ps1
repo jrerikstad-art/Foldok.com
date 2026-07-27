@@ -81,6 +81,13 @@ python (Join-Path $root "scripts\build_caps.py")
 if ($LASTEXITCODE -ne 0) { throw "build_caps.py failed" }
 Copy-Item (Join-Path $root "capabilities.json") (Join-Path $staging "capabilities.json") -Force
 
+# Keep marketing site (Vercel public/) identical to workbench home UI
+Write-Host "Syncing public/index.html from local_app/app.html…"
+Copy-Item (Join-Path $root "local_app\app.html") (Join-Path $root "public\index.html") -Force
+Copy-Item (Join-Path $root "VERSION") (Join-Path $root "public\VERSION") -Force
+Copy-Item (Join-Path $root "local_app\app.html") (Join-Path $staging "public\index.html") -Force
+Copy-Item (Join-Path $root "VERSION") (Join-Path $staging "public\VERSION") -Force
+
 # WORKORDER_0.20 D — agent regression gate (same severity as privacy grep)
 # unittest writes progress to stderr; with ErrorActionPreference=Stop that
 # becomes a terminating NativeCommandError even when exit code is 0.

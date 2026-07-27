@@ -20,39 +20,21 @@ Do **not** commit `.env`, `local_app/projects.json`, or cache folders (see `.git
 
 ## Vercel (marketing site — [jrerikstad-arts](https://vercel.com/jrerikstad-arts))
 
-Static English landing in `public/`. The Python workbench is **not** deployed on Vercel.
+`public/index.html` is synced from `local_app/app.html` — same landing UI as
+`http://127.0.0.1:8766/`. Vercel has no Python engine; hub/projects fall back to
+marketing mode. Full product: `.\scripts\workbench.ps1`.
 
-### One-click import (recommended)
+```powershell
+Copy-Item local_app\app.html public\index.html -Force
+vercel --prod --yes
+```
 
-1. Open [Import Git Repository](https://vercel.com/new/import?s=https://github.com/jrerikstad-art/Foldok.com)
-2. Sign in with GitHub if prompted
-3. **Team:** `jrerikstad-arts` (or your personal scope)
-4. **Project name:** `foldok` or `foldok-com`
-5. Framework preset: **Other**
-6. Root Directory: **leave empty** (repo root)
-7. Build Command: **empty**
-8. Output Directory: **`public`** (also set in `vercel.json`)
-9. Deploy
-
-`vercel.json` at repo root sets `outputDirectory: public` so dashboard import should pick this up automatically.
+Import: [Foldok.com on Vercel](https://vercel.com/new/import?s=https://github.com/jrerikstad-art/Foldok.com)  
+Settings: Framework **Other**, Output Directory **`public`**, empty build command.
 
 ### Custom domain (optional)
 
-After first deploy: Project → Settings → Domains → add `foldok.com` / `www.foldok.com` and follow DNS instructions.
-
-### CLI (after `vercel login`)
-
-```powershell
-cd feltdok-engine
-vercel link --project foldok-com
-vercel --prod
-```
-
-Local preview:
-
-```powershell
-npx serve public
-```
+Project → Settings → Domains → add `foldok.com` / `www.foldok.com`.
 
 ## Local workbench (engine)
 The real product UI is the Python workbench (not Vercel):
