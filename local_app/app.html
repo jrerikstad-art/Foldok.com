@@ -1573,7 +1573,8 @@ function renderAccountHeader() {
     label = `${L("Gjest", "Guest")} · ${fmtMoney(a.account?.balance_eur)}`;
   }
   host.innerHTML = `<button type="button" class="acct-btn" id="acct-toggle" onclick="toggleAccountPanel(event)" aria-label="Account menu"><span class="acct-burger" aria-hidden="true">☰</span><span class="acct-label">${label}</span></button>`;
-  if (!BOOT?.key_set) {
+  // Marketing / Vercel has no local engine — don't imply a missing workbench key
+  if (!BOOT?.marketing && BOOT?.key_set === false) {
     host.innerHTML += ` <span style="font-size:11px;opacity:.7">· ${L("lokal nøkkel mangler", "local key missing")}</span>`;
   }
 }
