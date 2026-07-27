@@ -3,7 +3,25 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Foldok</title>
+<title>Foldok — engineering documentation OS</title>
+<meta name="description" content="Foldok turns project folders into complete technical documentation packages. Local-first. Index once, document many times. You confirm before anything is final. Diagrams, gaps, evidence, and delivery in one workspace." />
+<meta name="application-name" content="Foldok" />
+<meta property="og:title" content="Foldok — engineering documentation OS" />
+<meta property="og:description" content="Project folders in. Signable documentation out. Local-first documentation operating system for engineering packages." />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Foldok",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Windows, macOS, Linux",
+  "description": "Engineering documentation operating system. Project folders become structured, cited, deliverable packages. Local-first; human confirmation before formal claims.",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+  "softwareVersion": "0.73.0"
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -1206,7 +1224,54 @@
 </header>
 <div id="acct-panel" class="acct-panel" role="dialog" aria-label="Account"
      onclick="event.stopPropagation()"></div>
-<main id="main"></main>
+<main id="main">
+  <!-- Static shell for crawlers / fetchers (replaced by JS when boot() runs) -->
+  <article class="static-landing hub-shell" id="static-landing" style="max-width:960px;margin:0 auto;padding:28px 20px 80px">
+    <p style="font-family:IBM Plex Mono,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5A6472;margin:0 0 12px">Foldok · v0.73.0</p>
+    <h1 style="font-size:clamp(1.6rem,4vw,2.2rem);font-weight:900;letter-spacing:-0.03em;line-height:1.15;margin:0 0 14px">
+      Engineering documentation operating system
+    </h1>
+    <p style="font-size:17px;line-height:1.5;max-width:40em;margin:0 0 18px">
+      <strong>Foldok</strong> turns project folders into complete technical documentation packages.
+      Local-first. Sources stay on your machine. You confirm before anything is final.
+    </p>
+    <p style="font-size:15px;line-height:1.55;max-width:42em;color:#5A6472;margin:0 0 28px">
+      Not a chat app. Not a PM tool. Documentation is the primary workspace —
+      with knowledge, requirements, evidence, diagrams, and versioned delivery around it.
+    </p>
+
+    <h2 style="font-size:1.15rem;font-weight:800;margin:28px 0 10px">What it does</h2>
+    <ul style="margin:0;padding-left:1.2rem;line-height:1.6;max-width:40em">
+      <li><strong>Understand sources</strong> — connect a job folder; index photos, PDFs, drawings, notes.</li>
+      <li><strong>Build knowledge</strong> — facts and citations stay inspectable.</li>
+      <li><strong>Resolve gaps</strong> — missing evidence is listed with guided Fix / Link / Create / Ignore actions.</li>
+      <li><strong>Edit documents</strong> — structured sections, figures, and system diagrams in the workbench.</li>
+      <li><strong>Deliver</strong> — versioned packages (PDF / ZIP) with a clear claim boundary: structural profiles, not legal certification.</li>
+    </ul>
+
+    <h2 style="font-size:1.15rem;font-weight:800;margin:28px 0 10px">Surfaces</h2>
+    <p style="margin:0 0 8px;max-width:42em">Documents · Diagrams · Requirements · Sources · Compiler · Compliance · Deliver · Assets</p>
+
+    <h2 style="font-size:1.15rem;font-weight:800;margin:28px 0 10px">Run locally</h2>
+    <pre style="background:#fff;border:1px solid #DCD9D0;padding:14px 16px;font-family:IBM Plex Mono,monospace;font-size:12px;overflow:auto;max-width:42em">git clone https://github.com/jrerikstad-art/Foldok.com.git
+cd Foldok.com
+copy .env.example .env
+.\scripts\workbench.ps1
+# → http://127.0.0.1:8766/</pre>
+
+    <p style="margin:24px 0 0;font-size:13px;color:#5A6472">
+      Source: <a href="https://github.com/jrerikstad-art/Foldok.com">github.com/jrerikstad-art/Foldok.com</a>
+      · Releases: <a href="https://github.com/jrerikstad-art/Foldok.com/releases">v0.72.0</a>,
+      <a href="https://github.com/jrerikstad-art/Foldok.com/releases">v0.73.0</a>
+      · Claim boundary: structural profiles and evidence completeness — never “certified to …”
+    </p>
+    <noscript>
+      <p style="margin-top:20px;padding:12px;border:1px solid #C74E19;background:#FDF0E8">
+        JavaScript is required for the interactive workbench. This page still describes Foldok without it.
+      </p>
+    </noscript>
+  </article>
+</main>
 
 <script>
 let BOOT = null, POLL = null, ACTIVE_DOC = null, LAST_PID = null, PROJECT = null;
