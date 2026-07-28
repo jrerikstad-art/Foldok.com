@@ -7,6 +7,12 @@ Versioning rules (semver, honestly applied):
   Templates carry their own `version` field (already in schema).
   The zip filename always carries the version: foldok-engine-vX.Y.Z.zip.
 
+## 0.78.0 — Capture bridge (foldok_capture)
+- Vendored `foldok_capture` for Capture app folder-bridge integration (`.foldok/capture_tasks.json`, `binding.json`, `*.foldok.json` sidecars)
+- Includes desktop publish/ingest flow: no guessing, checksum verification, idempotent gap closure
+- Privacy defaults preserved (`may_leave: false`, location optional); ingest reports unlinked/missing/tampered evidence
+- 24 package tests green
+
 ## 0.77.0 — Signals package (content-free telemetry)
 - Vendored `foldok_signals` — strict event vocabulary (counters + fixed codes only), no free-text fields
 - Local-first consent flow: always record locally; consent gates sending; revoke purges log + install id
