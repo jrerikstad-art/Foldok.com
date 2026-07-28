@@ -2515,6 +2515,21 @@ class Handler(BaseHTTPRequestHandler):
                                   "text/plain; charset=utf-8")
             return self._send(404, "missing\n", "text/plain; charset=utf-8")
 
+        # Brand favicon (Foldok mark […]) — files live in public/
+        favicon_map = {
+            "/favicon.ico": ("favicon.ico", "image/x-icon"),
+            "/favicon.svg": ("favicon.svg", "image/svg+xml"),
+            "/favicon-16.png": ("favicon-16.png", "image/png"),
+            "/favicon-32.png": ("favicon-32.png", "image/png"),
+            "/apple-touch-icon.png": ("apple-touch-icon.png", "image/png"),
+        }
+        if path in favicon_map:
+            name, ctype = favicon_map[path]
+            fav = ROOT / "public" / name
+            if fav.exists():
+                return self._send(200, fav.read_bytes(), ctype)
+            return self._send(404, b"missing", "text/plain; charset=utf-8")
+
         if path == "/site-meta.json":
             meta_path = ROOT / "site-meta.json"
             if meta_path.exists():
