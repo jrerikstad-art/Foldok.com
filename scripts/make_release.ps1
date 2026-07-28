@@ -55,7 +55,8 @@ $grepRoots = @(
   (Join-Path $staging "foldok_diagram"),
   (Join-Path $staging "foldok_boxes"),
   (Join-Path $staging "foldok_assets"),
-  (Join-Path $staging "foldok_private")
+  (Join-Path $staging "foldok_private"),
+  (Join-Path $staging "foldok_signals")
 )
 $grepFiles = @()
 foreach ($dir in $grepRoots) {

@@ -7,6 +7,13 @@ Versioning rules (semver, honestly applied):
   Templates carry their own `version` field (already in schema).
   The zip filename always carries the version: foldok-engine-vX.Y.Z.zip.
 
+## 0.77.0 — Signals package (content-free telemetry)
+- Vendored `foldok_signals` — strict event vocabulary (counters + fixed codes only), no free-text fields
+- Local-first consent flow: always record locally; consent gates sending; revoke purges log + install id
+- Funnel and refusal analytics for actionable drop-off diagnosis without content leakage
+- Feedback preview + export safety boundaries aligned with `foldok_private`
+- 32 package tests green
+
 ## 0.76.0 — Private calls hardened (policy + at-rest)
 - Updated `foldok_private` — Policy returns renderable `Decision` (allowed / needs_approval / blocked)
 - Findings language flagged for human judgement (masking ≠ findings protection)
