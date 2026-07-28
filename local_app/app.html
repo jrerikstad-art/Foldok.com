@@ -3488,6 +3488,13 @@ async function renderProject(id) {
               : ""}
             <span class="mono" style="font-size:10.5px;color:var(--steel)">Hurtigscan lister filer uten kostnad · full indeks kjører i biter</span>
           </div>
+          <div class="src-pick-bar" style="margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;flex-wrap:wrap">
+            <span class="mono" style="font-size:10.5px;color:var(--steel);margin-right:6px">${L("Capture-app", "Capture app")}</span>
+            <button type="button" class="btn ghost" onclick="captureBind('${id}')">${L("Bind mappe", "Bind folder")}</button>
+            <button type="button" class="btn ghost" onclick="capturePublish('${id}')">${L("Publiser foto-oppgaver", "Publish photo tasks")}</button>
+            <button type="button" class="btn" onclick="captureIngest('${id}')">${L("Importer sidecars", "Ingest sidecars")}</button>
+            <span class="mono" style="font-size:10.5px;color:var(--steel)">${captureStatusMeta(p)}</span>
+          </div>
           <div id="prog-index"></div>
         </details>
       </div>
@@ -3775,6 +3782,17 @@ function emptyArtifactSeed(p) {
 
 function projectHasIndexedSources(p) {
   return (p?.files || []).some(f => f.indexed && f.kind !== "skipped");
+}
+
+function captureStatusMeta(p) {
+  const c = p?.capture;
+  if (!c) return L("Krever prosjektmappe", "Needs project folder");
+  if (c.error) return esc(c.error);
+  const parts = [];
+  parts.push(c.bound ? L("bundet", "bound") : L("ikke bundet", "not bound"));
+  if (c.open_task_count) parts.push(`${c.open_task_count} ${L("oppgaver", "tasks")}`);
+  if (c.tasks_stale) parts.push(L("liste kan være gammel", "list may be stale"));
+  return parts.join(" · ");
 }
 
 function artifactHTML(p, opts) {
@@ -4503,6 +4521,44 @@ async function scanSources(id) {
     const b = $("#btn-scan");
     if (b) { b.disabled = false; b.textContent = "Hurtigscan"; }
   }
+}
+
+async function captureBind(id) {
+  try {
+    await api("/api/capture/bind", { method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ id }) });
+    showToast(L("Capture-mappe bundet (.foldok/binding.json)", "Capture folder bound (.foldok/binding.json)"));
+    await renderProject(id);
+  } catch (e) { alert(e.message); }
+}
+
+async function capturePublish(id) {
+  try {
+    const r = await api("/api/capture/publish", { method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ id }) });
+    const n = r.open_tasks || 0;
+    showToast(n
+      ? L(`${n} foto-oppgaver publisert til Capture`, `${n} photo tasks published for Capture`)
+      : L("Ingen åpne foto-mangler", "No open photo gaps"));
+    await renderProject(id);
+  } catch (e) { alert(e.message); }
+}
+
+async function captureIngest(id) {
+  try {
+    const r = await api("/api/capture/ingest", { method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ id }) });
+    const n = (r.resolved || []).length;
+    if (n) {
+      showToast(L(`${n} mangler lukket fra sidecars`, `${n} gaps closed from sidecars`));
+    } else if ((r.issues || []).length) {
+      showToast(L("Ingen nye lukninger — se rapport", "No new closures — see report"));
+      console.log("capture ingest", r.summary || r);
+    } else {
+      showToast(L("Ingen nye sidecars", "No new sidecars"));
+    }
+    await renderProject(id);
+  } catch (e) { alert(e.message); }
 }
 
 async function startIndexSelected(id) {

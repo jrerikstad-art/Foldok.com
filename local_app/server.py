@@ -629,6 +629,18 @@ def project_state_save(p, state, folder=None):
         pio.save_memory_state(p.get("id") or "", state)
 
 
+def capture_status_for_folder(folder):
+    """Read-only Capture bridge status from project folder (.foldok/*)."""
+    if folder is None or not Path(folder).is_dir():
+        return None
+    try:
+        from local_app import capture_bridge as cbr
+
+        return cbr.capture_status(folder)
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
 def create_folderless_project(name, template_file=None, *, output_format="pdf"):
     template = load_template(template_file) if template_file else None
     import template_lifecycle as tl
@@ -2542,6 +2554,15 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._send(500, {"error": str(e)})
 
+        if path == "/api/capture/status":
+            p = get_project(params.get("id", ""))
+            if not p:
+                return self._send(404, {"error": "unknown project"})
+            folder = primary_folder(p)
+            if folder is None or not folder.is_dir():
+                return self._send(400, {"error": "Capture bridge requires a project folder"})
+            return self._send(200, capture_status_for_folder(folder))
+
         if path == "/electrical-dummy.html":
             self.send_response(302)
             self.send_header("Location", "/diagram.html")
@@ -2787,6 +2808,7 @@ class Handler(BaseHTTPRequestHandler):
                     "draft_exists": bool(documents),
                     "complete": False,
                     "product_repo_warn": False,
+                    "capture": None,
                 })
             missing = [f for f in folders if not Path(f).is_dir()]
             if missing:
@@ -2919,7 +2941,8 @@ class Handler(BaseHTTPRequestHandler):
                                     "draft_exists": bool(documents) or (Path(folders[0]) / "draft.md").exists(),
                                     "complete": gap_sum["blocking"] == 0 and gap_sum.get("warning", 0) == 0
                                                 and bool(state.get("doc")),
-                                    "product_repo_warn": product_repo_warn})
+                                    "product_repo_warn": product_repo_warn,
+                                    "capture": capture_status_for_folder(folders[0])})
 
         if path == "/api/job":
             jid = params.get("id", "")
@@ -3216,6 +3239,30 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(404, {"error": "unknown session"})
             except ValueError as e:
                 return self._send(400, {"error": str(e)})
+            except Exception as e:
+                return self._send(500, {"error": str(e)})
+
+        # ── Capture app folder bridge (foldok_capture) ─────────────────
+        if path in ("/api/capture/bind", "/api/capture/publish", "/api/capture/ingest"):
+            pid = _pid(body) or body.get("id", "")
+            p = get_project(pid)
+            if not p:
+                return self._send(404, {"error": "unknown project"})
+            folder = primary_folder(p)
+            if folder is None or not folder.is_dir():
+                return self._send(400, {"error": "Capture bridge requires a project folder"})
+            try:
+                from local_app import capture_bridge as cbr
+
+                state, folder = project_state_load(p)
+                if path == "/api/capture/bind":
+                    result = cbr.capture_bind(folder, p, state)
+                elif path == "/api/capture/publish":
+                    result = cbr.capture_publish(folder, p, state)
+                else:
+                    result = cbr.capture_ingest(folder, p, state, by=body.get("by") or "")
+                project_state_save(p, state, folder)
+                return self._send(200, result)
             except Exception as e:
                 return self._send(500, {"error": str(e)})
 
