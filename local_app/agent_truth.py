@@ -129,15 +129,19 @@ def checklist_created_reply(path: str, *, n_items: int = 0,
 def honest_fallback(lang: str = "no") -> str:
     if lang == "en":
         return (
-            "I don't have a tool for that — here is what I CAN do: quote "
-            "«Indexed as: …» from the index, add a BOM row with an image "
-            "reference after a confirmed part ID, or scan Bilder/ for "
-            "components (~€)."
+            "I couldn't finish that as claimed — here is what I CAN do: draw a "
+            "wiring / interconnection diagram into the document (tell me what "
+            "connects to what), quote «Indexed as: …» from the index, add a BOM "
+            "row with an image reference after a confirmed part ID, or scan "
+            "Bilder/ for components (~€). I don't have tools that silently rewrite "
+            "source files or templates."
         )
     return (
-        "Jeg har ikke verktøy for dette — her er hva jeg KAN gjøre: sitere "
-        "«Indeksert som: …» fra indeksen, legge en BOM-rad med bildereferanse "
-        "etter bekreftet del-ID, eller skanne Bilder/ for komponenter (~€)."
+        "Jeg fikk ikke fullført det slik det ble sagt — her er hva jeg KAN gjøre: "
+        "tegne koblingsskjema inn i dokumentet (si hva som kobles til hva), "
+        "sitere «Indeksert som: …» fra indeksen, legge en BOM-rad med "
+        "bildereferanse etter bekreftet del-ID, eller skanne Bilder/ for "
+        "komponenter (~€). Jeg har ikke verktøy som stille omskriver kilder eller maler."
     )
 
 

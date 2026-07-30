@@ -1,17 +1,17 @@
 {
   "template_key": "topic_brief",
-  "name": "Topic Brief — Cited Q&A Pack",
-  "name_no": "Temabrief — sitert spørsmål/svar",
-  "description": "Question-driven brief: suggested or user questions → retrieve chunks → ground → author → verify. Thin shell only — no industry facet packs. Citations + MANGLER/gaps when coverage is weak.",
+  "name": "Topic Brief — Cited Document",
+  "name_no": "Temabrief — sitert dokument",
+  "description": "Document-first brief: plan outline from intent + corpus → retrieve → ground → author prose → validate cites. Sources as appendix; gaps honest. Not a findings dump.",
   "applies_to": ["specification", "source_library", "general"],
-  "version": 2,
+  "version": 3,
   "language_default": "no",
   "export_price_tier": "standard",
   "sections": [
     {
       "section_key": "overview",
-      "title": "Scope & corpus",
-      "title_no": "Omfang og korpus",
+      "title": "Introduction",
+      "title_no": "Innledning",
       "position": 1,
       "required": true,
       "gap_severity": "warning",
@@ -19,45 +19,46 @@
       "required_media": {},
       "required_content": ["no_uncited_specs"],
       "writing_rules": { "voice": "descriptive", "structure": "prose", "fact_citation": "required" },
-      "notes": "answer(Hva er dette korpuset?) — grounded only."
+      "notes": "3–5 sentence framing from overview chunks; file count as footnote only."
     },
     {
       "section_key": "answers",
-      "title": "Topic answers",
-      "title_no": "Temasvar",
+      "title": "Body",
+      "title_no": "Innhold",
       "position": 2,
       "required": true,
       "gap_severity": "warning",
       "required_facts": [],
       "required_media": {},
       "required_content": ["no_uncited_specs"],
-      "writing_rules": { "structure": "mixed", "fact_citation": "required" },
-      "notes": "One subsection per confirmed question from suggest_questions / user."
+      "writing_rules": { "structure": "prose", "fact_citation": "required" },
+      "notes": "Teaching sections + standards (id — role + [n]). No findings table as body."
     },
     {
       "section_key": "gaps",
-      "title": "Gaps & conflicts",
-      "title_no": "Mangler og konflikter",
+      "title": "Open points",
+      "title_no": "Åpne punkter",
       "position": 3,
       "required": true,
       "gap_severity": "warning",
       "required_facts": [],
       "required_media": {},
       "required_content": [],
-      "writing_rules": { "structure": "table", "fact_citation": "required" }
+      "writing_rules": { "structure": "prose", "fact_citation": "optional" },
+      "notes": "Short honest gaps — not the personality of the document."
     },
     {
       "section_key": "source_register",
-      "title": "Source register",
-      "title_no": "Kilderegister",
+      "title": "Sources",
+      "title_no": "Kilder",
       "position": 4,
       "required": true,
       "gap_severity": "info",
       "required_facts": [],
       "required_media": {},
-      "required_content": ["table_format"],
-      "writing_rules": { "structure": "table", "fact_citation": "required" },
-      "notes": "Union of cited files from answers — not full graph dump."
+      "required_content": [],
+      "writing_rules": { "structure": "list", "fact_citation": "required" },
+      "notes": "[n] appendix of cited files — not the essay."
     }
   ]
 }

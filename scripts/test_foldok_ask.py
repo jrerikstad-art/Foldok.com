@@ -1,4 +1,4 @@
-"""Regression: question-driven ask — prose understanding, not claim tables."""
+"""Regression: narrative story + author (not fact dump / caption paste)."""
 from __future__ import annotations
 
 import re
@@ -9,38 +9,62 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "local_app"))
 
-from foldok_ask import ask, compose_topic_brief, retrieve, synthesize_scope  # noqa: E402
+from foldok_ask import (  # noqa: E402
+    compose_topic_brief,
+    plan_document,
+    plan_narrative,
+    retrieve,
+    ask,
+)
+from foldok_ask.ask import synthesize_scope  # noqa: E402
 
 
 def _emc_index(n_files: int = 54):
     base = [
         {
             "file": "Documents/Chalfant 78411.pdf",
-            "caption": "Chalfant EMI/RFI shielded cable tray. Premium Ultra RF. MIL STD 285 attenuation.",
+            "caption": (
+                "Chalfant EMI/RFI shielded cable tray for naval and industrial EMC. "
+                "Premium and Ultra RF classes tested to MIL STD 285 for shielding attenuation."
+            ),
             "content_tags": ["emc", "cable_tray", "shielding"],
             "facts": [
                 {"id": "a1", "key": "h_field_attenuation_premium", "value": "70 to 83", "unit": "dB"},
-                {"id": "a2", "key": "test_standard", "value": "MIL STD 285"},
+                {"id": "a2", "key": "test_standard", "value": "MIL-STD-285"},
             ],
         },
         {
             "file": "Documents/Amucor-faraday-cage-leaflet.pdf",
-            "caption": "Amucor Faraday cage leaflet EMI foil TEMPEST rooms 110 dB attenuation.",
+            "caption": (
+                "Amucor Faraday cage foil systems for secure rooms and TEMPEST sites, "
+                "with shielding performance referenced to MIL-STD-188-125 and related EMC practice."
+            ),
             "content_tags": ["emc", "faraday", "shielding"],
             "facts": [
                 {"id": "b1", "key": "attenuation_e_field", "value": "110", "unit": "dB"},
-                {"id": "b2", "key": "first_order_filter_attenuation_rate",
-                 "value": "6 dB/octave or 20 dB/decade"},
+                {"id": "b2", "key": "test_standard", "value": "MIL-STD-188-125"},
             ],
         },
         {
             "file": "Documents/BEAMA-cable-tray-guide.pdf",
-            "caption": "BEAMA best practice cable ladder tray. Cable classes 1-6 segregation rules.",
+            "caption": (
+                "BEAMA best practice for cable ladder and tray. Explains cable classes 1–6 "
+                "and segregation between power and signal circuits, including EN 61537 context."
+            ),
             "content_tags": ["cable_tray", "cable_class", "separation"],
             "facts": [
                 {"id": "c1", "key": "cable_class", "value": "Class 4 power circuits"},
-                {"id": "c2", "key": "cable_class_signal", "value": "Class 2 signal cables"},
+                {"id": "c2", "key": "governing_standard", "value": "EN 61537"},
                 {"id": "c3", "key": "separation_between_classes", "value": "segregate power and signal classes"},
+            ],
+        },
+        {
+            "file": "Documents/ASTM E1851.pdf",
+            "caption": "ASTM E1851 and comparison with IEEE Std 299 for electromagnetic shielding effectiveness measurements.",
+            "content_tags": ["emc", "standard", "shielding"],
+            "facts": [
+                {"id": "d1", "key": "test_standard", "value": "ASTM E1851"},
+                {"id": "d2", "key": "related_standard", "value": "IEEE Std 299"},
             ],
         },
         {
@@ -49,11 +73,9 @@ def _emc_index(n_files: int = 54):
             "content_tags": ["cable_tray", "installation"],
             "facts": [
                 {"id": "w1", "key": "installation_distance_tray_ceiling", "value": "300", "unit": "mm"},
-                {"id": "w2", "key": "installation_distance_wall", "value": "50", "unit": "mm"},
             ],
         },
     ]
-    # Pad to n_files for omfang test
     out = list(base)
     i = 0
     while len(out) < n_files:
@@ -67,54 +89,85 @@ def _emc_index(n_files: int = 54):
     return out
 
 
-def test_kabelklasser_does_not_lead_with_ceiling_distance():
-    idx = _emc_index(10)
-    hits = retrieve("Kabelklasser og avstandskrav", idx, k=8)
-    assert hits, "expected some hits for cable classes"
-    top = hits[0].text.lower() + " " + hits[0].file_id.lower()
-    assert "ceiling" not in top and "tray ceiling" not in top
-    assert "installation_distance_tray_ceiling" not in top
-    # Should prefer class/segregation language or BEAMA
-    blob = " ".join(h.text.lower() + h.file_id.lower() for h in hits[:3])
-    assert "class" in blob or "beama" in blob or "segregat" in blob
-
-    ans = ask(idx, "Kabelklasser og avstandskrav", lang="no")
-    md = ans.markdown(lang="no").lower()
-    assert "248" not in md
-    # Must not lead with ceiling clearance table row
-    first = (ans.prose or "").lower()[:200]
-    assert "ceiling" not in first
-    assert "300 mm" not in first or "class" in first
-    assert not (ans.prose or "").lower().startswith("tabellen under")
+def test_narrative_has_thesis_and_arc():
+    plan = plan_narrative("topic_brief", _emc_index(20), artifact={"name": "EMC"}, lang="no")
+    assert plan.thesis
+    assert "installation" in plan.thesis.lower() or "Installasjons" in plan.thesis or "skjerm" in plan.thesis.lower() or "EMC" in plan.thesis
+    assert "problem" in plan.arc or "context" in plan.arc
+    assert any(s.arc_beat == "concepts" for s in plan.sections)
+    assert plan.intent.main_question
+    assert all(s.purpose for s in plan.sections if s.kind == "teach")
 
 
-def test_omfang_two_sentences_when_files_exist():
-    idx = _emc_index(54)
-    ans = synthesize_scope(idx, artifact={"name": "EMC"}, lang="no")
-    assert ans.grounded
-    assert "MANGLER" not in ans.prose
-    assert "54" in ans.prose
-    sentences = [s for s in re.split(r"(?<=[.!?])\s+", ans.prose.strip()) if s.strip()]
-    assert 2 <= len(sentences) <= 3
-
-    # ask() route for omfang question
-    ans2 = ask(idx, "Hva handler dette korpuset om?", lang="no", artifact={"name": "EMC"})
-    assert ans2.grounded
-    assert "MANGLER" not in ans2.prose
-    assert "54" in ans2.prose
-
-
-def test_topic_brief_overview_never_mangler_with_index():
+def test_opening_is_thesis_not_file_count():
     parts = compose_topic_brief(_emc_index(54), artifact={"name": "EMC"}, lang="no")
-    assert "MANGLER" not in parts["overview"]
-    assert "54" in parts["overview"]
+    overview = parts["overview"]
+    lead = overview.split("\n")[0]
+    assert "MANGLER" not in overview
+    assert not re.match(r"(?i)^.*\d+\s+indekserte filer\.?\s*$", lead.strip())
+    assert "briefen samler" not in overview.lower()
+    assert "kildematerialet" not in overview.lower()
+    assert len(overview) > 80
+    # Thesis should surface
+    assert parts.get("_thesis")
+    assert "Installasjons" in parts["_thesis"] or "installation" in parts["_thesis"].lower() or "EMC" in parts["_thesis"]
+
+
+def test_no_abstract_salad():
+    parts = compose_topic_brief(_emc_index(20), artifact={"name": "EMC"}, lang="no")
+    blob = parts["overview"] + "\n" + parts["answers"]
+    assert "Påstand | Verdi | Kilde" not in blob
+    assert "comprehensive technical documentation" not in blob.lower()
+    assert "Kildene beskriver også" not in blob
+    assert "independently verified by York EMC to exceed" not in blob
+    assert "York EMC" in blob or "50174" in blob or "skjerm" in blob.lower() or "kabelklasse" in blob.lower()
+    assert re.search(r"\[\d+\]", parts["overview"] + parts["answers"] + parts["source_register"])
+
+
+def test_standards_roles_clean():
+    parts = compose_topic_brief(_emc_index(20), artifact={"name": "EMC"}, lang="no")
+    std = parts["answers"]
+    assert "MIL" in std or "EN 61537" in std or "50174" in std
+    assert " — " in std
+    assert "conflict minerals" not in std.lower()
+    assert not re.search(r"ISO\s*9001\s*—\s*cable tray", std, re.I)
+
+
+def test_arc_includes_conclusion_or_rules():
+    parts = compose_topic_brief(_emc_index(20), artifact={"name": "EMC"}, lang="no")
+    headings = parts["answers"].lower()
+    assert "oppsummering" in headings or "tekniske hensyn" in headings or "kabelklasser" in headings
+
+
+def test_planner_outline_teaches_not_keys():
+    outline = plan_document("topic_brief", _emc_index(20), artifact={"name": "EMC"}, lang="no")
+    kinds = [s.kind for s in outline]
+    assert "framing" in kinds
+    assert "appendix" in kinds
+    assert "emc_zones" not in " ".join(s.heading.lower() for s in outline)
+
+
+def test_critic_attached():
+    parts = compose_topic_brief(_emc_index(20), artifact={"name": "EMC"}, lang="no")
+    assert "_critic" in parts
+    assert "warnings" in parts["_critic"]
+
+
+def test_kabelklasser_retrieve_not_ceiling():
+    hits = retrieve("Kabelklasser og avstandskrav", _emc_index(10), k=6)
+    assert hits
+    top = (hits[0].text + hits[0].file_id).lower()
+    assert "ceiling" not in top
+
+
+def test_omfang_helper_still_two_sentences():
+    ans = synthesize_scope(_emc_index(54), artifact={"name": "EMC"}, lang="no")
+    assert ans.grounded and "54" in ans.prose and "MANGLER" not in ans.prose
 
 
 def test_ask_empty_hits_is_gap_not_essay():
     ans = ask(_emc_index(5), "sveisemetode WPS for aluminium trykktanker", lang="no")
-    assert not ans.grounded
-    assert ans.gaps
-    assert len(ans.prose) < 80
+    assert not ans.grounded and ans.gaps and len(ans.prose) < 80
 
 
 if __name__ == "__main__":

@@ -537,7 +537,7 @@
   .mangler-pop details.more-ways summary { cursor:pointer; color:var(--steel); font-weight:600; padding:4px 0; }
   .cited { font-family:"IBM Plex Mono",monospace; font-size:11.5px; font-weight:700; background:var(--factbg); color:var(--fact); padding:2px 8px; border-radius:4px; cursor:help; }
   .dismissed-note { font-size:12px; color:var(--steel); font-style:italic; }
-  .toast { position:fixed; bottom:24px; right:24px; background:var(--ink); color:#fff; padding:14px 18px; border-radius:10px; font-size:13px; z-index:200; max-width:360px; }
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--ink); color:#fff; padding:14px 18px; border-radius:10px; font-size:13px; z-index:200; max-width:360px; display:none; transition:opacity .2s ease; box-shadow:0 8px 28px rgba(0,0,0,.22); }
   .locked-token { font-family:"IBM Plex Mono",monospace; background:#EEE; color:var(--gap); padding:1px 6px; border-radius:4px; }
   /* Editor: left workspace (menu + rail + doc) | right clean chat */
   .editor-shell {
@@ -1775,6 +1775,28 @@ function fmtMoney(eurAmount, opts = {}) {
 }
 
 function fmtEur(n) { return fmtMoney(n); }
+
+/** Transient bottom-right notice (CSS: .toast). Safe no-op if DOM not ready. */
+function showToast(msg, ms = 3200) {
+  const text = String(msg == null ? "" : msg).trim();
+  if (!text) return;
+  let el = document.getElementById("foldok-toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "foldok-toast";
+    el.className = "toast";
+    el.setAttribute("role", "status");
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.style.display = "block";
+  el.style.opacity = "1";
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => {
+    el.style.opacity = "0";
+    setTimeout(() => { if (el) el.style.display = "none"; }, 200);
+  }, ms);
+}
 
 function moneyRange(loEur, hiEur) {
   if (hiEur == null || hiEur === loEur) return fmtMoney(loEur);

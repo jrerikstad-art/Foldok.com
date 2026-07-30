@@ -1,6 +1,7 @@
-"""Topic brief — thin shell over foldok_ask (question-driven).
+"""Topic brief — document-first shell over foldok_ask.
 
-No EMC facet allowlists. Sections are composed from ask() answers.
+Plan outline → author prose with [n] cites → gaps + source appendix.
+No EMC facet allowlists.
 """
 from __future__ import annotations
 

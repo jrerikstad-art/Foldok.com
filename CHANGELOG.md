@@ -7,6 +7,23 @@ Versioning rules (semver, honestly applied):
   Templates carry their own `version` field (already in schema).
   The zip filename always carries the version: foldok-engine-vX.Y.Z.zip.
 
+## 0.90.0 — Engineering story (Narrative → Author → Evidence)
+- **Narrative layer** (`narrative.py`): DocumentIntent + thesis + arc + section purposes
+- Author writes **to purpose**; consumes **short claims**, paraphrases (NO) — not PDF abstracts
+- One body cite per file; purpose fidelity gate (classes/zones → gap if only brochure blurbs)
+- Standards: clean id — role table; drop ISO-quality / truncated garbage roles
+- Honest **Åpne punkter** when thesis promised zones/classes but retrieve did not deliver
+- Lead = thesis-led framing; file count footnote; lightweight Document Critic
+- Fix: `showToast` defined in workbench (export no longer throws)
+- Regression: no abstract salad; no findings-table body; standards roles clean
+
+## 0.86.0 — Document-first topic brief (planner + author)
+- **Document Planner** outlines from intent + corpus sketch (what to teach), not fact-key inventory
+- **Technical Author** writes framing lead + section prose with `[n]` cites; **no findings-table body**
+- **Standards** as `id — role` + cite; sources as appendix; gaps short and honest
+- File count is a footnote — opening paragraph orients the human
+- Regression: opening ≠ only “N indekserte filer”; standards ≠ bare `.pdf` names; no `Påstand | Verdi | Kilde`
+
 ## 0.85.0 — Ask understanding (prose, not claim tables)
 - Retrieve → **answer-relevance rerank** → drop weak / install-clearance hijacks
 - Synthesize short **cited prose** from top chunks; tables only if a structured list is in sources
