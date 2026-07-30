@@ -388,14 +388,35 @@ def chat_turn_extras(message, index, artifact, file_count=None):
     open_ended = edchat.is_open_ended_create(message)
     # Rough generate estimate: ~€0.022–0.04 per section × typical 8–10
     estimate_eur = 0.22
+    ask_block = ""
+    ask_answer = None
+    try:
+        from foldok_ask import ask as foldok_ask_fn
+        msg = (message or "").strip()
+        # Substantive topic questions → grounded ask() (not full-graph dump)
+        if len(msg) >= 8 and not open_ended and "?" not in msg[:2]:
+            looks_q = bool(re.search(
+                r"(?i)\b(hva|hvordan|hvilke|soner?|jording|kabel|klasse|emc|avstand|"
+                r"what|how|which|zone|earth|cable|class|shield)\b", msg
+            )) or msg.endswith("?")
+            if looks_q:
+                ask_answer = foldok_ask_fn(index, msg, lang="no", k=8)
+                ask_block = (
+                    "GROUNDED ASK (retrieve→ground→author — cite only these files):\n"
+                    + ask_answer.markdown(lang="no")[:2500]
+                )
+    except Exception as e:
+        print(f"[ask] chat extras skipped: {e}", flush=True)
     return {
         "corpus_brief": brief,
         "known_block": (
             f"ALREADY KNOWN FROM INDEX (zero-token search — state these, do not re-ask):\n{known}"
+            + (f"\n\n{ask_block}" if ask_block else "")
         ),
         "open_ended": open_ended,
         "estimate_eur": estimate_eur,
         "policy": edchat.CHAT_AGENT_POLICY,
+        "ask_answer": ask_answer.to_dict() if ask_answer else None,
     }
 
 
@@ -5274,6 +5295,45 @@ class Handler(BaseHTTPRequestHandler):
                 "badge": "Egen mal",
                 "name_no": owned.get("name_no"),
             })
+
+        if path == "/api/ask":
+            # Question-driven retrieve → ground → author → verify (no full-graph fill)
+            p = get_project(body.get("id") or body.get("project_id") or "")
+            if not p:
+                return self._send(404, {"error": "unknown project"})
+            folders = list(p.get("folders") or [])
+            if not folders or not Path(folders[0]).is_dir():
+                return self._send(400, {"error": "Prosjektet mangler mappe"})
+            qtext = (body.get("question") or body.get("q") or "").strip()
+            if not qtext:
+                return self._send(400, {"error": "question mangler"})
+            lang = body.get("lang") or "no"
+            index = load_index(
+                folders, lang, load_state(folders[0]).get("user_facts"),
+                project_name=p.get("name") or Path(folders[0]).name,
+                cache_only=True,
+            )
+            from foldok_ask import ask as foldok_ask_fn
+            answer = foldok_ask_fn(index, qtext, lang=lang, k=int(body.get("k") or 12))
+            return self._send(200, {"ok": True, "answer": answer.to_dict(),
+                                   "markdown": answer.markdown(lang=lang)})
+
+        if path == "/api/ask/suggest":
+            p = get_project(body.get("id") or body.get("project_id") or "")
+            if not p:
+                return self._send(404, {"error": "unknown project"})
+            folders = list(p.get("folders") or [])
+            if not folders or not Path(folders[0]).is_dir():
+                return self._send(400, {"error": "Prosjektet mangler mappe"})
+            lang = body.get("lang") or "no"
+            index = load_index(
+                folders, lang, load_state(folders[0]).get("user_facts"),
+                project_name=p.get("name") or Path(folders[0]).name,
+                cache_only=True,
+            )
+            from foldok_ask import suggest_questions
+            qs = suggest_questions(index, lang=lang, limit=int(body.get("limit") or 5))
+            return self._send(200, {"ok": True, "questions": [q.to_dict() for q in qs]})
 
         if path == "/api/generate":
             p = get_project(body.get("id", ""))

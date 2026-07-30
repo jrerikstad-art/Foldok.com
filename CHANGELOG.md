@@ -7,6 +7,19 @@ Versioning rules (semver, honestly applied):
   Templates carry their own `version` field (already in schema).
   The zip filename always carries the version: foldok-engine-vX.Y.Z.zip.
 
+## 0.85.0 — Ask understanding (prose, not claim tables)
+- Retrieve → **answer-relevance rerank** → drop weak / install-clearance hijacks
+- Synthesize short **cited prose** from top chunks; tables only if a structured list is in sources
+- Omfang from file count + tags — **never MANGLER** when index is non-empty
+- Regression: “kabelklasser” does not lead with tray-to-ceiling 300 mm; omfang = 2 sentences for 54 files
+
+## 0.84.0 — Ask the project (question-driven briefs)
+- New `foldok_ask`: Question → retrieve chunks → ground → AuthoringEngine → verify → Answer
+- `topic_brief` is now a **thin shell** over ask results (omfang, temasvar, gaps, kilderegister) — **no EMC facet section engine**
+- Suggested questions are retrieval probes from tags/filenames, not schema keys
+- APIs: `POST /api/ask`, `POST /api/ask/suggest`; chat extras use grounded ask for topic questions
+- Regression: “kabelklasser” hits cable-class chunks, not Faraday brochure by default; empty retrieve → gap, not essay
+
 ## 0.83.0 — Topic brief (cited packs) + corpus router
 - **North star:** default output for EMC/spec libraries is a **cited topic brief**, not a hollow research report
 - New template `topic_brief` — zones, cable classes, earthing, standards register, gaps, sources

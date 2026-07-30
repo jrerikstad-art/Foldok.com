@@ -1,10 +1,10 @@
 {
   "template_key": "topic_brief",
-  "name": "Topic Brief — Cited Engineering Pack",
-  "name_no": "Temabrief — sitert fagpakke",
-  "description": "NotebookLM-style topic pack from a source library: zones, cable classes, earthing, separation, standards. Every claim cites a file. MANGLER only where the corpus is silent. Not a research report; not a fact wall.",
-  "applies_to": ["specification", "source_library", "emc", "standards_pack"],
-  "version": 1,
+  "name": "Topic Brief — Cited Q&A Pack",
+  "name_no": "Temabrief — sitert spørsmål/svar",
+  "description": "Question-driven brief: suggested or user questions → retrieve chunks → ground → author → verify. Thin shell only — no industry facet packs. Citations + MANGLER/gaps when coverage is weak.",
+  "applies_to": ["specification", "source_library", "general"],
+  "version": 2,
   "language_default": "no",
   "export_price_tier": "standard",
   "sections": [
@@ -18,85 +18,46 @@
       "required_facts": [],
       "required_media": {},
       "required_content": ["no_uncited_specs"],
-      "writing_rules": { "voice": "descriptive", "structure": "prose", "max_words": 180, "fact_citation": "required" },
-      "notes": "Short system summary from captions/tags. No product phone/email. Cite file count and dominant themes."
+      "writing_rules": { "voice": "descriptive", "structure": "prose", "fact_citation": "required" },
+      "notes": "answer(Hva er dette korpuset?) — grounded only."
     },
     {
-      "section_key": "emc_zones",
-      "title": "EMC zones & shielding",
-      "title_no": "EMC-soner og skjerming",
+      "section_key": "answers",
+      "title": "Topic answers",
+      "title_no": "Temasvar",
       "position": 2,
       "required": true,
       "gap_severity": "warning",
       "required_facts": [],
       "required_media": {},
-      "required_content": ["table_format", "no_uncited_specs"],
+      "required_content": ["no_uncited_specs"],
       "writing_rules": { "structure": "mixed", "fact_citation": "required" },
-      "notes": "Facet emc_zones. Table of zone / attenuation / rule with source. MANGLER if corpus silent."
-    },
-    {
-      "section_key": "cable_classes",
-      "title": "Cable classes & separation",
-      "title_no": "Kabelklasser og separasjon",
-      "position": 3,
-      "required": true,
-      "gap_severity": "warning",
-      "required_facts": [],
-      "required_media": {},
-      "required_content": ["table_format", "no_uncited_specs"],
-      "writing_rules": { "structure": "mixed", "fact_citation": "required" },
-      "notes": "Facet cable_classes + separation distances (300 mm, 90°, fibre). Numbered classes when present."
-    },
-    {
-      "section_key": "earthing",
-      "title": "Earthing & bonding",
-      "title_no": "Jording og bonding",
-      "position": 4,
-      "required": true,
-      "gap_severity": "warning",
-      "required_facts": [],
-      "required_media": {},
-      "required_content": ["table_format", "no_uncited_specs"],
-      "writing_rules": { "structure": "mixed", "fact_citation": "required" },
-      "notes": "Facet earthing. Principles + cited parameters."
-    },
-    {
-      "section_key": "standards_register",
-      "title": "Standards register",
-      "title_no": "Standardregister",
-      "position": 5,
-      "required": true,
-      "gap_severity": "info",
-      "required_facts": [],
-      "required_media": {},
-      "required_content": ["table_format", "no_uncited_specs"],
-      "writing_rules": { "structure": "table", "fact_citation": "required" },
-      "notes": "Clean standard IDs only (EN/IEC/MIL/IEEE/ASTM…). Citation = source file."
+      "notes": "One subsection per confirmed question from suggest_questions / user."
     },
     {
       "section_key": "gaps",
       "title": "Gaps & conflicts",
       "title_no": "Mangler og konflikter",
-      "position": 6,
+      "position": 3,
       "required": true,
       "gap_severity": "warning",
       "required_facts": [],
       "required_media": {},
-      "required_content": ["no_uncited_specs"],
-      "writing_rules": { "structure": "table", "fact_citation": "required" },
-      "notes": "Silent facets + optional value conflicts across sources."
+      "required_content": [],
+      "writing_rules": { "structure": "table", "fact_citation": "required" }
     },
     {
       "section_key": "source_register",
       "title": "Source register",
       "title_no": "Kilderegister",
-      "position": 7,
+      "position": 4,
       "required": true,
       "gap_severity": "info",
       "required_facts": [],
       "required_media": {},
       "required_content": ["table_format"],
-      "writing_rules": { "structure": "table", "fact_citation": "required" }
+      "writing_rules": { "structure": "table", "fact_citation": "required" },
+      "notes": "Union of cited files from answers — not full graph dump."
     }
   ]
 }

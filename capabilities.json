@@ -1,5 +1,5 @@
 {
-  "version": "0.83.0",
+  "version": "0.85.0",
   "templates": [
     {
       "key": "contract_review",
@@ -602,10 +602,10 @@
     {
       "key": "topic_brief",
       "file": "topic_brief.json",
-      "name_no": "Temabrief — sitert fagpakke",
-      "name": "Topic Brief — Cited Engineering Pack",
-      "one_liner": "NotebookLM-style topic pack from a source library: zones, cable classes, earthing, separation, standards.",
-      "description": "NotebookLM-style topic pack from a source library: zones, cable classes, earthing, separation, standards. Every claim cites a file. MANGLER only where the corpus is silent. Not a research report; not a fact wall.",
+      "name_no": "Temabrief — sitert spørsmål/svar",
+      "name": "Topic Brief — Cited Q&A Pack",
+      "one_liner": "Question-driven brief: suggested or user questions → retrieve chunks → ground → author → verify.",
+      "description": "Question-driven brief: suggested or user questions → retrieve chunks → ground → author → verify. Thin shell only — no industry facet packs. Citations + MANGLER/gaps when coverage is weak.",
       "needs": [],
       "checklist": [
         "□ Prosjektfiler (PDF, bilder, notater)"
@@ -613,8 +613,7 @@
       "applies_to": [
         "specification",
         "source_library",
-        "emc",
-        "standards_pack"
+        "general"
       ],
       "group": "Bygg / prosjektering",
       "document_species": "narrative",

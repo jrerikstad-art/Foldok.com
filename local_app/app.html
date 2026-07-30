@@ -2393,10 +2393,14 @@ function activeDocMeta() {
 
 function exportButtonLabel() {
   const d = activeDocMeta();
-  const price = d.export_price_eur ?? 19;
+  const price = Number(d.export_price_eur ?? 0);
   const ent = d.export_entitlement || {};
   const bal = BOOT?.account?.account?.balance_eur;
   const signed = BOOT?.account?.signed_in;
+  // Dev / free exports (FOLDOK_EXPORT_PRICE unset)
+  if (!price || ent.charge === false || ent.reason === "dev_free") {
+    return "Eksporter PDF";
+  }
   if (!ent.charge && d.payment?.status === "paid") {
     return "Last ned på nytt · gratis";
   }
@@ -5920,7 +5924,8 @@ async function viewDoc(id, template) {
   await renderProject(id);
 }
 
-/** Gate for export — Path B balance / entitlement (WORKORDER 0.60). */
+/** Gate for export — Path B balance / entitlement (WORKORDER 0.60).
+ *  Dev default: FOLDOK_EXPORT_PRICE unset → free export, no paywall. */
 async function requestExport(id) {
   const template = ACTIVE_DOC;
   if (!id || !template) {
@@ -5928,10 +5933,14 @@ async function requestExport(id) {
     return;
   }
   const d = activeDocMeta();
-  const price = d.export_price_eur ?? 19;
+  const price = Number(d.export_price_eur ?? 0);
   const ent = d.export_entitlement || {};
   const signed = BOOT?.account?.signed_in;
   const bal = Number(BOOT?.account?.account?.balance_eur ?? 0);
+  // Free / unpaid-dev path
+  if (!price || ent.charge === false || ent.reason === "dev_free") {
+    return exportDoc(id, template);
+  }
   if (signed && ent.charge !== false && bal < price && d.payment?.status !== "paid") {
     return showPaywall("export", { price, id, template });
   }

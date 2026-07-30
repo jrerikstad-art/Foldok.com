@@ -25,8 +25,8 @@ from proxy.ledger import (  # noqa: E402
 __all__ = [
     "MeterDenied", "content_sha256", "get_ledger", "account_snapshot",
     "document_status", "doc_content_fingerprint", "export_price_for_template",
-    "export_entitlement", "install_compile_hooks", "stamp_utkast_watermark",
-    "mark_document_paid",
+    "export_pricing_enabled", "export_entitlement", "install_compile_hooks",
+    "stamp_utkast_watermark", "mark_document_paid",
 ]
 
 SESSION_PATH = Path(__file__).resolve().parent / "account_session.json"
@@ -225,7 +225,36 @@ def _next_rev(rev: str) -> str:
     return rev + "2"
 
 
+def export_pricing_enabled() -> bool:
+    """Paid export gate. Off by default for local development.
+
+    Set FOLDOK_EXPORT_PRICE=1 in .env to re-enable wallet charges / paywall.
+    """
+    import os
+    v = (os.environ.get("FOLDOK_EXPORT_PRICE") or "").strip().lower()
+    if v in ("1", "true", "yes", "on"):
+        return True
+    # Also honour value from .env if server loaded it into os.environ already;
+    # if not set, default free (dev).
+    try:
+        env_path = Path(__file__).resolve().parents[1] / ".env"
+        if env_path.exists() and "FOLDOK_EXPORT_PRICE" not in os.environ:
+            for line in env_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, _, val = line.partition("=")
+                if k.strip() == "FOLDOK_EXPORT_PRICE":
+                    vv = val.strip().strip('"').strip("'").lower()
+                    return vv in ("1", "true", "yes", "on")
+    except Exception:
+        pass
+    return False
+
+
 def export_price_for_template(template: dict | None, caps: dict | None = None) -> tuple[str, int]:
+    if not export_pricing_enabled():
+        return "dev_free", 0
     tier = (template or {}).get("export_price_tier") or "standard"
     tiers = dict(EXPORT_TIERS_EUR)
     if caps:
@@ -234,7 +263,34 @@ def export_price_for_template(template: dict | None, caps: dict | None = None) -
     return tier, int(tiers.get(tier, 19))
 
 
+def uses_local_anthropic_key() -> bool:
+    """Local workbench with ANTHROPIC_API_KEY — AI billed to Anthropic, not Foldok € wallet."""
+    import os
+    key = os.environ.get("ANTHROPIC_API_KEY", "") or ""
+    if len(key) > 30 and key != "missing-key":
+        return True
+    # Mirror server.py load_env_file so imports outside server still see .env
+    try:
+        env_path = Path(__file__).resolve().parents[1] / ".env"
+        if env_path.exists():
+            for line in env_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, _, val = line.partition("=")
+                if k.strip() == "ANTHROPIC_API_KEY":
+                    key = val.strip().strip('"').strip("'")
+                    break
+    except Exception:
+        pass
+    return len(key) > 30 and key != "missing-key"
+
+
 def can_ai_call() -> tuple[bool, str | None]:
+    # Local engine + API key: Anthropic USD/credits pay for calls.
+    # Foldok balance_eur is the product wallet (export / hosted metering), not the API console.
+    if uses_local_anthropic_key():
+        return True, None
     snap = account_snapshot()
     if snap.get("signed_in"):
         bal = float((snap.get("account") or {}).get("balance_eur") or 0)
@@ -253,6 +309,8 @@ def precheck_ai() -> None:
     ok, msg = can_ai_call()
     if not ok:
         raise MeterDenied(msg or "Insufficient balance", code="insufficient_balance")
+    if uses_local_anthropic_key():
+        return  # Anthropic key present — skip Foldok wallet gate
     tok = device_token()
     if tok:
         get_ledger().precheck(tok)
@@ -274,6 +332,25 @@ def meter_ai(*, purpose: str, model: str, tokens_in: int, tokens_out: int, raw_c
         if charged > 0:
             guest_debit(charged)
         return {"charged_eur": charged, "guest": True}
+    if uses_local_anthropic_key():
+        # Prefer recording against Foldok wallet when it has balance; never block local key usage.
+        try:
+            return get_ledger().meter(
+                tok,
+                job_type=job,
+                model=model,
+                tokens_in=tokens_in,
+                tokens_out=tokens_out,
+                purpose=purpose,
+                raw_cost_eur=raw_cost_eur,
+            )
+        except MeterDenied:
+            return {
+                "charged_eur": 0.0,
+                "skipped": True,
+                "reason": "local_anthropic_key",
+                "raw_cost_eur": float(raw_cost_eur or 0),
+            }
     return get_ledger().meter(
         tok,
         job_type=job,
@@ -361,6 +438,8 @@ def mark_document_paid(
 
 def export_entitlement(doc_entry: dict | None, state: dict | None) -> dict:
     """Decide charge vs free re-export."""
+    if not export_pricing_enabled():
+        return {"charge": False, "reason": "dev_free", "revision": "A"}
     st = document_status(doc_entry, blocking_gaps=0, state=state)
     if st.get("key") == "paid" and not st.get("dirty"):
         return {"charge": False, "reason": "reexport_free", "revision": st.get("revision") or "A"}
