@@ -927,21 +927,113 @@ def template_gaps(template, index, artifact, section_files=None):
 
 
 def map_sections(template, index, artifact):
-    caps = "\n".join(f"[{e['file']}] roles={e.get('doc_role_hints', [])} :: {e['caption']}" for e in index)
-    secs = [{"section_key": s["section_key"], "title": s["title"],
-             "roles": s.get("required_media", {}).get("preferred_roles", [])}
-            for s in template["sections"]]
-    file_map = ask_json("section_mapping", HAIKU, [{"role": "user", "content":
-        f"Map project files to document sections. Reply ONLY JSON: "
-        f'{{"<section_key>": ["filename", ...], ...}}. A file may appear in several sections; '
-        f"omit irrelevant files.\n\nSECTIONS:\n{json.dumps(secs)}\n\nFILES:\n{caps}"}], max_tokens=2500)
+    # ── inbound guard (foldok_intake): personal docs out before Haiku sees them ──
+    intake_notice = ""
+    intake_gate = None
+    try:
+        from foldok_intake import prepare, gate as intake_gate_fn, sensitive_summary
+        safe_index, intake_report = prepare(index)
+        intake_gate = intake_gate_fn
+        held_back = [
+            {"file": c.file, "class": c.doc_class, "reasons": list(c.reasons)}
+            for c in intake_report.excluded
+        ]
+        intake_notice = sensitive_summary(intake_report, "no") or ""
+        if held_back:
+            print(f"  ⚠ Held back {len(held_back)} personal/sensitive file(s) before mapping: "
+                  + ", ".join(h["file"] for h in held_back))
+    except Exception as e:
+        print(f"  ⚠ foldok_intake unavailable ({e}) — using legacy personal-doc filter")
+        index = tag_personal_documents(list(index))
+        safe_index, held_entries = filter_personal_documents(index)
+        held_back = [{"file": e["file"], "class": "personal", "reasons": ["legacy classifier"]}
+                     for e in held_entries]
+        if held_back:
+            print(f"  ⚠ Held back {len(held_back)} personal document(s) before mapping: "
+                  + ", ".join(h["file"] for h in held_back))
 
-    gaps = template_gaps(template, index, artifact, file_map)
+    caps = "\n".join(
+        f"[{e['file']}] roles={e.get('doc_role_hints', [])} :: {e['caption']}"
+        for e in safe_index
+    )
+    secs = [{"section_key": s["section_key"], "title": s.get("title_no") or s.get("title"),
+             "title_no": s.get("title_no"), "title_en": s.get("title"),
+             "roles": s.get("required_media", {}).get("preferred_roles", []),
+             "required_media": s.get("required_media") or {},
+             "notes": s.get("notes") or ""}
+            for s in template["sections"]]
+
+    tpl_key = str(template.get("template_key") or "").strip().lower()
+    is_research_report = (
+        tpl_key == "research_project_report"
+        or Path(str(template.get("_file") or "")).name.lower() == "research_project_report.json"
+    )
+    is_topic_brief = (
+        tpl_key == "topic_brief"
+        or Path(str(template.get("_file") or "")).name.lower() == "topic_brief.json"
+    )
+    if is_research_report or is_topic_brief:
+        # Deterministic map — compilers own bodies; no Haiku file-routing cost/sludge.
+        all_files = [e.get("file") for e in safe_index if e.get("file")]
+        fig_files = [
+            e.get("file") for e in safe_index
+            if e.get("file") and (
+                e.get("kind") in ("image", "slide", "drawing")
+                or str(e.get("file") or "").lower().endswith((".png", ".jpg", ".jpeg", ".pdf", ".pptx"))
+            )
+        ][:12]
+        if is_topic_brief:
+            file_map = {
+                "overview": all_files[:6],
+                "emc_zones": fig_files[:6] or all_files[:6],
+                "cable_classes": all_files[:8],
+                "earthing": all_files[:8],
+                "standards_register": all_files[:12],
+                "gaps": [],
+                "source_register": all_files,
+            }
+        else:
+            file_map = {
+                "cover": [],
+                "objective": [],
+                "method": [],
+                "data_collected": all_files[:20],
+                "observations": fig_files[:8] or all_files[:6],
+                "deviations": [],
+                "next_steps": [],
+                "source_register": all_files,
+                "signature": [],
+            }
+    else:
+        file_map = ask_json("section_mapping", HAIKU, [{"role": "user", "content":
+            f"Map project files to document sections. Reply ONLY JSON: "
+            f'{{"<section_key>": ["filename", ...], ...}}. A file may appear in several sections; '
+            f"omit irrelevant files.\n\nSECTIONS:\n{json.dumps(secs)}\n\nFILES:\n{caps}"}], max_tokens=2500)
+
+    # ── relevance gate: computed score (foldok_intake) then role overlap ────────
+    dropped: dict[str, list[str]] = {}
+    if not (is_research_report or is_topic_brief):
+        if intake_gate is not None:
+            gate_report = intake_gate(file_map, safe_index, secs)
+            file_map = dict(gate_report.kept)
+            for m in gate_report.dropped:
+                dropped.setdefault(m.section, []).append(m.file)
+            if gate_report.dropped:
+                print(f"  ⚠ {gate_report.explain()}")
+        file_map, role_dropped = gate_mapped_files(file_map, safe_index, template)
+        for sk, files in role_dropped.items():
+            dropped.setdefault(sk, []).extend(files)
+            print(f"  ⚠ Role gate dropped from [{sk}]: {', '.join(files)}")
+    else:
+        label = "topic_brief" if is_topic_brief else "research_project_report"
+        print(f"  · {label}: skipping relevance gate (deterministic compilers)")
+
+    gaps = template_gaps(template, safe_index, artifact, file_map)
     all_facts = {}
-    for e in index:
+    for e in safe_index:
         for f in e.get("facts", []):
             all_facts.setdefault(f["key"], []).append(f)
-    _augment_synthetic_facts(index, all_facts, artifact)
+    _augment_synthetic_facts(safe_index, all_facts, artifact)
     mappings = {}
     for s in template["sections"]:
         cond = s.get("condition")
@@ -964,8 +1056,18 @@ def map_sections(template, index, artifact):
             if matched_facts:
                 matched.extend(f["id"] for f in matched_facts)
         files = file_map.get(s["section_key"], [])
-        mappings[s["section_key"]] = {"files": files, "fact_ids": matched, "section": s}
-    return mappings, gaps
+        mappings[s["section_key"]] = {
+            "files": files,
+            "fact_ids": matched,
+            "section": s,
+            "template_key": template.get("template_key") or "",
+        }
+    return mappings, gaps, {
+        "held_back": held_back,
+        "dropped": dropped,
+        "intake_notice": intake_notice,
+        "file_map": file_map,
+    }
 
 
 def _condition_holds(cond, artifact):
@@ -1072,6 +1174,159 @@ DRAWING_NAME = re.compile(
     r"plantegning|fasadetegning|snitt|situasjon|perspektiv|tegning|plan_|elevation|section|"
     r"presentasjon|presentation|erikstad|\.pptx$",
     re.I)
+
+
+# ── Personal-document classification ──────────────────────────────────────────
+# Deterministic — no model call.  Keyed on the indexed caption / content_tags /
+# doc_role_hints AND the filename itself.  Two actions:
+#   quality_flag: "personal_document"   → visible in the UI "Holdt tilbake" log
+#   doc_role_hints appended with "personal_document" → excluded before mapping
+
+_PERSONAL_CAPTION_RE = re.compile(
+    r"\b(insuran|forsikring|polise|policy\s+no|policy\s+number|prf\d|premium|"
+    r"payslip|l[øo]nnsslipp|salary|salary\s+slip|national\s+id|f[øo]dselsnummer|"
+    r"ssn|passport\s+no|personnummer|medical\s+rec|legejournal|journal\s+no|"
+    r"tax\s+return|selvangivelse|skattemelding|bank\s+statement|kontoutskrift|"
+    r"credit\s+card|kredittkort|mortgage|boliglån)\b",
+    re.I,
+)
+_PERSONAL_FILENAME_RE = re.compile(
+    r"(forsikring|insurance|polise|policy|payslip|l[øo]nn|salary|passport|"
+    r"personnummer|skatt|legejournal|bank.?statement|kontoutskrift)",
+    re.I,
+)
+_PERSONAL_TAGS = {
+    "insurance_document", "policy_document", "payslip", "salary_document",
+    "personal_id", "medical_record", "tax_document", "bank_statement",
+}
+
+
+def classify_personal(entry: dict) -> bool:
+    """Return True if this index entry looks like a personal document.
+
+    The caller is responsible for tagging it; we only classify."""
+    caption = (entry.get("caption") or "") + " " + (entry.get("detail_summary") or "")
+    if _PERSONAL_CAPTION_RE.search(caption):
+        return True
+    tags = set(entry.get("content_tags") or [])
+    if tags & _PERSONAL_TAGS:
+        return True
+    if _PERSONAL_FILENAME_RE.search(entry.get("file") or ""):
+        return True
+    return False
+
+
+def tag_personal_documents(index: list[dict]) -> list[dict]:
+    """Add quality_flag='personal_document' and role 'personal_document' in-place.
+
+    Returns the same list (mutated) for chaining.  Already-tagged entries are
+    skipped so the function is safe to call multiple times.
+    """
+    for entry in index:
+        flags = list(entry.get("quality_flags") or [])
+        if "personal_document" in flags:
+            continue
+        if classify_personal(entry):
+            flags.append("personal_document")
+            entry["quality_flags"] = flags
+            hints = list(entry.get("doc_role_hints") or [])
+            if "personal_document" not in hints:
+                hints.append("personal_document")
+            entry["doc_role_hints"] = hints
+    return index
+
+
+def filter_personal_documents(index: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Split index into (safe, held_back) by personal_document flag.
+
+    held_back entries are NOT passed to map_sections or generation.
+    """
+    safe, held = [], []
+    for entry in index:
+        if "personal_document" in (entry.get("quality_flags") or []):
+            held.append(entry)
+        else:
+            safe.append(entry)
+    return safe, held
+
+
+# ── Relevance gate ─────────────────────────────────────────────────────────────
+# Section templates declare required_media.preferred_roles.  Files whose
+# doc_role_hints share no token with a section's accepted roles are dropped
+# from that section's mapped files — before any model receives them.
+#
+# Fallback: if a section has NO preferred_roles declared (older templates),
+# no filtering is applied so nothing silently disappears.
+
+_SECTION_ROLE_OVERRIDE: dict[str, set[str]] = {
+    # section_key → additional accepted roles beyond what the template declares
+    "certificates": {"certificate", "test_result"},
+    "declaration":  {"certificate", "deliverable", "contract_clause"},
+    "bom":          {"overview", "technical_data", "nameplate"},
+}
+
+
+def gate_mapped_files(
+    file_map: dict[str, list[str]],
+    index: list[dict],
+    template: dict,
+) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    """Remove files from each section bucket that share no role with that section.
+
+    Returns (gated_map, dropped_map) where dropped_map records what was removed
+    and why (for the "Holdt tilbake" log).
+    """
+    entry_by_file = {e["file"]: e for e in index}
+    section_roles: dict[str, set[str]] = {}
+    for s in template.get("sections") or []:
+        sk = s["section_key"]
+        declared = set((s.get("required_media") or {}).get("preferred_roles") or [])
+        declared |= _SECTION_ROLE_OVERRIDE.get(sk, set())
+        section_roles[sk] = declared
+
+    gated: dict[str, list[str]] = {}
+    dropped: dict[str, list[str]] = {}
+    for sk, files in file_map.items():
+        accepted_roles = section_roles.get(sk, set())
+        if not accepted_roles:
+            # No role constraint declared — pass all through
+            gated[sk] = files
+            continue
+        keep, drop = [], []
+        for f in files:
+            entry = entry_by_file.get(f)
+            file_roles = set((entry or {}).get("doc_role_hints") or [])
+            if file_roles & accepted_roles:
+                keep.append(f)
+            else:
+                drop.append(f)
+        gated[sk] = keep
+        if drop:
+            dropped[sk] = drop
+    return gated, dropped
+
+
+# ── Markdown normaliser ────────────────────────────────────────────────────────
+# Model output occasionally puts headings and blockquotes mid-paragraph without
+# the preceding blank line that CommonMark requires.  One deterministic pass
+# fixes every section without touching the content.
+
+_MD_HEADING_RE = re.compile(r"(?<!\n)(\n)(#{1,6} )")
+_MD_BLOCKQUOTE_RE = re.compile(r"(?<!\n)(\n)(> )")
+
+
+def normalise_markdown(text: str) -> str:
+    """Ensure a blank line precedes every heading and block-quote."""
+    if not text:
+        return text
+    try:
+        from foldok_intake import normalise as intake_normalise
+        return intake_normalise(text)
+    except ImportError:
+        pass
+    text = _MD_HEADING_RE.sub(r"\n\n\2", text)
+    text = _MD_BLOCKQUOTE_RE.sub(r"\n\n\2", text)
+    return text
 
 
 def is_visual_source(rel_name, entry=None):
@@ -2006,22 +2261,51 @@ def _format_fact_line(fid, f):
     )
 
 
-def build_section_fact_context(mapping, index, artifact, cap=120):
+def build_section_fact_context(mapping, index, artifact, cap=120, exclude_ids=None):
     """Two-tier facts for generate_section (WORKORDER 0.48 Bug 1).
 
     PRIMARY   = mapping fact_ids (mapper-selected)
     AVAILABLE = required-key matches + facts from mapped files + synth
                 artifact facts, capped and confidence-sorted.
     """
+    exclude_ids = set(exclude_ids or [])
+    section = mapping.get("section") or {}
+    sec_key = (mapping.get("section_key") or section.get("section_key") or "").strip().lower()
     by_id = {f["id"]: f for e in index for f in e.get("facts", [])}
-    if artifact.get("name"):
+
+    # Noise filters: contact/marketing tokens do not belong in technical prose.
+    NOISE_KEYS = {
+        "email", "e_mail", "mail", "phone", "telephone", "mobile",
+        "contact_person", "contact_name", "website", "url", "linkedin",
+        "instagram", "facebook", "slogan", "tagline", "marketing_text",
+        "promo_text", "token_count", "word_count",
+    }
+    for fid in list(by_id.keys()):
+        f = by_id.get(fid) or {}
+        key = str(f.get("key") or "").strip().lower()
+        if key in NOISE_KEYS:
+            by_id.pop(fid, None)
+            continue
+        val = str(f.get("value") or "")
+        if re.search(r"@\w+\.\w+|https?://|www\.", val, re.I):
+            by_id.pop(fid, None)
+            continue
+        if re.search(r"\b(follow|subscribe|call now|limited offer)\b", val, re.I):
+            by_id.pop(fid, None)
+
+    # Keep project title/scope only in true overview/identity homes.
+    allow_project_meta = sec_key in {
+        "identification", "system_overview", "summary", "executive_summary",
+        "scope", "spec_overview", "doc_control",
+    }
+    if allow_project_meta and artifact.get("name"):
         by_id["artifact-name"] = {
             "id": "artifact-name", "key": "project_title",
             "value": artifact["name"], "unit": None,
             "confidence": 1.0,
             "source_location": "artefaktmodell (sjekkpunkt A)",
         }
-    if artifact.get("purpose"):
+    if allow_project_meta and artifact.get("purpose"):
         by_id["artifact-purpose"] = {
             "id": "artifact-purpose", "key": "scope_statement",
             "value": artifact["purpose"], "unit": None,
@@ -2029,7 +2313,7 @@ def build_section_fact_context(mapping, index, artifact, cap=120):
             "source_location": "artefaktmodell (sjekkpunkt A)",
         }
     author = _author_from_artifact(artifact)
-    if author:
+    if allow_project_meta and author:
         by_id["artifact-author"] = {
             "id": "artifact-author", "key": "author_name",
             "value": author, "unit": None, "confidence": 1.0,
@@ -2041,7 +2325,6 @@ def build_section_fact_context(mapping, index, artifact, cap=120):
         if synth in by_id and synth not in primary_ids:
             primary_ids.append(synth)
 
-    section = mapping.get("section") or {}
     required_keys = set()
     for rf in section.get("required_facts") or []:
         if not _fact_applies(rf, artifact) or rf.get("severity") == "info":
@@ -2056,7 +2339,7 @@ def build_section_fact_context(mapping, index, artifact, cap=120):
     seen = set()
 
     def _add(fid, f, priority):
-        if not fid or fid in seen or fid not in by_id:
+        if not fid or fid in seen or fid not in by_id or fid in exclude_ids:
             return
         seen.add(fid)
         scored.append((priority, -_fact_confidence(f), fid, f))
@@ -2084,8 +2367,15 @@ def build_section_fact_context(mapping, index, artifact, cap=120):
 
     scored.sort()
     available = []
+    # Section-specific cap (keeps prose from becoming fact sludge)
+    if sec_key in ("technical_data", "spec_overview", "bom"):
+        section_cap = min(cap, 80)
+    elif sec_key in ("method", "results", "discussion", "conclusion"):
+        section_cap = min(cap, 28)
+    else:
+        section_cap = min(cap, 42)
     for _p, _c, fid, f in scored:
-        if len(available) >= cap:
+        if len(available) >= section_cap:
             break
         available.append({"id": fid, **{k: v for k, v in f.items() if k != "id"}})
 
@@ -2109,16 +2399,31 @@ def build_section_fact_context(mapping, index, artifact, cap=120):
     }
 
 
+# Structures that must produce narrative / list text — never a bare fact dump.
+PROSE_LIKE_STRUCTURES = (
+    "prose", "numbered_list", "numbered_steps", "checklist", "list", "bullet_list",
+)
+TABLE_STRUCTURES = ("table", "bom_table")
+
+
 def _structure_kind(section):
     wr = (section or {}).get("writing_rules") or {}
     return (wr.get("structure") or "prose").lower()
+
+
+def _wants_fact_table(section, structure):
+    """Only emit a parameter table when the template asked for one."""
+    if structure in TABLE_STRUCTURES:
+        return True
+    req = (section or {}).get("required_content") or []
+    return "table_format" in req
 
 
 def structure_ok(text, structure):
     """Return True if markdown satisfies the required writing_rules.structure."""
     structure = (structure or "prose").lower()
     t = text or ""
-    if structure in ("table", "bom_table"):
+    if structure in TABLE_STRUCTURES:
         lines = t.splitlines()
         has_row = any(ln.strip().startswith("|") and ln.count("|") >= 2 for ln in lines)
         has_rule = any(re.match(r"^\s*\|?\s*[-:]+", ln) for ln in lines)
@@ -2127,7 +2432,7 @@ def structure_ok(text, structure):
         return bool(re.search(r"(?m)^\s*\d+\.\s+\S", t))
     if structure in ("checklist",):
         return ("□" in t) or bool(re.search(r"(?m)^\s*-\s*\[[ xX]\]\s+", t))
-    if structure == "list":
+    if structure in ("list", "bullet_list"):
         return bool(re.search(r"(?m)^\s*[-*•]\s+\S", t)) or structure_ok(t, "numbered_list")
     return True
 
@@ -2150,6 +2455,22 @@ def build_generic_fact_table(mapping, index, artifact, lang="no", ctx=None, fact
         for a in ctx["available"]:
             if a["id"] not in primary_set:
                 ids.append(a["id"])
+
+    # Research data table allowlist by theme + contact denylist
+    sk = (sec_key or "").strip().lower()
+    if sk == "data_collected":
+        allow_prefix = ("attenuation", "measurement", "test_", "standard", "frequency", "shield", "emc")
+        allow_exact = {"manufacturer", "product_name", "part_number", "sample_size", "data_location"}
+        deny_exact = {"phone", "email", "website", "url", "address", "fax", "linkedin"}
+        kept = []
+        for fid in ids:
+            f = by_id.get(fid) or {}
+            k = str(f.get("key") or "").strip().lower()
+            if k in deny_exact:
+                continue
+            if k in allow_exact or any(k.startswith(p) for p in allow_prefix):
+                kept.append(fid)
+        ids = kept[:20]
 
     rows = []
     seen_keys = set()
@@ -2188,6 +2509,8 @@ def build_generic_fact_table(mapping, index, artifact, lang="no", ctx=None, fact
         }
 
     if vocab_key == "components":
+        # Cap lookup-heavy ID/component rows to keep reports readable.
+        ids = ids[:20]
         for i, fid in enumerate(ids, 1):
             r = _row_components(fid, i)
             if r:
@@ -2410,6 +2733,520 @@ def _prose_ok(text):
     return bool(t.strip())
 
 
+def _clean_prose_noise(text):
+    """Remove known sludge voice/repetition patterns."""
+    t = text or ""
+    # ban findings-ledger voice
+    t = re.sub(r"(?im)^\s*(finding|funn)\s*:\s*", "", t)
+    t = re.sub(r"(?i)the following documents indicate[^.]*\.", "", t)
+    # ban repeated project_title/scope filler sentence pattern
+    t = re.sub(
+        r"(?i)\b(project title|prosjekttittel)\s+er\s+[^.]{1,120}\.\s*"
+        r"(scope statement|omfang)\s+er\s+[^.]{1,160}\.",
+        "",
+        t,
+    )
+    return re.sub(r"\n{3,}", "\n\n", t).strip()
+
+
+CONTACT_NOISE_RX = re.compile(
+    r"(?i)([\w.+-]+@[\w-]+\.[\w.-]+|https?://\S+|www\.\S+|"
+    r"\+?\d[\d\s().-]{7,}\d|"
+    r"\b(address|adresse|phone|telefon|mobile|fax|website|url|linkedin)\b)"
+)
+
+
+def _is_contact_section(sec_key: str) -> bool:
+    sk = (sec_key or "").strip().lower()
+    return sk in {"contact", "contacts", "kontakt", "kontaktinfo"}
+
+
+def _is_research_template(mapping: dict) -> bool:
+    """True only for research_project_report (not every section named method)."""
+    return str(mapping.get("template_key") or "").strip().lower() == "research_project_report"
+
+
+def _research_required_missing(sec_key: str, artifact: dict, by_id: dict, available_ids: set[str]) -> list[str]:
+    """Hard-stop keys per section when research framing is incomplete."""
+    sk = (sec_key or "").strip().lower()
+    sec_keys = {
+        "objective": ("research_question",),
+        "method": ("method_description", "equipment", "sample_size"),
+        "observations": ("measurement",),
+    }
+    req = list(sec_keys.get(sk, ()))
+    if not req:
+        return []
+    missing = []
+    for key in req:
+        from_artifact = str((artifact or {}).get(key) or "").strip()
+        from_facts = any(
+            str((by_id.get(fid) or {}).get("key") or "").strip().lower() == key
+            for fid in (available_ids or set())
+        )
+        if not from_artifact and not from_facts:
+            missing.append(key)
+    return missing
+
+
+def _mangler_lines(keys: list[str], *, lang: str = "no", max_n: int = 5) -> str:
+    if not keys:
+        return ""
+    if (lang or "no").lower().startswith("no"):
+        lines = [f"MANGLER: {k} - oppgi" for k in keys[:max_n]]
+    else:
+        lines = [f"MISSING: {k} - provide value" for k in keys[:max_n]]
+    return "\n".join(lines)
+
+
+STRICT_MISSING_ONLY_ROLES = {
+    "method", "methods", "metode", "forsok", "forsøk",
+    "results", "resultater", "observations", "discussion",
+    "goals", "goal", "mål", "objective", "avvik", "deviations",
+    "status", "next_steps",
+}
+
+
+def _section_role_tokens(sec_key: str, section: dict) -> set[str]:
+    vals = [
+        str(sec_key or ""),
+        str(section.get("section_key") or ""),
+        str(section.get("title_no") or ""),
+        str(section.get("title") or ""),
+    ]
+    tokens = set()
+    for v in vals:
+        vv = v.strip().lower()
+        if not vv:
+            continue
+        tokens.add(vv)
+        for part in re.split(r"[^a-z0-9æøå]+", vv):
+            if part:
+                tokens.add(part)
+    return tokens
+
+
+def _strict_missing_keys_for_section(section: dict, by_id: dict, available_ids: set[str]) -> list[str]:
+    out = []
+    for rf in section.get("required_facts") or []:
+        if rf.get("severity") == "info":
+            continue
+        key = str(rf.get("key") or "").strip()
+        if not key:
+            continue
+        alias = {key.lower(), *(k.lower() for k in FACT_ALIASES.get(key, []))}
+        has_fact = any(
+            str((by_id.get(fid) or {}).get("key") or "").strip().lower() in alias
+            for fid in (available_ids or set())
+        )
+        if not has_fact:
+            out.append(key)
+    return out
+
+
+def _strict_missing_keys_for_research(section: dict, artifact: dict, by_id: dict, available_ids: set[str]) -> list[str]:
+    """Research template: force core fields to be explicitly present."""
+    sk = str(section.get("section_key") or "").strip().lower()
+    require_artifact_only = {
+        "objective": {"research_question"},
+        "method": {"method_description", "equipment", "sample_size"},
+        "next_steps": {"next_step"},
+    }
+    out = []
+    for rf in section.get("required_facts") or []:
+        if rf.get("severity") == "info":
+            continue
+        key = str(rf.get("key") or "").strip()
+        if not key:
+            continue
+        kl = key.lower()
+        if kl in require_artifact_only.get(sk, set()):
+            if not str((artifact or {}).get(key) or "").strip():
+                out.append(key)
+            continue
+        # default: fact presence in section context
+        alias = {kl, *(k.lower() for k in FACT_ALIASES.get(key, []))}
+        has_fact = any(
+            str((by_id.get(fid) or {}).get("key") or "").strip().lower() in alias
+            for fid in (available_ids or set())
+        )
+        if not has_fact:
+            out.append(key)
+    return out
+
+
+def _looks_like_fact_dump(text: str) -> bool:
+    t = text or ""
+    # key:value walls and repeated "X er Y" tuples
+    kv = re.findall(r"(?im)\b[a-z0-9_æøå][a-z0-9_æøå .-]{1,40}:\s+[^.\n]{1,80}", t)
+    er = re.findall(r"(?im)\b[a-z0-9_æøå][a-z0-9_æøå .-]{1,40}\s+er\s+[^.\n]{1,80}", t)
+    return len(kv) >= 2 or len(er) >= 3
+
+
+def _is_research_report_mapping(mapping: dict) -> bool:
+    return str(mapping.get("template_key") or "").strip().lower() == "research_project_report"
+
+
+def _is_topic_brief_mapping(mapping: dict) -> bool:
+    return str(mapping.get("template_key") or "").strip().lower() == "topic_brief"
+
+
+def _index_usable(index):
+    return [e for e in (index or []) if e.get("kind") != "skipped" and e.get("file")]
+
+
+def _fact_pairs(index, allow_keys=None, allow_prefixes=None, deny_keys=None, limit=12):
+    """Collect (label, value, source) for themed research tables."""
+    allow_keys = {k.lower() for k in (allow_keys or [])}
+    allow_prefixes = tuple(p.lower() for p in (allow_prefixes or ()))
+    deny_keys = {k.lower() for k in (deny_keys or (
+        "phone", "email", "website", "url", "address", "fax", "linkedin",
+        "author_email", "publisher_website",
+    ))}
+    out, seen = [], set()
+    for e in _index_usable(index):
+        src = Path(e.get("file") or "").name
+        for f in e.get("facts") or []:
+            key = str(f.get("key") or "").strip().lower()
+            if not key or key in deny_keys:
+                continue
+            if allow_keys and key not in allow_keys and not any(key.startswith(p) for p in allow_prefixes):
+                continue
+            val = str(f.get("value") or "").strip()
+            if not val or CONTACT_NOISE_RX.search(val):
+                continue
+            unit = f.get("unit") or ""
+            shown = f"{val} {unit}".strip() if unit else val
+            sig = (key, shown.lower())
+            if sig in seen:
+                continue
+            seen.add(sig)
+            label = key.replace("_", " ")
+            out.append((label, shown, src))
+            if len(out) >= limit:
+                return out
+    return out
+
+
+def _md_table(headers, rows):
+    if not rows:
+        return ""
+    lines = [
+        "| " + " | ".join(headers) + " |",
+        "|" + "|".join("---" for _ in headers) + "|",
+    ]
+    for row in rows:
+        lines.append("| " + " | ".join(str(c) for c in row) + " |")
+    return "\n".join(lines)
+
+
+def _research_theme_bits(index, artifact=None):
+    art = artifact or {}
+    hay = " ".join(
+        [str(art.get("name") or ""), str(art.get("purpose") or "")]
+        + [str(e.get("caption") or "") for e in _index_usable(index)[:40]]
+        + [" ".join(e.get("content_tags") or []) for e in _index_usable(index)[:40]]
+    ).lower()
+    themes = []
+    for needle, label in (
+        ("emc", "elektromagnetisk kompatibilitet (EMC)"),
+        ("cable tray", "cable tray / cable management"),
+        ("cable management", "cable tray / cable management"),
+        ("shield", "skjermingseffektivitet"),
+        ("shielding", "skjermingseffektivitet"),
+    ):
+        if needle in hay and label not in themes:
+            themes.append(label)
+    return themes or ["teknisk kildesamling"]
+
+
+def _research_section_alias(sec_key: str) -> str:
+    sk = (sec_key or "").strip().lower()
+    aliases = {
+        "metode": "method",
+        "methods": "method",
+        "forsok": "method",
+        "forsøk": "method",
+        "mal": "objective",
+        "mål": "objective",
+        "goals": "objective",
+        "goal": "objective",
+        "resultater": "observations",
+        "results": "observations",
+        "avvik": "deviations",
+        "status": "next_steps",
+        "kilderegister": "source_register",
+        "innsamede_data": "data_collected",
+        "innsamlede_data": "data_collected",
+    }
+    return aliases.get(sk, sk)
+
+
+def compile_research_section(sec_key, mapping, index, artifact, lang="no"):
+    """Deterministic research_project_report bodies.
+
+    Empty research core → short MANGLER.
+    Rich sources → few thematic tables + register — never a full-graph dump.
+    """
+    sk = _research_section_alias(sec_key)
+    art = artifact or {}
+    no = (lang or "no").lower().startswith("no")
+    usable = _index_usable(index)
+    n = len(usable)
+    themes = _research_theme_bits(index, art)
+    theme_txt = ", ".join(themes[:3])
+
+    if sk == "cover":
+        title = art.get("name") or Path((usable[0] or {}).get("file") or "project").stem if usable else "—"
+        authors = []
+        for e in usable:
+            for f in e.get("facts") or []:
+                if str(f.get("key") or "").lower() in ("author_name", "author", "prepared_by"):
+                    v = str(f.get("value") or "").strip()
+                    if v and len(v) > 2 and "@" not in v and v not in authors:
+                        authors.append(v)
+        author_cell = (", ".join(authors[:3]) + (" m.fl." if len(authors) > 3 else "")) if authors else (
+            f"MANGLER: author_name - {'oppgi' if no else 'provide'}"
+        )
+        inst = str(art.get("institution") or "").strip() or f"MANGLER: institution - {'oppgi' if no else 'provide'}"
+        period = str(art.get("report_period") or "").strip() or f"MANGLER: report_period - {'oppgi' if no else 'provide'}"
+        material = ("Spesifikasjoner, standarder, produktunderlag, notater"
+                    if no else "Specifications, standards, product data, notes")
+        headers = ["Parameter", "Verdi", "Kilde"] if no else ["Parameter", "Value", "Source"]
+        rows = [
+            ["Prosjekttittel" if no else "Project title", title, "Prosjekt" if no else "Project"],
+            ["Tema" if no else "Theme", theme_txt, f"Indeks ({n} filer)" if no else f"Index ({n} files)"],
+            ["Type materiale" if no else "Material type", material, "Indeks" if no else "Index"],
+            ["Institution", inst, "—"],
+            ["Rapportperiode" if no else "Report period", period, "—"],
+            ["Rapportforfatter (i kilder)" if no else "Authors in sources", author_cell,
+             "Sitater i register" if no else "Source register"],
+        ]
+        note = ("Ikke blande produktnavn, telefonnummer eller ITER-spenninger inn her."
+                if no else "Do not mix product names, phone numbers, or ITER voltages here.")
+        return _md_table(headers, rows) + "\n\n*" + note + "*"
+
+    if sk == "objective":
+        lead = (
+            f"Denne mappen er en kildesamling om {theme_txt}, ikke et ferdig laboratorieforsøk."
+            if no else
+            f"This folder is a source collection on {theme_txt}, not a completed laboratory study."
+        )
+        rq = str(art.get("research_question") or "").strip()
+        if rq:
+            body = f"{lead}\n\n**Forskningsspørsmål:** {rq}" if no else f"{lead}\n\n**Research question:** {rq}"
+        else:
+            body = lead + "\n\n" + _mangler_lines(["research_question"], lang=lang)
+            body += (
+                "\n\nForeslåtte spørsmål (må bekreftes av bruker før de blir «fakta»):\n\n"
+                "- Hvilke skjermingskrav (dB / frekvens) gjelder for cable tray i prosjektets referanser?\n"
+                "- Hvilke standarder overlapper eller konflikter (f.eks. MIL-STD-285 vs IEEE 299)?\n"
+                "- Hva er relevant for offshore/HVDC-kontekst (Dogger Bank-underlag)?"
+                if no else
+                "\n\nSuggested questions (must be confirmed before becoming facts):\n\n"
+                "- Which shielding requirements (dB / frequency) apply to cable tray in the references?\n"
+                "- Which standards overlap or conflict (e.g. MIL-STD-285 vs IEEE 299)?\n"
+                "- What is relevant for offshore/HVDC context?"
+            )
+        return body
+
+    if sk == "method":
+        miss = [k for k in ("method_description", "equipment", "sample_size")
+                if not str(art.get(k) or "").strip()]
+        if miss:
+            return _mangler_lines(miss, lang=lang)
+        # Explicit research method present — short prose only from artifact fields
+        bits = []
+        if art.get("method_description"):
+            bits.append(str(art["method_description"]))
+        if art.get("equipment"):
+            bits.append(("Utstyr: " if no else "Equipment: ") + str(art["equipment"]))
+        if art.get("sample_size"):
+            bits.append(("Utvalg: " if no else "Sample size: ") + str(art["sample_size"]))
+        return "\n\n".join(bits)
+
+    if sk == "observations":
+        has_meas = any(
+            str(f.get("key") or "").lower() in ("measurement", "measured_value", "test_result")
+            and str(f.get("value") or "").strip()
+            for e in usable for f in (e.get("facts") or [])
+        )
+        parts = []
+        if not has_meas and not str(art.get("measurement") or "").strip():
+            parts.append(_mangler_lines(["measurement"], lang=lang))
+            parts.append(
+                "Det finnes ikke egne måleserier i prosjektet ennå. Under er utdrag fra kildemateriale "
+                "(produkt-/standarddata), ikke prosjektets forsøksresultater:"
+                if no else
+                "No project measurement series yet. Below are extracts from source material "
+                "(product/standard data), not the project's experimental results:"
+            )
+        shield = _fact_pairs(
+            index,
+            allow_keys={"test_standard", "manufacturer", "navy_project_test_result"},
+            allow_prefixes=("attenuation", "h_field", "e_field", "plane_wave", "shield"),
+            limit=8,
+        )
+        if shield:
+            headers = ["Størrelse", "Verdi", "Kilde"] if no else ["Item", "Value", "Source"]
+            parts.append(("**Skjerming (eksempel fra produktunderlag)**"
+                          if no else "**Shielding (examples from product data)**"))
+            parts.append(_md_table(headers, [[a, b, c] for a, b, c in shield]))
+        return "\n\n".join(p for p in parts if p) or (
+            "Ingen observasjoner registrert ennå." if no else "No observations recorded yet."
+        )
+
+    if sk == "deviations":
+        rows = []
+        if not str(art.get("research_question") or "").strip():
+            rows.append([
+                "Ingen definert research_question" if no else "No research_question defined",
+                "Rapporten kan ikke konkludere forskningsmessig" if no else "Report cannot conclude scientifically",
+            ])
+        if not all(str(art.get(k) or "").strip() for k in ("method_description", "equipment", "sample_size")):
+            rows.append([
+                "Ingen egen metode / utstyr / utvalg" if no else "No method / equipment / sample",
+                "Resultater = kun litteratur/produkt, ikke forsøk" if no else "Results = literature/product only, not experiment",
+            ])
+        rows.append([
+            "Blandede kildetyper" if no else "Mixed source types",
+            "Standard, katalog og håndbok i samme mappe — må skilles i analyse"
+            if no else "Standards, catalogues and handbooks in one folder — separate in analysis",
+        ])
+        headers = ["Avvik", "Betydning"] if no else ["Issue", "Meaning"]
+        return _md_table(headers, rows)
+
+    if sk == "next_steps":
+        status = (
+            f"Status: Kildesamling indeksert ({n} filer). Rapportstruktur opprettet; forskningskjernen er ufullstendig."
+            if no else
+            f"Status: Source collection indexed ({n} files). Report structure created; research core incomplete."
+        )
+        parts = [status]
+        if not str(art.get("next_step") or "").strip():
+            parts.append(_mangler_lines(["next_step"], lang=lang))
+        else:
+            parts.append(str(art["next_step"]))
+        parts.append(
+            "Mulige neste steg (valg):\n\n"
+            "- Formulér research_question\n"
+            "- Kjør spesifikasjonsgjennomgang (konflikt/overlapp mellom EN/IEC/NEK/MIL)\n"
+            "- Bygg kravmatrise for cable tray / skjerming\n"
+            "- Først deretter: egen testplan hvis målinger skal inn i rapporten"
+            if no else
+            "Possible next steps:\n\n"
+            "- State research_question\n"
+            "- Run Spec Coherence Review\n"
+            "- Build requirements matrix for cable tray / shielding\n"
+            "- Only then: own test plan if measurements enter the report"
+        )
+        return "\n\n".join(parts)
+
+    if sk == "data_collected":
+        parts = []
+        mech = _fact_pairs(
+            index,
+            allow_keys={
+                "test_standard", "material_standard", "max_span", "manufacturer",
+                "load_depth_standard", "radius_fittings_standard",
+            },
+            allow_prefixes=("max_load", "nec_ground", "splice", "tray_", "cover_"),
+            limit=10,
+        )
+        if mech:
+            headers = ["Parameter", "Verdi", "Kilde"] if no else ["Parameter", "Value", "Source"]
+            parts.append(("**A. Cable tray / mekanikk (utvalg)**"
+                          if no else "**A. Cable tray / mechanics (selection)**"))
+            parts.append(_md_table(headers, [[a, b, c] for a, b, c in mech]))
+        stds = _fact_pairs(
+            index,
+            allow_keys={"test_standard", "material_standard", "governing_standard", "building_code"},
+            allow_prefixes=("en_", "iec_", "mil_", "nek_", "ieee_", "astm_", "ul_", "hd_", "nema_"),
+            limit=12,
+        )
+        if stds:
+            headers = ["Standard", "Merknad"] if no else ["Standard", "Note"]
+            rows, seen = [], set()
+            std_id = re.compile(
+                r"(?i)\b((?:EN|IEC|ISO|NEK|HD)\s*\d[\d\-:/]*|"
+                r"MIL[-\s]?STD[-\s]?\d[\w\-]*|"
+                r"IEEE\s*(?:Std\s*)?\d[\w\-]*|"
+                r"ASTM\s*[A-Z]?\d[\w\-]*|"
+                r"UL\s*\d[\w\-]*|"
+                r"NEMA\s*[A-Z]?\d?[\w\-]*)\b"
+            )
+            for label, val, src in stds:
+                m = std_id.search(val) or std_id.search(label.replace("_", " "))
+                if not m:
+                    continue
+                shown = m.group(1).strip()
+                sig = shown.lower()
+                if sig in seen:
+                    continue
+                seen.add(sig)
+                rows.append([shown, src])
+            if rows:
+                parts.append(("**B. Standarder nevnt i korpus (utvalg)**"
+                              if no else "**B. Standards in corpus (selection)**"))
+                parts.append(_md_table(headers, rows[:10]))
+        miss = []
+        if not any(str(f.get("key") or "").lower() == "measurement" for e in usable for f in (e.get("facts") or [])):
+            if not str(art.get("measurement") or "").strip():
+                miss.append("measurement")
+        if not any(str(f.get("key") or "").lower() == "data_location" for e in usable for f in (e.get("facts") or [])):
+            if not str(art.get("data_location") or "").strip():
+                miss.append("data_location")
+        if miss:
+            parts.append(_mangler_lines(miss, lang=lang))
+        note = ("Ikke telefon, e-post, forlagsadresse eller ITER-spenningslister i denne seksjonen."
+                if no else "No phone, email, publisher address, or ITER voltage lists in this section.")
+        if parts:
+            parts.append("*" + note + "*")
+        return "\n\n".join(parts) if parts else (
+            "Ingen tematiske måledata funnet ennå." if no else "No thematic measurement data yet."
+        )
+
+    if sk == "source_register":
+        rows = []
+        for e in usable[:40]:
+            fn = e.get("file") or ""
+            name = Path(fn).name
+            if not name or name.startswith("(") or name.lower() in ("prosjektnavn", "project"):
+                continue
+            roles = e.get("doc_role_hints") or []
+            kind = (
+                "Produktkatalog" if any(r in roles for r in ("catalogue", "datasheet")) else
+                "Produkt / testreferanser" if any(r in roles for r in ("technical_data", "test_result")) else
+                "Faglig/prosjektunderlag" if any(r in roles for r in ("overview", "drawing", "site_plan")) else
+                "Standard / guide" if any(r in roles for r in ("standard", "spec")) else
+                "Dokument"
+            )
+            if not no:
+                kind = {
+                    "Produktkatalog": "Product catalogue",
+                    "Produkt / testreferanser": "Product / test refs",
+                    "Faglig/prosjektunderlag": "Technical / project brief",
+                    "Standard / guide": "Standard / guide",
+                    "Dokument": "Document",
+                }.get(kind, kind)
+            use = (e.get("caption") or "")[:70] or ("Bakgrunn" if no else "Background")
+            rows.append([name, kind, use])
+        if n > 40:
+            rows.append([
+                (f"Øvrige {n - 40} filer" if no else f"Remaining {n - 40} files"),
+                ("Standarder, guider, notater" if no else "Standards, guides, notes"),
+                ("Bakgrunn; ikke alle sitert linje for linje"
+                 if no else "Background; not all cited line-by-line"),
+            ])
+        headers = (["Dokument", "Type", "Bruk i rapport"]
+                   if no else ["Document", "Type", "Use in report"])
+        return _md_table(headers, rows) if rows else (
+            "Ingen kilder i indeksen." if no else "No sources in index."
+        )
+
+    return None
+
+
 def _partition_ok(obj, known_ids):
     if not isinstance(obj, dict):
         return False
@@ -2430,15 +3267,21 @@ def partition_section_facts(ctx, section, structure, lang="no"):
     known = set(ctx["available_ids"]) | set(ctx["primary_ids"])
     ids = [a["id"] for a in ctx["available"]]
     # Computation over validation: structure dictates when possible
-    if structure in ("table", "bom_table"):
+    if structure in TABLE_STRUCTURES:
         return {"prose_facts": [], "table_facts": ids}
-    if structure in ("numbered_list", "numbered_steps", "checklist", "list"):
+    if structure in PROSE_LIKE_STRUCTURES and structure != "prose":
+        # Lists / steps: all facts feed the narrative — never a side table.
+        return {"prose_facts": ids, "table_facts": []}
+    if structure == "prose" and not _wants_fact_table(section, structure):
+        # Prose without table_format: write narrative from all facts.
         return {"prose_facts": ids, "table_facts": []}
     if not ids:
         return {"prose_facts": [], "table_facts": []}
 
     def fallback():
-        # Prefer tables for numeric/spec-heavy slices
+        # Prose-like: prefer narrative. Table-like: prefer table.
+        if structure in PROSE_LIKE_STRUCTURES:
+            return {"prose_facts": list(ids), "table_facts": []}
         return {"prose_facts": [], "table_facts": list(ids)}
 
     contract = register(CallContract(
@@ -2470,20 +3313,39 @@ def partition_section_facts(ctx, section, structure, lang="no"):
     table = [i for i in (part.get("table_facts") or []) if i in known]
     for i in ids:
         if i not in prose and i not in table:
-            table.append(i)
+            # Orphans follow the section's structure, not a silent table dump.
+            if structure in PROSE_LIKE_STRUCTURES and not _wants_fact_table(section, structure):
+                prose.append(i)
+            else:
+                table.append(i)
+    # Prose sections without table_format: collapse any model table preference into prose.
+    if structure in PROSE_LIKE_STRUCTURES and not _wants_fact_table(section, structure):
+        prose = list(dict.fromkeys(prose + table))
+        table = []
     return {"prose_facts": prose, "table_facts": table}
 
 
 def write_section_prose(sec_key, mapping, index, artifact, lang, fact_ids, ctx,
                         instruction=None):
-    """Step 3 — contracted prose only (no tables / figs / headings)."""
+    """Step 3 — intent-authored prose (foldok_author 0.86).
+
+    Fact-shaped intents: deterministic compose (or model for describe/summarize),
+    then verify. Procedural intents are refused — keep the safe fact ledger
+    rather than inventing steps/hazards.
+    """
     from call_contracts import CallContract, run_contracted, register
+    from foldok_author import (
+        AUTHORED_NOT_GENERATED,
+        AuthoringEngine,
+        IntentRefused,
+        facts_from_foldok,
+        inject_fact_citations,
+        resolve_intent,
+        verify,
+    )
 
     s = mapping["section"]
     by_id = ctx["by_id"]
-    lines = "\n".join(
-        _format_fact_line(fid, by_id[fid]) for fid in fact_ids if fid in by_id
-    ) or "(no facts)"
     req_missing = []
     for rf in s.get("required_facts", []):
         if not _fact_applies(rf, artifact) or rf.get("severity") == "info":
@@ -2497,8 +3359,11 @@ def write_section_prose(sec_key, mapping, index, artifact, lang, fact_ids, ctx,
         if not got:
             req_missing.append(key)
 
+    role_tokens = _section_role_tokens(sec_key, s)
+    if role_tokens & STRICT_MISSING_ONLY_ROLES and req_missing:
+        return _mangler_lines(req_missing, lang=lang, max_n=5)
+
     title = s.get("title_no" if lang == "no" else "title") or s.get("title") or sec_key
-    extra = f"\nAdditional instruction: {instruction}" if instruction else ""
     req_content = s.get("required_content") or []
     content_hints = []
     prescriptive = bool(s.get("writing_rules", {}).get("prescriptive"))
@@ -2521,58 +3386,111 @@ def write_section_prose(sec_key, mapping, index, artifact, lang, fact_ids, ctx,
         content_hints.append(
             "Use checklist rows: □ check — criterion (cite fact id). "
             "Rows without a cited criterion are marked AI-foreslått.")
-    system = (
-        "You write ONE documentation section as clean Markdown prose.\n"
-        "RULES: No headings (#), no markdown tables (|), no figure markup "
-        "({{fig:}} / {{figure:}}). Cite facts as {{fact:ID}}. "
-        "Use {{missing:key}} only for required keys with no fact. Never invent values."
+    if instruction:
+        content_hints.append(f"Additional instruction: {instruction}")
+    if req_missing:
+        content_hints.append(
+            "Required keys with no fact — emit {{missing:key}} for: "
+            + ", ".join(req_missing)
+        )
+
+    # Hard stop for research sections: if mandatory keys are missing,
+    # emit ONLY MANGLER lines (no extra facts, no filler prose).
+    if _is_research_template(mapping):
+        miss = _research_required_missing(sec_key, artifact or {}, by_id, ctx.get("available_ids") or set())
+        if miss:
+            return _mangler_lines(miss, lang=lang)
+
+    intent = resolve_intent(
+        s,
+        sec_key=sec_key,
+        document_species=(mapping.get("document_species") or ""),
     )
-    hints = "\n".join(content_hints)
-    prompt = f"""Write section "{title}" in {lang}.
-Writing rules: {json.dumps(s.get('writing_rules', {}))}
-Content requirements: {json.dumps(req_content)}
-{hints}
-Required keys with no fact ({{{{missing:key}}}}): {req_missing}
-ARTIFACT: {artifact.get('name')} — {artifact.get('purpose')}
-FACTS TO USE (cite by id):
-{lines}{extra}"""
+    facts = facts_from_foldok(list(fact_ids or []), by_id)
 
     def fallback_safe():
-        bits = []
-        for fid in fact_ids:
-            f = by_id.get(fid)
-            if not f:
-                continue
-            bits.append(
-                f"{(f.get('key') or '').replace('_', ' ')}: {{{{fact:{fid}}}}}."
+        if req_missing:
+            return _mangler_lines(req_missing, lang=lang)
+        if intent in AUTHORED_NOT_GENERATED:
+            return (
+                "[AUTHOR: skriv prosedyre / advarsel her — genereres ikke fra fakta.]"
+                if lang == "no" else
+                "[AUTHOR: write procedure / warning here — not generated from facts.]"
             )
-        for key in req_missing:
-            bits.append(f"{{{{missing:{key}}}}}.")
-        return " ".join(bits) if bits else (
-            "Ingen prosa generert." if lang == "no" else "No prose generated."
-        )
+        return ""
 
-    contract = register(CallContract(
-        purpose="generate_section_prose",
-        shape="Markdown prose citing {{fact:id}}; no tables, figures, or headings",
-        validate=_prose_ok,
-        fallback=fallback_safe,
-        model=SONNET,
-        max_tokens=900,
-        parse="text",
-    ))
+    # 0.86: procedural intents are authored, not generated
+    if intent in AUTHORED_NOT_GENERATED:
+        text = fallback_safe()
+        if content_hints and "[AUTHOR:" not in text:
+            text = text + "\n\n" + "\n".join(content_hints[:2])
+        return text
+
+    engine = AuthoringEngine(lang=lang or "en")
+
+    # Prefer deterministic compose (zero tokens) when it verifies
     try:
-        result = run_contracted(
-            contract, ask,
-            [{"role": "user", "content": prompt}],
-            system=system,
+        authored = engine.author(intent, facts, title=title)
+    except IntentRefused:
+        return fallback_safe()
+
+    if authored.prose and authored.grounded:
+        text = inject_fact_citations(_clean_prose_noise(authored.prose), facts)
+        for hint in content_hints:
+            if hint.startswith("Start") and hint not in text:
+                text = hint.replace("Start with banner: ", "").replace(
+                    "Start the section with a clear banner line: ", ""
+                ) + "\n\n" + text
+                break
+        if req_missing:
+            text += " " + " ".join(f"{{{{missing:{k}}}}}." for k in req_missing)
+        if _prose_ok(text):
+            if re.search(r"(?im)\b[a-z0-9_]{2,}\s*:\s*\*\*.+\*\*", text):
+                return fallback_safe()
+            return text
+
+    # Varied phrasing intents may call the model (still verified)
+    if intent in ("describe_component", "summarize_system") and facts:
+        system = (
+            "You write ONE documentation section as clean Markdown prose.\n"
+            "RULES: Follow the INTENT. No markdown tables (|), no figure markup. "
+            "Cite facts as {{fact:ID}}. Never invent values. No 'Finding:' voice. "
+            "No procedures, hazards, or steps that are not in the facts."
         )
-        text = result.value
-    except Exception:
-        text = fallback_safe()
-    if not _prose_ok(text):
-        text = fallback_safe()
-    return text
+        user_prompt = engine.prompt(intent, facts, title=title)
+        if content_hints:
+            user_prompt += "\n\nEXTRA:\n" + "\n".join(content_hints)
+        user_prompt += f"\n\nARTIFACT: {artifact.get('name')} — {artifact.get('purpose')}"
+
+        contract = register(CallContract(
+            purpose="generate_section_prose",
+            shape="Markdown prose citing {{fact:id}}; no tables, figures, or headings",
+            validate=_prose_ok,
+            fallback=fallback_safe,
+            model=SONNET,
+            max_tokens=900,
+            parse="text",
+        ))
+        try:
+            result = run_contracted(
+                contract, ask,
+                [{"role": "user", "content": user_prompt}],
+                system=system,
+            )
+            text = _clean_prose_noise(result.value)
+        except Exception:
+            return fallback_safe()
+        if not _prose_ok(text):
+            return fallback_safe()
+        if re.search(r"(?im)\b[a-z0-9_]{2,}\s*:\s*\*\*.+\*\*", text):
+            return fallback_safe()
+        plan = engine.plan(intent, facts, title=title)
+        check = verify(text, plan, facts)
+        if facts and not check.grounded:
+            return fallback_safe()
+        return text
+
+    return fallback_safe()
 
 
 def place_section_figures(text, mapping, index):
@@ -2581,13 +3499,17 @@ def place_section_figures(text, mapping, index):
     return ensure_min_figures(text, mapping, index)
 
 
-def generate_section(sec_key, mapping, index, artifact, lang, instruction=None, pre_gaps=None):
+def generate_section(sec_key, mapping, index, artifact, lang, instruction=None, pre_gaps=None,
+                     exclude_fact_ids=None):
     """Legacy entry + code-compiled sections. Prefer generate_section_with_structure.
 
     Code-compiled branches must call place_section_figures — same as
     generate_section_with_structure — because server.py still dispatches here.
     """
     s = mapping["section"]
+    if (sec_key or "").strip().lower() in ("abbreviations", "forkortelser"):
+        # Glossary is authored from real terms only; never auto-generated from token frequency.
+        return ""
     req_content = s.get("required_content") or []
     if sec_key == "supplier_manual_gaps" or "gap_list_from_engine" in req_content:
         gaps = pre_gaps
@@ -2613,15 +3535,31 @@ def generate_section(sec_key, mapping, index, artifact, lang, instruction=None, 
         text = s.get(f"boilerplate_{lang}") or s["boilerplate"]
         return place_section_figures(text, mapping, index)
 
+    if _is_topic_brief_mapping(mapping):
+        from topic_brief_compile import compile_topic_brief_section
+        compiled = compile_topic_brief_section(sec_key, mapping, index, artifact, lang=lang)
+        if compiled is not None:
+            if (sec_key or "").strip().lower() in ("gaps", "standards_register", "source_register"):
+                return normalise_markdown(compiled)
+            return place_section_figures(compiled, mapping, index)
+
+    if _is_research_report_mapping(mapping):
+        compiled = compile_research_section(sec_key, mapping, index, artifact, lang=lang)
+        if compiled is not None:
+            if _research_section_alias(sec_key) in ("method", "cover"):
+                return normalise_markdown(compiled)
+            return place_section_figures(compiled, mapping, index)
+
     # Non-compiled: run full contracted pipeline
     return generate_section_with_structure(
         sec_key, mapping, index, artifact, lang,
-        instruction=instruction, pre_gaps=pre_gaps,
+        instruction=instruction, pre_gaps=pre_gaps, exclude_fact_ids=exclude_fact_ids,
     )
 
 
 def generate_section_with_structure(
     sec_key, mapping, index, artifact, lang, instruction=None, pre_gaps=None,
+    exclude_fact_ids=None,
 ):
     """Six-step section pipeline (WORKORDER 0.49).
 
@@ -2633,50 +3571,79 @@ def generate_section_with_structure(
     6 COMPOSE/PAGINATE code (LayoutTree — caller / assemble)
     """
     s = mapping.get("section") or {}
+    if (sec_key or "").strip().lower() in ("abbreviations", "forkortelser"):
+        # Kill auto-abbreviation-by-count behaviour.
+        return ""
     structure = _structure_kind(s)
     req_content = s.get("required_content") or []
 
     # Code-compiled paths — zero model calls
+    def _ret(t): return normalise_markdown(place_section_figures(t, mapping, index))
+
     if sec_key == "supplier_manual_gaps" or "gap_list_from_engine" in req_content:
         gaps = pre_gaps
         if gaps is None:
             gaps = template_gaps({"sections": [s]}, index, artifact)
-        text = compile_supplier_manual_gaps(gaps, lang)
-        return place_section_figures(text, mapping, index)
+        return _ret(compile_supplier_manual_gaps(gaps, lang))
     if sec_key == "drawings_register":
-        return place_section_figures(compile_drawings_register(index, lang), mapping, index)
+        return _ret(compile_drawings_register(index, lang))
     if sec_key == "doc_control":
-        return place_section_figures(
-            compile_doc_control(index, artifact, lang), mapping, index,
-        )
+        return _ret(compile_doc_control(index, artifact, lang))
     if sec_key == "spec_overview":
-        return place_section_figures(
-            compile_spec_overview(index, artifact, lang), mapping, index,
-        )
+        return _ret(compile_spec_overview(index, artifact, lang))
     if sec_key == "bom" or structure == "bom_table":
-        return place_section_figures(
-            render_bom_markdown(aggregate_bom(index), lang), mapping, index,
-        )
+        return _ret(render_bom_markdown(aggregate_bom(index), lang))
     if s.get("boilerplate"):
         text = s.get(f"boilerplate_{lang}") or s["boilerplate"]
-        return place_section_figures(text, mapping, index)
+        return _ret(text)
+
+    # Topic brief — facet retrieve + AuthoringEngine (cited pack)
+    if _is_topic_brief_mapping(mapping):
+        from topic_brief_compile import compile_topic_brief_section
+        compiled = compile_topic_brief_section(sec_key, mapping, index, artifact, lang=lang)
+        if compiled is not None:
+            if (sec_key or "").strip().lower() in (
+                "gaps", "standards_register", "source_register", "overview"
+            ):
+                return normalise_markdown(compiled)
+            return _ret(compiled)
+
+    # Research project report — deterministic section contracts (no fact walls)
+    if _is_research_report_mapping(mapping):
+        compiled = compile_research_section(sec_key, mapping, index, artifact, lang=lang)
+        if compiled is not None:
+            # Method: MANGLER-only, no figures. Cover: ID table only.
+            if _research_section_alias(sec_key) in ("method", "cover"):
+                return normalise_markdown(compiled)
+            return _ret(compiled)
 
     # 1. SELECT FACTS
-    ctx = build_section_fact_context(mapping, index, artifact)
+    ctx = build_section_fact_context(
+        mapping, index, artifact, exclude_ids=exclude_fact_ids
+    )
+    role_tokens = _section_role_tokens(sec_key, s)
+    # Only hard-stop generic prose sections outside research compiler
+    if not _is_research_report_mapping(mapping):
+        strict_missing = _strict_missing_keys_for_section(
+            s, ctx.get("by_id") or {}, ctx.get("available_ids") or set()
+        )
+        if role_tokens & STRICT_MISSING_ONLY_ROLES and strict_missing:
+            return normalise_markdown(_mangler_lines(strict_missing, lang=lang, max_n=5))
+    else:
+        strict_missing = []
 
     # 2. PARTITION
     partition = partition_section_facts(ctx, s, structure, lang=lang)
     prose_ids = partition.get("prose_facts") or []
     table_ids = partition.get("table_facts") or []
 
-    # 3. WRITE PROSE
+    # 3. WRITE PROSE — always for prose-like structures (even if partition preferred tables)
     prose = ""
-    if prose_ids or (
-        structure in ("prose", "numbered_list", "numbered_steps", "checklist", "list")
-        and not table_ids
-    ):
+    want_prose = structure in PROSE_LIKE_STRUCTURES or bool(prose_ids)
+    if want_prose:
         ids_for_prose = prose_ids or list(ctx["available_ids"])
-        if ids_for_prose or structure != "table":
+        # Prose sections must still run with zero facts (placeholders / structure).
+        if ids_for_prose or structure in PROSE_LIKE_STRUCTURES:
             prose = write_section_prose(
                 sec_key, mapping, index, artifact, lang,
                 ids_for_prose, ctx, instruction=instruction,
@@ -2688,14 +3655,14 @@ def generate_section_with_structure(
                 prose = FIG_SHORT_MARK.sub("", prose)
                 prose = FIGURE_MARK.sub("", prose)
 
-    # 4. BUILD TABLE
+    # 4. BUILD TABLE — only when the template asked for a table
     table = ""
-    if table_ids or structure == "table":
+    if _wants_fact_table(s, structure):
         table = build_generic_fact_table(
             mapping, index, artifact, lang=lang, ctx=ctx,
             fact_ids=table_ids or None,
         )
-        if structure == "table" and not structure_ok(table, "table"):
+        if structure in TABLE_STRUCTURES and not structure_ok(table, "table"):
             table = build_generic_fact_table(
                 mapping, index, artifact, lang=lang, ctx=ctx,
             )
@@ -2704,11 +3671,16 @@ def generate_section_with_structure(
     parts = [p for p in (prose.strip(), table.strip()) if p]
     text = "\n\n".join(parts) if parts else (
         build_generic_fact_table(mapping, index, artifact, lang=lang, ctx=ctx)
-        if structure == "table"
+        if structure in TABLE_STRUCTURES
         else (prose or "")
     )
     text = place_section_figures(text, mapping, index)
-    return text
+    # Default prose safety: never ship fact-dump walls.
+    if structure in PROSE_LIKE_STRUCTURES and _looks_like_fact_dump(text):
+        if strict_missing:
+            return normalise_markdown(_mangler_lines(strict_missing, lang=lang, max_n=5))
+        return normalise_markdown("")
+    return normalise_markdown(text)
 
 
 def regenerate_one_section(sec_key, mapping, index, artifact, lang, instruction=None):
@@ -2795,6 +3767,20 @@ def postprocess(sec_key, text, index, artifact=None, excluded_fact_ids=None, kno
 
     text = re.sub(r"\{\{fact:([\w-]+)\}\}", sub_fact, text)
     text = re.sub(r"\{\{missing:([\w_]+)\}\}", r"`[MANGLER: \1]`", text)
+
+    # Scope/meta may only live in project identification/header sections.
+    sk = (sec_key or "").strip().lower()
+    if sk not in {"cover", "project_identification", "identification", "header"}:
+        text = re.sub(r"(?i)\b(project title|prosjekttittel)\b[^.\n]{0,180}[.\n]?", "", text)
+        text = re.sub(r"(?i)\b(scope statement|omfang)\b[^.\n]{0,220}[.\n]?", "", text)
+        text = re.sub(r"(?i)\b(author name|forfatter)\b[^.\n]{0,140}[.\n]?", "", text)
+
+    # Contact/publishing noise never belongs outside explicit contact sections.
+    if not _is_contact_section(sec_key):
+        text = "\n".join(
+            ln for ln in (text or "").splitlines()
+            if not CONTACT_NOISE_RX.search(ln or "")
+        )
 
     def _drop_marked_chunks(blob, marker):
         """Drop prose sentences with marker; for tables, drop lines only."""
@@ -3096,7 +4082,12 @@ def main():
             sys.exit("Corrections flow not implemented in CLI — edit captions in cache or rerun. Aborting.")
 
     print("\n◆ Checkpoint B — mapping + gap detection")
-    mappings, gaps = map_sections(template, index, artifact)
+    mappings, gaps, guard_report = map_sections(template, index, artifact)
+    for held in (guard_report.get("held_back") or []):
+        name = held["file"] if isinstance(held, dict) else held
+        print(f"  [personal_doc] held back: {name}")
+    if guard_report.get("intake_notice"):
+        print(f"  {guard_report['intake_notice']}")
     for g in gaps:
         print(f"  [{g['severity']:>8}] {g['section']}: {g['type']} → {g['label']}")
     blocking = [g for g in gaps if g["severity"] == "blocking"]

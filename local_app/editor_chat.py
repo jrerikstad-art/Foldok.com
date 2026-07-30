@@ -54,6 +54,10 @@ CONNECTION DIAGRAMS (WORKORDER_0.24/0.26): Free-text schematic/wiring asks
 trigger propose_connection_spec → confirm rows (plain text) → create_diagram
 → SVG in the DOCUMENT. Never paste <svg> or markdown tables into chat.
 Mirror USER LANGUAGE.
+FORBIDDEN substitutes: wiring_specification.md, "feed into Fritzing/KiCad",
+invented designer prices (€8…), "I only have text / no drawing tools".
+We DO draw interconnection/wiring/block diagrams. We do NOT claim full
+IEC/KiCad circuit-schematic certification.
 
 ARTIFACTS IN DOCUMENTS (WORKORDER_0.26): Chat only REFERENCES tool
 results (≤3 lines). Never dump SVG, HTML, code fences, or long intake
@@ -220,6 +224,244 @@ def corpus_brief(index, file_count: int) -> str:
     return f"{n} filer med {joined}"
 
 
+RESEARCH_SIGNAL_RE = re.compile(
+    r"\b(phd|ph\.?d|forskning|research|thesis|avhandling|preregistration|"
+    r"systematic[_\s-]?review|qualitative|thematic_analysis|survey|"
+    r"intervju|interview|wp\d|work\s*package|selficon|selficom|"
+    r"protocol|methodology|forskningsdesign)\b",
+    re.I,
+)
+
+STRUCTURAL_SIGNAL_RE = re.compile(
+    r"\b(beam|stud|gulvvarme|v[åa]trom|konstruksjon|structural|"
+    r"tegning|drawing|norsok|eurocode|b[æa]rende)\b",
+    re.I,
+)
+
+SPEC_LIBRARY_SIGNAL_RE = re.compile(
+    r"\b(emc|electromagnetic|shield|shielding|cable\s*tray|cable\s*management|"
+    r"earthing|grounding|mil[-\s]?std|ieee\s*\d|iec\s*\d|specification|"
+    r"standard|datasheet|katalog|catalogue)\b",
+    re.I,
+)
+
+LAB_CAMPAIGN_SIGNAL_RE = re.compile(
+    r"\b(lab\s*campaign|m[åa]leserie|test\s*rig|sample\s*size|fors[øo]k|"
+    r"method_description|results_summary|hypothesis)\b",
+    re.I,
+)
+
+
+def _corpus_hay(project_name: str = "", index=None, hay: str = "") -> str:
+    return " ".join([
+        project_name or "",
+        hay or "",
+        " ".join(
+            (e.get("file") or "") + " " + (e.get("caption") or "") + " "
+            + " ".join(e.get("content_tags") or [])
+            for e in (index or [])[:50]
+        ),
+    ])
+
+
+def looks_like_research(project_name: str = "", index=None, hay: str = "") -> bool:
+    blob = _corpus_hay(project_name, index, hay)
+    return bool(RESEARCH_SIGNAL_RE.search(blob))
+
+
+def classify_corpus(project_name: str = "", index=None, artifact=None, hay: str = "") -> str:
+    """Return corpus_type ∈ {spec_library, lab_campaign, install_job, research_lab, general}.
+
+    Spec libraries (EMC folders, standards packs) must NOT default to research reports.
+    """
+    art = artifact or {}
+    blob = _corpus_hay(project_name, index, hay) + " " + " ".join([
+        str(art.get("name") or ""),
+        str(art.get("purpose") or ""),
+        str(art.get("artifact_type") or ""),
+    ])
+    has_lab_keys = any(
+        str(art.get(k) or "").strip()
+        for k in ("method_description", "sample_size", "results_summary", "equipment")
+    )
+    # Explicit lab evidence wins — a lone research_question on a spec library does not.
+    if has_lab_keys or LAB_CAMPAIGN_SIGNAL_RE.search(blob):
+        if has_lab_keys:
+            return "lab_campaign"
+        if RESEARCH_SIGNAL_RE.search(blob) and not SPEC_LIBRARY_SIGNAL_RE.search(blob):
+            return "research_lab"
+    if RESEARCH_SIGNAL_RE.search(blob) and not SPEC_LIBRARY_SIGNAL_RE.search(blob):
+        return "research_lab"
+    if SPEC_LIBRARY_SIGNAL_RE.search(blob):
+        return "spec_library"
+    if STRUCTURAL_SIGNAL_RE.search(blob):
+        return "install_job"
+    return "general"
+
+
+def default_template_for_corpus(corpus_type: str) -> str:
+    return {
+        "spec_library": "topic_brief",
+        "lab_campaign": "research_project_report",
+        "research_lab": "research_project_report",
+        "install_job": "technical_doc_package",
+        "general": "project_plan",
+    }.get(corpus_type or "", "topic_brief")
+
+
+def artifact_is_thin(artifact: dict | None) -> bool:
+    """True for empty UI seed / unpopulated Checkpoint A."""
+    if not artifact:
+        return True
+    purpose = (artifact.get("purpose") or "").strip()
+    comps = artifact.get("main_components") or []
+    hazards = artifact.get("hazards") or []
+    try:
+        conf = float(artifact.get("confidence") or 0)
+    except (TypeError, ValueError):
+        conf = 0.0
+    return (not purpose) and (not comps) and (not hazards) and conf <= 0.25
+
+
+def seed_artifact_from_index(index, project_name: str = "", lang: str = "no") -> dict:
+    """Zero-token Checkpoint A draft from captions/tags — no model, no saldo."""
+    usable = [e for e in (index or []) if e.get("kind") != "skipped"]
+    name = (project_name or "").strip() or "Prosjekt"
+    brief = corpus_brief(usable, len(usable))
+    tag_counts: Counter = Counter()
+    folder_counts: Counter = Counter()
+    for e in usable:
+        for t in e.get("content_tags") or []:
+            t = str(t).strip().lower().replace("-", "_")
+            if t and t not in ("wp1", "dokument", "document", "email", "screenshot"):
+                tag_counts[t] += 1
+        rel = (e.get("file") or "").replace("\\", "/")
+        if "/" in rel:
+            folder_counts[rel.split("/")[0]] += 1
+
+    corpus = classify_corpus(name, usable)
+    research = corpus in ("lab_campaign", "research_lab")
+    top_tags = [t for t, _ in tag_counts.most_common(8)]
+    top_folders = [f for f, _ in folder_counts.most_common(6)]
+
+    if corpus == "spec_library":
+        if lang == "en":
+            purpose = (
+                f"Source library with {brief}. "
+                f"Themes: {', '.join(top_tags[:5]) or 'specifications and standards'}."
+            )
+        else:
+            purpose = (
+                f"Kildesamling med {brief}. "
+                f"Hovedtema: {', '.join(top_tags[:5]) or 'spesifikasjoner og standarder'}."
+            )
+        components = []
+        for folder in top_folders[:5]:
+            components.append({"name": folder, "seen_in": [
+                e.get("file") for e in usable
+                if (e.get("file") or "").replace("\\", "/").startswith(folder + "/")
+            ][:4]})
+        for tag in top_tags[:4]:
+            label = tag.replace("_", " ")
+            if any(c["name"].lower() == label for c in components):
+                continue
+            seen = [
+                e.get("file") for e in usable
+                if tag in " ".join(e.get("content_tags") or []).lower()
+            ][:3]
+            components.append({"name": label, "seen_in": seen})
+        conf = min(0.72, 0.38 + 0.04 * min(len(usable), 8) + (0.08 if top_tags else 0))
+        stages = ["review", "extract", "cite", "brief"]
+        artifact_type = "source_library"
+    elif research:
+        if lang == "en":
+            purpose = (
+                f"Research project with {brief}. "
+                f"Dominant themes: {', '.join(top_tags[:5]) or 'methods and sources'}."
+            )
+        else:
+            purpose = (
+                f"Forskningsprosjekt med {brief}. "
+                f"Hovedtema: {', '.join(top_tags[:5]) or 'metode og kilder'}."
+            )
+        components = []
+        for folder in top_folders[:5]:
+            components.append({"name": folder, "seen_in": [
+                e.get("file") for e in usable
+                if (e.get("file") or "").replace("\\", "/").startswith(folder + "/")
+            ][:4]})
+        for tag in top_tags[:4]:
+            label = tag.replace("_", " ")
+            if any(c["name"].lower() == label for c in components):
+                continue
+            seen = [
+                e.get("file") for e in usable
+                if tag in " ".join(e.get("content_tags") or []).lower()
+            ][:3]
+            components.append({"name": label, "seen_in": seen})
+        # Soft confidence: sources exist, model not Sonnet-confirmed
+        conf = min(0.72, 0.38 + 0.04 * min(len(usable), 8) + (0.08 if top_tags else 0))
+        stages = ["plan", "collect", "analyse", "report"]
+        artifact_type = "research_project"
+    else:
+        if lang == "en":
+            purpose = f"Project with {brief}."
+        else:
+            purpose = f"Prosjekt med {brief}."
+        components = [{"name": f, "seen_in": []} for f in top_folders[:5]]
+        conf = min(0.55, 0.28 + 0.03 * min(len(usable), 8))
+        stages = ["install", "operate", "maintain"] if STRUCTURAL_SIGNAL_RE.search(
+            " ".join(top_tags)) else ["plan", "execute", "report"]
+        artifact_type = "project"
+
+    findings = []
+    for e in usable[:6]:
+        cap = (e.get("caption") or "").strip()
+        if not cap:
+            continue
+        findings.append({
+            "hazard": cap[:160],
+            "source": e.get("file") or "",
+        })
+
+    return {
+        "name": name,
+        "purpose": purpose[:420],
+        "main_components": components[:8],
+        "hazards": findings[:6],
+        "lifecycle_stages": stages,
+        "confidence": round(conf, 2),
+        "language": lang or "no",
+        "artifact_type": artifact_type,
+        "corpus_type": corpus,
+        "seeded_from_index": True,
+    }
+
+
+def maybe_seed_artifact(state: dict, index, project_name: str = "", lang: str = "no") -> bool:
+    """If artifact is still the empty 15% seed, replace from index. Returns True if changed."""
+    if not index:
+        return False
+    n = sum(1 for e in (index or []) if e.get("kind") != "skipped")
+    if n <= 0:
+        return False
+    art = state.get("artifact")
+    rich_user = art and not artifact_is_thin(art) and not art.get("seeded_from_index")
+    if rich_user:
+        return False
+    grew = art and art.get("seeded_from_index") and n > int(state.get("seeded_index_n") or 0)
+    if art and not artifact_is_thin(art) and not grew:
+        return False
+    was_thin = artifact_is_thin(art)
+    seeded = seed_artifact_from_index(
+        index, project_name or (art or {}).get("name") or "", lang)
+    state["artifact"] = seeded
+    state["seeded_index_n"] = n
+    if was_thin or not art or grew:
+        state["confirmed"] = False
+    return True
+
+
 def keys_to_search_for_message(message: str) -> list:
     q = _fold(message)
     keys, seen = [], set()
@@ -292,6 +534,41 @@ def is_open_ended_create(message: str) -> bool:
         r"phd|forskningsprosjekt|dokumentasjon|prosjektplan|rapport)\b",
         q,
     ))
+
+
+def is_source_summary_request(message: str) -> bool:
+    """«Oppsummer prosjektet ut fra kildene» — zero-token when index exists."""
+    q = _fold(message)
+    return bool(re.search(
+        r"\b(oppsummer|summar|hva\s+handler|beskriv\s+prosjekt|ut\s+fra\s+kild|"
+        r"from\s+(the\s+)?sources|what\s+is\s+this\s+project)\b",
+        q,
+    ))
+
+
+def source_summary_reply(*, project_name: str, brief: str, index, lang: str = "no") -> str:
+    """Deterministic project summary from indexed captions — no model call."""
+    captions = []
+    for e in (index or [])[:12]:
+        cap = (e.get("caption") or "").strip()
+        name = (e.get("file") or "").split("/")[-1]
+        if cap:
+            captions.append(f"• {name}: {cap[:140]}")
+    sample = "\n".join(captions[:8])
+    n = len(index or [])
+    if lang == "en":
+        head = f"**{project_name or 'Project'}** — {brief}"
+        if sample:
+            head += f"\n\nFrom the index ({n} files):\n{sample}"
+        head += "\n\nSay what document you need, or confirm this understanding."
+        return head
+    head = f"**{project_name or 'Prosjektet'}** — {brief}"
+    if sample:
+        head += f"\n\nFra indeksen ({n} filer):\n{sample}"
+    else:
+        head += "\n\nIndeksen har filer, men få lesbare captions ennå."
+    head += "\n\nSi hva du vil ha laget, eller rett meg hvis forståelsen er feil."
+    return head
 
 
 def scrub_chat_voice(text: str) -> str:
@@ -532,6 +809,48 @@ def is_recreate_form_ask(text: str) -> bool:
     if re.search(r"sjekkliste\.txt|checklist\.txt|write_checklist", t, re.I):
         return False
     return bool(RECREATE_FORM_RE.search(t))
+
+
+def is_regenerate_document_ask(text: str) -> bool:
+    """Full-document regenerate (not a single section).
+
+    Catches 're generate this document', typos like 'documen',
+    'generer dokumentet på nytt'. Section-scoped asks are excluded.
+    """
+    lower = _fold(text or "")
+    if not lower:
+        return False
+    if re.search(
+        r"\b(seksjon|section|kapittel|chapter|avsnitt)\b|"
+        r"\b(sammendrag|summary|executive|identifikasjon|identification|"
+        r"omfang|scope)\b",
+        lower,
+    ):
+        return False
+    # document / dokument / draft (+ common truncations like "documen")
+    doc = (
+        r"(?:documen\w*|dokument\w*|utkast\w*|draft\w*|manual\w*|"
+        r"rapport\w*|report\w*|hele)"
+    )
+    regener = r"(?:re\s*-?\s*generat\w*|regenerer\w*)"
+    if re.search(rf"\b{regener}\b.*\b{doc}\b|\b{doc}\b.*\b{regener}\b", lower):
+        return True
+    # "re generate this" / "regenerate it" with no section → whole open document
+    if re.search(
+        rf"\b{regener}\b(?:\s+\w+){{0,3}}\s+\b(this|it|dette|denne|det)\b",
+        lower,
+    ):
+        return True
+    if re.search(
+        r"\b(generer|bygg|kj[øo]r)\b.*\b(dokumentet|utkastet|hele\s+dokumentet|draft)\b.*"
+        r"\b(p[åa]\s*nytt|igjen|again)\b|"
+        r"\b(p[åa]\s*nytt|igjen|again)\b.*\b(generer|bygg)\b.*\b(dokument|utkast|draft)\b|"
+        r"\b(generate|rebuild)\b.*\b(the\s+)?(document|draft|manual)\b|"
+        r"\b(skriv|bygg)\s+(hele\s+)?(dokumentet|utkastet)\s+(p[åa]\s*nytt|om)\b",
+        lower,
+    ):
+        return True
+    return False
 
 
 def dispatch_pending_action(pending: dict) -> dict | None:
@@ -817,6 +1136,18 @@ def route_editor_message(message: str, state: dict, gaps: list, scope_section=No
     # (not the agent's own «Skal jeg …?» confirm question)
     if (not re.search(r"\bskal\s+jeg\b|\bshall\s+i\b", lower)
             and re.search(
+            r"\b(kj[øo]r|start|generer|run|generate)\b.*\b("
+            r"spesifikasjonsgjennomgang|spec\s*coherence|spec\s*coherence\s*review"
+            r")\b|"
+            r"\b(spesifikasjonsgjennomgang|spec\s*coherence)\b.*\b(n[åa]|now|kj[øo]r)\b",
+            lower)):
+        return {
+            "execute": {"tool": "run_generate", "template_key": "spec_coherence_review"},
+            "kind": "run_generate",
+        }
+
+    if (not re.search(r"\bskal\s+jeg\b|\bshall\s+i\b", lower)
+            and re.search(
             r"\b(kj[øo]r|start|generer|run|generate)\b.*\b(contract\s*review|kontraktsgjennomgang|dokumentet|generate)\b|"
             r"\b(contract\s*review|kontraktsgjennomgang)\b.*\b(n[åa]|now|kj[øo]r)\b",
             lower)):
@@ -825,6 +1156,25 @@ def route_editor_message(message: str, state: dict, gaps: list, scope_section=No
             "kind": "run_generate",
         }
     # Soft ask → set pending (one confirm). Skip if already pending same action.
+    if re.search(r"spesifikasjonsgjennomgang|spec\s*coherence", lower) and re.search(
+            r"\b(skal|shall|kan du|can you|vil du)\b", lower):
+        if pending and pending.get("action") == "run_generate":
+            return {
+                "reply": ("Bekreft med **ja** — jeg spør ikke om det samme to ganger."
+                          if re.search(r"[æøå]", text) or "skal" in lower
+                          else "Confirm with **yes** — I won't ask the same thing twice."),
+                "kind": "propose_generate_reask",
+                "actions": [{"id": "confirm_generate", "label": "Ja — kjør"}],
+            }
+        return {
+            "reply": ("Skal jeg kjøre Spesifikasjonsgjennomgang nå?"
+                      if "skal" in lower or "kan" in lower or re.search(r"[æøå]", text)
+                      else "Shall I run Spec Coherence Review now?"),
+            "set_pending": {"action": "run_generate", "template_key": "spec_coherence_review"},
+            "kind": "propose_generate",
+            "actions": [{"id": "confirm_generate", "label": "Ja — kjør"}],
+        }
+
     if re.search(r"contract\s*review|kontraktsgjennomgang", lower) and re.search(
             r"\b(skal|shall|kan du|can you|vil du)\b", lower):
         if pending and pending.get("action") == "run_generate":
@@ -862,6 +1212,15 @@ def route_editor_message(message: str, state: dict, gaps: list, scope_section=No
     if cdiag.is_connection_diagram_ask(text):
         return {"execute": {"tool": "propose_connection_spec"},
                 "kind": "propose_connection"}
+
+    # foldok_route 0.85 — catch connect/wiring phrasing the BLOCK_ASK missed
+    try:
+        from foldok_route import diagram_route as _dr
+        if _dr.is_diagram_request(text):
+            return {"execute": {"tool": "propose_connection_spec"},
+                    "kind": "propose_connection"}
+    except ImportError:
+        pass
 
     # WORKORDER_0.26 B — checklist → SJEKKLISTE.txt on disk, not chat list
     # Never steal form-recreate asks into checklist
@@ -1047,7 +1406,18 @@ def route_editor_message(message: str, state: dict, gaps: list, scope_section=No
             "kind": "update_from_sources",
         }
 
-    if re.search(r"regener|skriv\s*om|forkort|utvid|strengere|omskriv|sammendrag", lower):
+    # Full document regenerate — BEFORE section regener (also catches "re generate")
+    if is_regenerate_document_ask(text):
+        return {
+            "execute": {"tool": "run_generate"},
+            "kind": "run_generate",
+        }
+
+    if re.search(
+            r"\bre\s*-?\s*generat|"
+            r"skriv\s*om|forkort|utvid|strengere|omskriv|"
+            r"regenerer|omskriv\s*seksjon",
+            lower):
         sec = scope_section or (pending.get("section") if pending else None)
         if not sec:
             # Infer common section names from the utterance

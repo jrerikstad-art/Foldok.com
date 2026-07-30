@@ -252,10 +252,17 @@ def project_banner(p, folder):
     return f"PROSJEKT: {p.get('name') or p['id']} · MAPPE: {folder}"
 
 
-def load_project_index(pid, lang="no", user_facts=None):
-    """Index loader keyed only by project id — one resolver, one truth."""
+def load_project_index(pid, lang="no", user_facts=None, *, cache_only=True):
+    """Index loader keyed only by project id — one resolver, one truth.
+
+    cache_only=True (default for chat/UI): never live-index missing files mid-request.
+    That was causing Failed to fetch on large folders (D:\\PhD) during artifact assist.
+    """
     p, folders, primary = resolve_project(pid)
-    index = load_index(folders, lang, user_facts, project_name=p.get("name"))
+    index = load_index(
+        folders, lang, user_facts, project_name=p.get("name"),
+        cache_only=cache_only,
+    )
     return p, folders, primary, index
 
 
@@ -290,7 +297,8 @@ def build_project_chat_context(p, folders, primary, state, index=None, *,
     inventory (keys+counts only); open conversation history.
     """
     index = index if index is not None else load_index(
-        folders, lang, (state or {}).get("user_facts"), project_name=p.get("name"))
+        folders, lang, (state or {}).get("user_facts"), project_name=p.get("name"),
+        cache_only=True)
     rows = file_rows(folders)
     file_count = sum(1 for r in rows if r.get("kind") != "skipped")
     indexed_count = sum(1 for e in (index or []) if e.get("kind") != "skipped")
@@ -1285,20 +1293,64 @@ def refresh_bom_section(state, folders, template_file, lang="no"):
     return True
 
 
-def store_connection_diagram(state, spec, svg, *, lang="no"):
-    """Persist confirmed connection_spec + SVG into document section."""
+def pick_diagram_section(state, template=None, preferred=None):
+    """Choose a visible template section for a connection/wiring diagram."""
+    preferred = preferred or "connection_diagram"
+    tpl = template
+    if tpl is None and state:
+        tf = state.get("active_template") or state.get("template")
+        if tf:
+            try:
+                tpl = load_template(tf)
+            except Exception:
+                tpl = None
+    keys = []
+    if tpl:
+        keys = [s.get("section_key") for s in (tpl.get("sections") or []) if s.get("section_key")]
+    if preferred in keys:
+        return preferred
+    for cand in (
+        "system_overview", "description", "connection_diagram", "wiring",
+        "method", "observations", "data_collected", "scope", "overview",
+    ):
+        if cand in keys:
+            return cand
+    for k in keys:
+        if k not in ("cover", "signature", "doc_control", "source_register"):
+            return k
+    return preferred
+
+
+def store_connection_diagram(state, spec, svg, *, lang="no", template=None, section=None):
+    """Persist confirmed connection_spec + SVG into a *visible* document section."""
     import connection_diagram as cdiag
     if not state.get("doc"):
         state["doc"] = {"sections": {}}
     sections = state["doc"].setdefault("sections", {})
     md = cdiag.embed_svg_markdown(svg, lang=lang)
-    sec = sections.setdefault("connection_diagram", {"md": "", "files": []})
-    sec["md"] = md
+    target = section or pick_diagram_section(state, template)
+    sec = sections.setdefault(target, {"md": "", "files": []})
+    # Replace prior diagram block in this section; keep other prose if any
+    prev = sec.get("md") or ""
+    if "<svg" in prev.lower() or "### Blokkskjema" in prev or "### Block diagram" in prev:
+        sec["md"] = md
+    elif prev.strip():
+        sec["md"] = prev.rstrip() + "\n\n" + md
+    else:
+        sec["md"] = md
     sec["block_type"] = cdiag.BLOCK_TYPE
     sec["connection_spec"] = spec
     sec["svg"] = svg
     sec["updated"] = ds.iso_now()
-    # Collect images for KILDER / hover trace
+    # Alias for tools / chat deep-link
+    if target != "connection_diagram":
+        alias = sections.setdefault("connection_diagram", {"md": "", "files": []})
+        alias["md"] = md
+        alias["svg"] = svg
+        alias["block_type"] = cdiag.BLOCK_TYPE
+        alias["connection_spec"] = spec
+        alias["mirror_of"] = target
+        alias["updated"] = sec["updated"]
     imgs = [c.get("image") for c in (spec.get("components") or []) if c.get("image")]
     if imgs:
         existing = list(sec.get("files") or [])
@@ -1307,8 +1359,9 @@ def store_connection_diagram(state, spec, svg, *, lang="no"):
                 existing.append(f)
         sec["files"] = existing[:12]
     state["connection_spec"] = spec
-    ds.add_version(state, "user", "connection_diagram", "Confirmed connection block diagram")
-    return sec
+    state["diagram_section"] = target
+    ds.add_version(state, "user", target, "Confirmed connection block diagram")
+    return sec, target
 
 
 def ensure_template_sections(state, template, artifact=None):
@@ -1368,6 +1421,13 @@ def _job_wrapper(job_id, target, *args):
                 JOBS[job_id]["status"] = "paused"
             elif j.get("status") == "running":
                 JOBS[job_id]["status"] = "done"
+    except acct.MeterDenied as e:
+        traceback.print_exc()
+        with LOCK:
+            JOBS[job_id]["status"] = "error"
+            JOBS[job_id]["error"] = str(e) or "Saldo er €0 — fyll på for AI-kall."
+            JOBS[job_id]["code"] = getattr(e, "code", "insufficient_balance")
+            JOBS[job_id]["need_topup"] = True
     except Exception as e:
         traceback.print_exc()
         with LOCK:
@@ -1448,6 +1508,68 @@ def _refresh_job_spend(job_id, ledger_start: int):
     job_update(job_id, spent_eur=round(spent, 3), cost_eur=round(spent, 3))
 
 
+def _latest_job_for(kind: str, folder: str | None = None):
+    """Latest job by kind, optionally scoped to folder."""
+    latest = None
+    latest_ts = 0.0
+    with LOCK:
+        for j in JOBS.values():
+            if (j or {}).get("kind") != kind:
+                continue
+            if folder and (j or {}).get("current_folder") not in (folder, ""):
+                continue
+            ts = float((j or {}).get("started_at") or 0.0)
+            if ts >= latest_ts:
+                latest_ts = ts
+                latest = dict(j)
+    return latest
+
+
+def _index_state_for_project(folders, state):
+    """Deterministic index state for chat routing."""
+    folder = folders[0] if folders else ""
+    running = None
+    with LOCK:
+        for j in JOBS.values():
+            if (j or {}).get("kind") != "index":
+                continue
+            if (j or {}).get("status") != "running":
+                continue
+            jf = (j or {}).get("current_folder") or ""
+            if not folder or jf in (folder, ""):
+                running = dict(j)
+                break
+    if running:
+        return {
+            "status": "running",
+            "job": running,
+            "ready_count": 0,
+            "errors": 0,
+        }
+
+    idx = load_active_index(state, folders, "no", cache_only=True)
+    ready = [e for e in (idx or []) if e.get("kind") != "skipped"]
+    if ready:
+        err = sum(1 for e in ready if e.get("kind") in ("error", "failed"))
+        return {
+            "status": "ready",
+            "ready_count": len(ready),
+            "errors": err,
+            "job": None,
+        }
+
+    latest = _latest_job_for("index", folder=folder)
+    if latest and latest.get("status") == "error":
+        return {
+            "status": "failed",
+            "reason": latest.get("error") or "Indeksering feilet.",
+            "job": latest,
+            "ready_count": 0,
+            "errors": 1,
+        }
+    return {"status": "idle", "job": latest, "ready_count": 0, "errors": 0}
+
+
 def run_index(job_id, folders, lang, scope=None):
     """Chunked, cancellable, budget-aware indexing (WORKORDER 0.55 §C)."""
     scope = scope or {}
@@ -1467,6 +1589,7 @@ def run_index(job_id, folders, lang, scope=None):
         job_id, kind="index", step="Forbereder", scope=scope,
         budget_eur=float(budget) if budget is not None else None,
         last_heartbeat=time.time(),
+        current_folder=(folders[0] if folders else ""),
     )
 
     all_files = source_files(folders)
@@ -1575,6 +1698,16 @@ def run_index(job_id, folders, lang, scope=None):
             except Exception:
                 pass
         job_update(job_id, detail=f"Ferdig — {done} filer (€{spent:.2f})")
+        # Zero-token Checkpoint A draft from captions (so UI is not stuck at 15% empty seed)
+        try:
+            if folders and done > 0:
+                st = load_state(folders[0])
+                idx = load_index(folders, lang, st.get("user_facts"),
+                                 project_name=Path(folders[0]).name, cache_only=True)
+                if edchat.maybe_seed_artifact(st, idx, Path(folders[0]).name, lang):
+                    save_state(folders[0], st)
+        except Exception as e:
+            print(f"[seed_artifact] skipped: {e}", flush=True)
 
     _commit_index_manifest(job_id, folders)
 
@@ -1642,6 +1775,13 @@ def run_form_fill(job_id, folders, template_file, lang):
 
 def run_generate(job_id, folders, template_file, lang):
     folder = folders[0]
+    job_update(
+        job_id,
+        kind="generate",
+        current_folder=folder,
+        template=template_file,
+        step="Forbereder dokument",
+    )
     state = load_state(folder, template_file)
     artifact = state.get("artifact")
     template = load_template(template_file, folder)
@@ -1654,16 +1794,51 @@ def run_generate(job_id, folders, template_file, lang):
         raise RuntimeError("Artefaktmodellen mangler — beskriv prosjektet i chatten først")
     if not state.get("confirmed"):
         raise RuntimeError("Artefaktmodellen må bekreftes før generering (checkpoint A)")
+    # Use cached captions only — never live-index mid-generate (burns saldo / fails at €0).
     index = load_index(folders, lang, state.get("user_facts"),
-                       project_name=Path(folder).name)
+                       project_name=Path(folder).name, cache_only=True)
+    if not index:
+        raise RuntimeError(
+            "Ingen indekserte kilder i cache. Indekser filer under KILDER først "
+            "(krever saldo), eller fyll på saldo og prøv igjen."
+        )
+
+    # Phase A router: EMC/spec libraries must not default to hollow research reports.
+    tf_name = Path(template_file).name.lower()
+    if tf_name == "research_project_report.json":
+        corpus = edchat.classify_corpus(
+            Path(folder).name, index, artifact,
+        )
+        has_lab_keys = any(
+            str((artifact or {}).get(k) or "").strip()
+            for k in ("method_description", "sample_size", "results_summary", "equipment")
+        )
+        # Spec library without lab method keys → topic_brief (not hollow research).
+        if corpus == "spec_library" and not has_lab_keys:
+            alt = template_file_for_key("topic_brief")
+            if alt:
+                template_file = alt
+                template = load_template(template_file, folder)
+                job_update(job_id, step="Bytter til Temabrief",
+                           detail="Korpus er spesifikasjonsbibliotek — ikke labkampanje")
 
     job_update(job_id, step="Kartlegger seksjoner", detail="Checkpoint B")
-    mappings, gaps = fc.map_sections(template, index, artifact)
+    mappings, gaps, guard_report = fc.map_sections(template, index, artifact)
     pre_gaps = fc.template_gaps(template, index, artifact)
 
     job_update(job_id, step="Genererer seksjoner", total=len(mappings))
     sections_data, all_violations = [], []
     t0 = time.time()
+    used_fact_ids = set()
+    fact_key_by_id = {
+        f.get("id"): (f.get("key") or "")
+        for e in (index or []) for f in (e.get("facts") or [])
+        if f.get("id")
+    }
+    SAFETY_REPEAT_KEYS = {
+        "voltage", "voltage_in", "voltage_out", "pressure", "max_pressure",
+        "e_stop", "emergency_stop", "risk", "hazard", "interlock",
+    }
     for n, (sec_key, mapping) in enumerate(mappings.items(), 1):
         s = mapping["section"]
         title = s.get("title_no") if lang == "no" else s.get("title")
@@ -1672,10 +1847,15 @@ def run_generate(job_id, folders, template_file, lang):
         eta = int((time.time() - t0) / max(n - 1, 1) * remaining) if n > 1 else None
         detail = f"{title}" + (f" · ~{eta}s igjen" if eta is not None else "")
         job_update(job_id, done=n - 1, detail=detail, eta_s=eta)
-        text = fc.generate_section_with_structure(sec_key, mapping, index, artifact, lang, pre_gaps=pre_gaps)
+        text = fc.generate_section_with_structure(
+            sec_key, mapping, index, artifact, lang, pre_gaps=pre_gaps,
+            exclude_fact_ids=used_fact_ids,
+        )
         text, cited, violations = fc.postprocess(sec_key, text, index, artifact)
         if violations:
-            text2 = fc.generate_section_with_structure(sec_key, mapping, index, artifact, lang)
+            text2 = fc.generate_section_with_structure(
+                sec_key, mapping, index, artifact, lang, exclude_fact_ids=used_fact_ids
+            )
             text2, cited2, violations2 = fc.postprocess(sec_key, text2, index, artifact)
             if len(violations2) < len(violations):
                 text, cited, violations = text2, cited2, violations2
@@ -1683,7 +1863,47 @@ def run_generate(job_id, folders, template_file, lang):
                 text = fc.redact_uncited(text)
                 all_violations.append(sec_key)
         sections_data.append((sec_key, text, cited, violations, mapping.get("files", [])))
+        # One fact → one primary home (except safety-critical repeats)
+        for fid in (cited or []):
+            k = str(fact_key_by_id.get(fid) or "").lower()
+            if k in SAFETY_REPEAT_KEYS:
+                continue
+            used_fact_ids.add(fid)
     job_update(job_id, done=len(mappings), detail="", eta_s=0)
+
+    # ── inbound review: normalise + irrelevance audit + vault leak scan ───────
+    try:
+        from foldok_intake import review as intake_review
+        section_texts = {sk: text for sk, text, *_rest in sections_data}
+        file_map = (guard_report or {}).get("file_map") or {
+            sk: m.get("files") or [] for sk, m in mappings.items()
+        }
+        vault = None
+        try:
+            from foldok_private.vault import EntityVault
+            # Only scan if a vault already exists for this folder — never invent one.
+            vpath = Path(folder) / ".foldok_vault"
+            if vpath.exists():
+                vault = EntityVault.load(vpath)
+        except Exception:
+            vault = None
+        checked = intake_review(
+            section_texts,
+            index=index,
+            template_sections=template.get("sections") or [],
+            file_map=file_map,
+            vault=vault,
+        )
+        if checked.findings:
+            print(checked.report(), flush=True)
+        # Apply normalised markdown back into sections_data
+        sections_data = [
+            (sk, checked.sections.get(sk, text), cited, violations, files)
+            for sk, text, cited, violations, files in sections_data
+        ]
+        state["intake_findings"] = [f.to_dict() for f in checked.findings]
+    except Exception as e:
+        print(f"[intake] review skipped: {e}", flush=True)
 
     state["doc"] = ds.build_doc_from_generation(template_file, sections_data)
     # Prefer model {{fig:}} / structure fallbacks; fill remaining required_media gaps
@@ -1709,6 +1929,17 @@ def run_generate(job_id, folders, template_file, lang):
     state["active_template"] = template_file
     state["documents"] = docs
     state["violations"] = all_violations
+    # Surface held-back personal documents to the user
+    held_back = guard_report.get("held_back") or []
+    if held_back:
+        state["held_back_personal"] = [
+            (h["file"] if isinstance(h, dict) else str(h)) for h in held_back
+        ]
+        if guard_report.get("intake_notice"):
+            state["intake_notice"] = guard_report["intake_notice"]
+    else:
+        state.pop("held_back_personal", None)
+        state.pop("intake_notice", None)
     ds.add_version(state, "system", "doc", f"Genererte {export_name}", section=None)
     save_state(folder, state)
 
@@ -1719,7 +1950,7 @@ def run_regenerate_section(job_id, folders, template_file, section_key, lang, in
     artifact = state.get("artifact")
     template = load_template(template_file)
     index = load_index(folders, lang, state.get("user_facts"))
-    mappings, _ = fc.map_sections(template, index, artifact)
+    mappings, _, _guard = fc.map_sections(template, index, artifact)
     if section_key not in mappings:
         raise RuntimeError(f"Ukjent seksjon: {section_key}")
     old_md = state.get("doc", {}).get("sections", {}).get(section_key, {}).get("md", "")
@@ -2506,7 +2737,14 @@ class Handler(BaseHTTPRequestHandler):
 
         if path in ("/", "/index.html"):
             html = (APP_DIR / "app.html").read_bytes()
-            return self._send(200, html, "text/html; charset=utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(html)))
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.send_header("Pragma", "no-cache")
+            self.end_headers()
+            self.wfile.write(html)
+            return
 
         if path == "/VERSION":
             ver = ROOT / "VERSION"
@@ -2527,7 +2765,27 @@ class Handler(BaseHTTPRequestHandler):
             name, ctype = favicon_map[path]
             fav = ROOT / "public" / name
             if fav.exists():
-                return self._send(200, fav.read_bytes(), ctype)
+                data = fav.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", ctype)
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("Cache-Control", "no-cache, max-age=0, must-revalidate")
+                self.end_headers()
+                self.wfile.write(data)
+                return
+            return self._send(404, b"missing", "text/plain; charset=utf-8")
+
+        # Static marketing pages (Vercel cleanUrls: /about → about.html)
+        public_pages = {
+            "/about": "about.html",
+            "/about.html": "about.html",
+            "/capture": "capture.html",
+            "/capture.html": "capture.html",
+        }
+        if path in public_pages:
+            page = ROOT / "public" / public_pages[path]
+            if page.exists():
+                return self._send(200, page.read_bytes(), "text/html; charset=utf-8")
             return self._send(404, b"missing", "text/plain; charset=utf-8")
 
         if path == "/site-meta.json":
@@ -2700,8 +2958,12 @@ class Handler(BaseHTTPRequestHandler):
                 from datetime import date as _date
                 web_meta["date"] = _date.today().isoformat()
             web_meta["version"] = version
+            raw_projects = load_projects()
+            for _p in raw_projects:
+                folders = _p.get("folders") or []
+                _p["_folder_missing"] = bool(folders and not any(Path(f).is_dir() for f in folders))
             return self._send(200, {
-                "projects": load_projects(),
+                "projects": raw_projects,
                 "templates": templates_list(),
                 "capabilities": caps,
                 "settings": {"projects_base_dir": settings.get("projects_base_dir") or ""},
@@ -2710,6 +2972,8 @@ class Handler(BaseHTTPRequestHandler):
                 "web_meta": web_meta,
                 "learning_path": str(learning.path()),
                 "account": acct.account_snapshot(),
+                "marketing": False,
+                "local_admin": True,
             })
 
         if path == "/api/account":
@@ -2830,6 +3094,18 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {**p, "missing": True, "missing_folders": missing})
             rows = file_rows(folders)
             state = load_state(folders[0], project_id=p.get("id"))
+            # Zero-token: replace empty 15% seed with grounded draft from index cache
+            try:
+                idx_seed = load_index(
+                    folders, "no", state.get("user_facts"),
+                    project_name=p.get("name") or Path(folders[0]).name,
+                    cache_only=True,
+                )
+                if edchat.maybe_seed_artifact(
+                        state, idx_seed, p.get("name") or Path(folders[0]).name, "no"):
+                    save_state(folders[0], state)
+            except Exception as e:
+                print(f"[seed_artifact] draft skipped: {e}", flush=True)
             sel = prescan.normalize_source_selection(state.get("source_selection"))
             for r in rows:
                 r["enabled"] = prescan.source_is_enabled(r.get("name") or "", sel)
@@ -2938,6 +3214,8 @@ class Handler(BaseHTTPRequestHandler):
                                     "dismissed": state.get("dismissed", []),
                                     "excluded_figures": state.get("excluded_figures", []),
                                     "excluded_sources": state.get("excluded_sources", []),
+                                    "held_back_personal": state.get("held_back_personal", []),
+                                    "intake_notice": state.get("intake_notice") or "",
                                     "source_selection": sel,
                                     "cell_overrides": state.get("cell_overrides", []),
                                     "source_citation_warnings": state.get("source_citation_warnings", []),
@@ -2953,6 +3231,7 @@ class Handler(BaseHTTPRequestHandler):
                                     "doc": state.get("doc"), "user_facts": state.get("user_facts", []),
                                     "versions": state.get("versions", [])[:20],
                                     "violations": state.get("violations", []),
+                                    "diagram_section": state.get("diagram_section"),
                                     "draft_exists": bool(documents) or (Path(folders[0]) / "draft.md").exists(),
                                     "complete": gap_sum["blocking"] == 0 and gap_sum.get("warning", 0) == 0
                                                 and bool(state.get("doc")),
@@ -2973,7 +3252,11 @@ class Handler(BaseHTTPRequestHandler):
             p = get_project(params.get("id", ""))
             if not p:
                 return self._send(404, {"error": "unknown project"})
+            if not p.get("folders"):
+                return self._send(404, {"error": "no_folder", "detail": "Project has no folder attached."})
             folder = Path(p["folders"][0])
+            if not folder.is_dir():
+                return self._send(404, {"error": "folder_missing", "detail": f"Folder not found: {folder}"})
             tpl = params.get("template", "")
             state = load_state(folder, tpl or None)
             if not tpl:
@@ -3361,9 +3644,12 @@ class Handler(BaseHTTPRequestHandler):
                     "code": "product_repo",
                 })
             projects = load_projects()
-            if any(Path(folder) in [Path(f) for f in p["folders"]] for p in projects):
-                return self._send(400, {"error": "Denne mappen er allerede i et prosjekt"})
-            proj = {"id": uuid.uuid4().hex[:8], "name": name, "folders": [str(Path(folder))]}
+            folder_path = Path(folder)
+            for existing in projects:
+                if any(folder_path.resolve() == Path(f).resolve() for f in (existing.get("folders") or [])):
+                    # Idempotent: same folder → return the project (UI can open it)
+                    return self._send(200, {**existing, "already_registered": True})
+            proj = {"id": uuid.uuid4().hex[:8], "name": name, "folders": [str(folder_path)]}
             projects.append(proj)
             save_projects(projects)
             return self._send(200, proj)
@@ -4369,114 +4655,181 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(404, {"error": str(e)})
             except IsolationError as e:
                 return self._send(500, {"error": str(e)})
+            except Exception as e:
+                traceback.print_exc()
+                return self._send(500, {"error": f"Kunne ikke laste indeksen: {e}"})
             if not KEY_SET:
                 return self._send(503, {"error": "ANTHROPIC_API_KEY er ikke satt"})
-            msg = (body.get("message") or "").strip()
-            if not msg:
-                return self._send(400, {"error": "Tom melding"})
-            p = ctx["project"]
-            state = load_state(ctx["primary"])
-            # Prefer server state artifact; body artifact is an edit draft for THIS project only
-            art = body.get("artifact") or state.get("artifact") or {}
-            # Rebuild context with the draft artifact so the model sees the live model
-            if art and art is not state.get("artifact"):
-                live_state = {**state, "artifact": art}
-                ctx_pack = build_project_chat_context(
-                    p, ctx["folders"], ctx["primary"], live_state, ctx["index"],
-                    lang=body.get("lang", "no"))
-                chat_block = ctx_pack["text"]
-                file_count = ctx_pack["file_count"]
-            else:
-                chat_block = ctx.get("chat_context") or build_project_chat_context(
-                    p, ctx["folders"], ctx["primary"], state, ctx["index"],
-                    lang=body.get("lang", "no"))["text"]
-                file_count = (ctx.get("chat_context_meta") or {}).get("file_count")
-            extras = chat_turn_extras(msg, ctx["index"], art, file_count)
-            offer_line = ""
-            if extras["open_ended"]:
-                offer_line = (
-                    f"\nThis is an open-ended create ask. End by offering to build a document "
-                    f"from what is already here (~€{extras['estimate_eur']:.2f}). "
-                    f"At most two questions, only for facts the index cannot contain.\n"
+            try:
+                msg = (body.get("message") or "").strip()
+                if not msg:
+                    return self._send(400, {"error": "Tom melding"})
+                p = ctx["project"]
+                state = load_state(ctx["primary"])
+                # Prefer server state artifact; body artifact is an edit draft for THIS project only
+                art = body.get("artifact") or state.get("artifact") or {}
+                # Rebuild context with the draft artifact so the model sees the live model
+                if art and art is not state.get("artifact"):
+                    live_state = {**state, "artifact": art}
+                    ctx_pack = build_project_chat_context(
+                        p, ctx["folders"], ctx["primary"], live_state, ctx["index"],
+                        lang=body.get("lang", "no"))
+                    chat_block = ctx_pack["text"]
+                    file_count = ctx_pack["file_count"]
+                else:
+                    chat_block = ctx.get("chat_context") or build_project_chat_context(
+                        p, ctx["folders"], ctx["primary"], state, ctx["index"],
+                        lang=body.get("lang", "no"))["text"]
+                    file_count = (ctx.get("chat_context_meta") or {}).get("file_count")
+                extras = chat_turn_extras(msg, ctx["index"], art, file_count)
+                offer_line = ""
+                if extras["open_ended"]:
+                    offer_line = (
+                        f"\nThis is an open-ended create ask. End by offering to build a document "
+                        f"from what is already here (~€{extras['estimate_eur']:.2f}). "
+                        f"At most two questions, only for facts the index cannot contain.\n"
+                    )
+                # WORKORDER_0.20 A — code-first grounded reply (never "helt nytt")
+                lang = hub.detect_lang(msg)
+                index_n = len(ctx.get("index") or [])
+                # Wiring / connect asks — don't send to Haiku (it invents "no tool")
+                try:
+                    import connection_diagram as cdiag
+                    from foldok_route import diagram_route as _dr
+                    if cdiag.is_connection_diagram_ask(msg) or _dr.is_diagram_request(msg):
+                        comps = []
+                        for c in (art.get("main_components") or [])[:12]:
+                            if isinstance(c, dict):
+                                comps.append({
+                                    "id": c.get("name") or c.get("id") or "comp",
+                                    "label": c.get("name") or c.get("label") or "",
+                                })
+                            elif c:
+                                comps.append({"id": str(c), "label": str(c)})
+                        routed = _dr.handle(msg, spec=None, components=comps, lang=lang)
+                        if routed.handled:
+                            prose = edchat.scrub_chat_voice(routed.reply)
+                            edchat.append_turn(state, "user", msg, project_id=p.get("id"))
+                            edchat.append_turn(state, "bot", prose, project_id=p.get("id"))
+                            save_state(ctx["primary"], state)
+                            return self._send(200, {
+                                "reply": prose, "patch": None, "note": None, "cost_eur": 0,
+                                "project_id": p["id"], "folder": ctx["primary"],
+                                "conversation": isolated_conversation(state, p.get("id")),
+                                "kind": "diagram_route",
+                                "hint": (
+                                    "Open a document (e.g. installation manual), then confirm "
+                                    "connections in Assistent to insert the SVG."
+                                    if lang == "en" else
+                                    "Åpne et dokument (f.eks. installasjonsmanual), bekreft "
+                                    "tilkoblinger i Assistent for å legge inn SVG."
+                                ),
+                            })
+                except Exception as e:
+                    print(f"[artifact/assist] diagram route skipped: {e}", flush=True)
+                # Summary from sources: always free when anything is indexed
+                if edchat.is_source_summary_request(msg) and index_n > 0:
+                    prose = edchat.source_summary_reply(
+                        project_name=p.get("name") or "",
+                        brief=extras["corpus_brief"],
+                        index=ctx["index"],
+                        lang=lang,
+                    )
+                    prose = edchat.scrub_chat_voice(prose)
+                    edchat.append_turn(state, "user", msg, project_id=p.get("id"))
+                    edchat.append_turn(state, "bot", prose, project_id=p.get("id"))
+                    save_state(ctx["primary"], state)
+                    return self._send(200, {
+                        "reply": prose, "patch": None, "note": None, "cost_eur": 0,
+                        "project_id": p["id"], "folder": ctx["primary"],
+                        "conversation": isolated_conversation(state, p.get("id")),
+                        "kind": "source_summary",
+                    })
+                if extras["open_ended"] and (file_count or 0) > 0:
+                    prose = edchat.open_ended_grounded_reply(
+                        project_name=p.get("name") or "",
+                        brief=extras["corpus_brief"],
+                        artifact=art,
+                        known_block=extras["known_block"],
+                        estimate_eur=extras["estimate_eur"],
+                        lang=lang,
+                    )
+                    prose = edchat.scrub_chat_voice(prose)
+                    edchat.append_turn(state, "user", msg, project_id=p.get("id"))
+                    edchat.append_turn(state, "bot", prose, project_id=p.get("id"))
+                    save_state(ctx["primary"], state)
+                    return self._send(200, {
+                        "reply": prose, "patch": None, "note": None, "cost_eur": 0,
+                        "project_id": p["id"], "folder": ctx["primary"],
+                        "conversation": isolated_conversation(state, p.get("id")),
+                        "offer_document": True, "estimate_eur": extras["estimate_eur"],
+                        "corpus_brief": extras["corpus_brief"], "kind": "open_ended_grounded",
+                    })
+                prompt = (
+                    f"{chat_block}\n\n"
+                    f"{extras['known_block']}\n\n"
+                    f"{extras['policy']}\n"
+                    f"{offer_line}\n"
+                    f"{ctx['banner']}\n"
+                    f"You are Foldok's ONE project assistant (Checkpoint A / continuous thread).\n"
+                    f"Ground answers in PROJECT CHAT CONTEXT and ALREADY KNOWN FROM INDEX. "
+                    f"If SOURCES are empty, CONTEXT is still authoritative — never pretend the project is unknown. "
+                    f"NEVER invent measurements not in CONTEXT/SOURCES/user. NEVER use other projects.\n"
+                    f"When the user clarifies the artifact, include a JSON patch. Merge intelligently.\n"
+                    f"When answering about drawings/sources, cite file names from SOURCES.\n\n"
+                    f"SOURCES (indexed captions for THIS project only):\n{ctx['captions'] or '(none)'}\n\n"
+                    f"USER: {msg}\n\n"
+                    f"Reply with helpful prose first (ground in sentence 1). When the model should change, "
+                    f"append a fenced JSON block:\n"
+                    f'```json\n{{"patch":{{"name":"...","purpose":"...","main_components":[{{"name":"...","seen_in":[]}}],'
+                    f'"hazards":[{{"hazard":"...","source":""}}],"lifecycle_stages":["install","operate"],'
+                    f'"confidence":0.0-1.0}},"note":"short"}}\n```\n'
+                    f"Only include patch keys that change. Omit the JSON block if nothing should change."
                 )
-            # WORKORDER_0.20 A — code-first grounded reply (never "helt nytt")
-            lang = hub.detect_lang(msg)
-            if extras["open_ended"] and (file_count or 0) > 0:
-                prose = edchat.open_ended_grounded_reply(
-                    project_name=p.get("name") or "",
-                    brief=extras["corpus_brief"],
-                    artifact=art,
-                    known_block=extras["known_block"],
-                    estimate_eur=extras["estimate_eur"],
-                    lang=lang,
-                )
+                raw = fc.ask("artifact_assist", fc.HAIKU, [{"role": "user", "content": prompt}],
+                             max_tokens=2000)
+                cost = round(fc.LEDGER[-1]["eur"], 4) if fc.LEDGER else 0
+                patch = None
+                note = None
+                m = re.search(r"```json\s*(\{.*?\})\s*```", raw, re.S)
+                if m:
+                    try:
+                        data = json.loads(m.group(1))
+                        patch = data.get("patch")
+                        note = data.get("note")
+                    except json.JSONDecodeError:
+                        pass
+                prose = re.sub(r"```json\s*\{.*?\}\s*```", "", raw, flags=re.S).strip()
                 prose = edchat.scrub_chat_voice(prose)
+                if edchat.reply_violates_policy(prose):
+                    raw2 = fc.ask("artifact_assist", fc.HAIKU, [{"role": "user", "content":
+                        prompt + "\n\nPREVIOUS REPLY VIOLATED POLICY (emoji / 'helt nytt' / Kult!). "
+                        "Rewrite: ground first, ≤2 questions, no emoji, end with € document offer."
+                    }], max_tokens=1200)
+                    prose = edchat.scrub_chat_voice(
+                        re.sub(r"```json\s*\{.*?\}\s*```", "", raw2 or "", flags=re.S).strip())
+                    cost = round(sum(l["eur"] for l in fc.LEDGER[-2:]), 4) if fc.LEDGER else cost
                 edchat.append_turn(state, "user", msg, project_id=p.get("id"))
                 edchat.append_turn(state, "bot", prose, project_id=p.get("id"))
                 save_state(ctx["primary"], state)
                 return self._send(200, {
-                    "reply": prose, "patch": None, "note": None, "cost_eur": 0,
+                    "reply": prose, "patch": patch, "note": note, "cost_eur": cost,
                     "project_id": p["id"], "folder": ctx["primary"],
                     "conversation": isolated_conversation(state, p.get("id")),
-                    "offer_document": True, "estimate_eur": extras["estimate_eur"],
-                    "corpus_brief": extras["corpus_brief"], "kind": "open_ended_grounded",
+                    "open_ended": extras["open_ended"],
+                    "offer_document": extras["open_ended"],
+                    "estimate_eur": extras["estimate_eur"] if extras["open_ended"] else None,
+                    "corpus_brief": extras["corpus_brief"],
                 })
-            prompt = (
-                f"{chat_block}\n\n"
-                f"{extras['known_block']}\n\n"
-                f"{extras['policy']}\n"
-                f"{offer_line}\n"
-                f"{ctx['banner']}\n"
-                f"You are Foldok's ONE project assistant (Checkpoint A / continuous thread).\n"
-                f"Ground answers in PROJECT CHAT CONTEXT and ALREADY KNOWN FROM INDEX. "
-                f"If SOURCES are empty, CONTEXT is still authoritative — never pretend the project is unknown. "
-                f"NEVER invent measurements not in CONTEXT/SOURCES/user. NEVER use other projects.\n"
-                f"When the user clarifies the artifact, include a JSON patch. Merge intelligently.\n"
-                f"When answering about drawings/sources, cite file names from SOURCES.\n\n"
-                f"SOURCES (indexed captions for THIS project only):\n{ctx['captions'] or '(none)'}\n\n"
-                f"USER: {msg}\n\n"
-                f"Reply with helpful prose first (ground in sentence 1). When the model should change, "
-                f"append a fenced JSON block:\n"
-                f'```json\n{{"patch":{{"name":"...","purpose":"...","main_components":[{{"name":"...","seen_in":[]}}],'
-                f'"hazards":[{{"hazard":"...","source":""}}],"lifecycle_stages":["install","operate"],'
-                f'"confidence":0.0-1.0}},"note":"short"}}\n```\n'
-                f"Only include patch keys that change. Omit the JSON block if nothing should change."
-            )
-            raw = fc.ask("artifact_assist", fc.HAIKU, [{"role": "user", "content": prompt}],
-                         max_tokens=2000)
-            cost = round(fc.LEDGER[-1]["eur"], 4) if fc.LEDGER else 0
-            patch = None
-            note = None
-            m = re.search(r"```json\s*(\{.*?\})\s*```", raw, re.S)
-            if m:
-                try:
-                    data = json.loads(m.group(1))
-                    patch = data.get("patch")
-                    note = data.get("note")
-                except json.JSONDecodeError:
-                    pass
-            prose = re.sub(r"```json\s*\{.*?\}\s*```", "", raw, flags=re.S).strip()
-            prose = edchat.scrub_chat_voice(prose)
-            if edchat.reply_violates_policy(prose):
-                raw2 = fc.ask("artifact_assist", fc.HAIKU, [{"role": "user", "content":
-                    prompt + "\n\nPREVIOUS REPLY VIOLATED POLICY (emoji / 'helt nytt' / Kult!). "
-                    "Rewrite: ground first, ≤2 questions, no emoji, end with € document offer."
-                }], max_tokens=1200)
-                prose = edchat.scrub_chat_voice(
-                    re.sub(r"```json\s*\{.*?\}\s*```", "", raw2 or "", flags=re.S).strip())
-                cost = round(sum(l["eur"] for l in fc.LEDGER[-2:]), 4) if fc.LEDGER else cost
-            edchat.append_turn(state, "user", msg, project_id=p.get("id"))
-            edchat.append_turn(state, "bot", prose, project_id=p.get("id"))
-            save_state(ctx["primary"], state)
-            return self._send(200, {
-                "reply": prose, "patch": patch, "note": note, "cost_eur": cost,
-                "project_id": p["id"], "folder": ctx["primary"],
-                "conversation": isolated_conversation(state, p.get("id")),
-                "open_ended": extras["open_ended"],
-                "offer_document": extras["open_ended"],
-                "estimate_eur": extras["estimate_eur"] if extras["open_ended"] else None,
-                "corpus_brief": extras["corpus_brief"],
-            })
+            except acct.MeterDenied as e:
+                return self._send(402, {
+                    "error": str(e),
+                    "code": getattr(e, "code", "insufficient_balance"),
+                    "hint": "Fyll på saldo for AI-kall. Oppsummering fra allerede indekserte kilder er gratis — prøv «Oppsummer prosjektet ut fra kildene» på nytt, eller bygg artefaktmodellen manuelt.",
+                })
+            except Exception as e:
+                traceback.print_exc()
+                return self._send(500, {"error": f"Assistentfeil: {e}"})
 
         if path == "/api/template/intent":
             pid = _pid(body)
@@ -4500,6 +4853,16 @@ class Handler(BaseHTTPRequestHandler):
             import template_lifecycle as tl
             caps = hub.load_capabilities()
             curated = tl.match_curated_template(story, caps)
+            if not curated:
+                curated = tl.match_curated_template(
+                    " ".join([
+                        story,
+                        str(art.get("name") or p.get("name") or ""),
+                        str(art.get("purpose") or ""),
+                        str(art.get("artifact_type") or ""),
+                    ]),
+                    caps,
+                )
             if curated:
                 return self._send(200, {
                     "choice": curated.get("key"),
@@ -4611,7 +4974,11 @@ class Handler(BaseHTTPRequestHandler):
             project_state_save(p, state, folder)
             job = None
             if generate and KEY_SET and not fm_is_form(template) and folder:
-                job = start_job(run_generate, p["folders"], tf, body.get("lang", "no"))
+                try:
+                    acct.precheck_ai()
+                    job = start_job(run_generate, p["folders"], tf, body.get("lang", "no"))
+                except acct.MeterDenied:
+                    job = None
             return self._send(200, {
                 "ok": True,
                 "template": tf,
@@ -4639,7 +5006,8 @@ class Handler(BaseHTTPRequestHandler):
             tf = body.get("template") or body.get("doc_template")
             state, folder = project_state_load(p, tf)
             import sketch_recognize as sk
-            import foldok_compile as fc
+            # use module-level `fc` — a local `import foldok_compile as fc` here
+            # shadows it and breaks /api/hub/chat (UnboundLocalError → Failed to fetch)
             ledger_before = len(fc.LEDGER)
             sketch = (state.get("doc") or {}).setdefault("sketch", {"placeholders": [], "mode": True})
             phs = sketch.setdefault("placeholders", [])
@@ -4725,6 +5093,57 @@ class Handler(BaseHTTPRequestHandler):
                 "reply": "Mappe koblet — klar for indeksering.",
             })
 
+        if path == "/api/project/delete":
+            pid = (body.get("id") or "").strip()
+            if not pid:
+                return self._send(400, {"error": "id required"})
+            projects = load_projects()
+            before = len(projects)
+            projects = [p2 for p2 in projects if p2.get("id") != pid]
+            if len(projects) == before:
+                return self._send(404, {"error": "unknown project"})
+            save_projects(projects)
+            return self._send(200, {"ok": True, "deleted": pid})
+
+        if path == "/api/doc/remove":
+            p = get_project(body.get("id", ""))
+            if not p:
+                return self._send(404, {"error": "unknown project"})
+            tf = (body.get("template") or "").strip()
+            if not tf:
+                return self._send(400, {"error": "template required"})
+            state, folder = project_state_load(p, None)
+            removed_state = len([d for d in (state.get("documents") or []) if d.get("template") == tf])
+            state["documents"] = [d for d in (state.get("documents") or []) if d.get("template") != tf]
+
+            # Remove archived draft on disk too; otherwise list_documents() re-adds it.
+            removed_draft = 0
+            if folder:
+                src = draft_path(folder, tf)
+                try:
+                    if src.exists():
+                        src.unlink()
+                        removed_draft = 1
+                except Exception:
+                    pass
+
+            # If currently loaded doc matches removed template, clear its shell.
+            if (state.get("doc") or {}).get("template_file") == tf:
+                state["doc"] = {}
+
+            if state.get("active_template") == tf or state.get("template") == tf:
+                docs_after = list_documents(folder, state, templates_list(p)) if folder else (state.get("documents") or [])
+                nxt = docs_after[0]["template"] if docs_after else None
+                state["active_template"] = nxt
+                state["template"] = nxt
+            project_state_save(p, state, folder)
+            return self._send(200, {
+                "ok": True,
+                "removed": tf,
+                "removed_count": int(removed_state) + int(removed_draft),
+                "active_template": state.get("active_template"),
+            })
+
         if path == "/api/doc/output-format":
             p = get_project(body.get("id", ""))
             if not p:
@@ -4786,7 +5205,6 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send(404, {"error": "placeholder not found"})
             elif action == "fill":
                 pid = body.get("placeholder_id")
-                import foldok_compile as fc
                 folders = p.get("folders") or []
                 if not folders:
                     return self._send(400, {
@@ -4863,6 +5281,15 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(404, {"error": "unknown project"})
             if not KEY_SET:
                 return self._send(503, {"error": "ANTHROPIC_API_KEY er ikke satt"})
+            try:
+                acct.precheck_ai()
+            except acct.MeterDenied as e:
+                return self._send(402, {
+                    "error": str(e) or "Saldo er €0 — fyll på for å bygge dokumenter.",
+                    "code": getattr(e, "code", "insufficient_balance"),
+                    "need_topup": True,
+                    "hint": "Dokumentgenerering krever AI-saldo. Fyll på kontoen, deretter prøv Prosjektplan på nytt.",
+                })
             tf = body.get("template")
             folder = p["folders"][0]
             if not tf or not load_template(tf, folder):
@@ -5462,6 +5889,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(400, {"error": "Ukjent dokumentmal"})
             if not load_state(p["folders"][0]).get("confirmed"):
                 return self._send(400, {"error": "Bekreft artefaktmodellen først (steg 2)"})
+            try:
+                acct.precheck_ai()
+            except acct.MeterDenied as e:
+                return self._send(402, {
+                    "error": str(e) or "Saldo er €0 — fyll på for å bygge dokumenter.",
+                    "code": getattr(e, "code", "insufficient_balance"),
+                    "need_topup": True,
+                })
             job_id = start_job(run_generate, p["folders"], tf, body.get("lang", "no"))
             return self._send(200, {"job_id": job_id, "template": tf})
 
@@ -5633,6 +6068,92 @@ class Handler(BaseHTTPRequestHandler):
             annotations = body.get("annotations") or []
             annot_execute = bool(body.get("annot_execute"))
             edchat.append_turn(state, "user", msg, project_id=p.get("id"))
+            lang = hub.detect_lang(msg)
+
+            # Session state machine (index + pending job + last error)
+            agent_state = state.setdefault("agent_state", {})
+            if state.get("pending_job") and not isinstance(state.get("pending_job"), dict):
+                state["pending_job"] = None
+            pending_job = state.get("pending_job") or {}
+            last_gen = _latest_job_for("generate", folder=primary)
+            if pending_job and last_gen and last_gen.get("template") == pending_job.get("template"):
+                st = last_gen.get("status")
+                if st == "done":
+                    pending_job["status"] = "done"
+                    state["pending_job"] = None
+                elif st == "error":
+                    pending_job["status"] = "failed"
+                    pending_job["error"] = last_gen.get("error") or "Generering feilet."
+                    agent_state["last_error"] = pending_job["error"]
+                    state["pending_job"] = pending_job
+
+            # Hard command: index / reindex status machine (no model freestyle)
+            if re.search(r"^\s*(index|indeks|indekser|reindex|reindeks)\s*$", msg, re.I):
+                idx_state = _index_state_for_project(folders, state)
+                agent_state["index"] = idx_state.get("status")
+                if idx_state["status"] == "running":
+                    j = idx_state.get("job") or {}
+                    done = int(j.get("done") or 0)
+                    total = int(j.get("total") or 0)
+                    detail = j.get("detail") or ""
+                    reply = (f"Indeksering kjører: {done}/{total}. {detail}".strip()
+                             if lang != "en" else
+                             f"Indexing is running: {done}/{total}. {detail}".strip())
+                    tool_result = {"tool": "index_state", "ok": True, "status": "running",
+                                   "done": done, "total": total}
+                elif idx_state["status"] == "ready":
+                    n = int(idx_state.get("ready_count") or 0)
+                    pend = state.get("pending_job") or {}
+                    if pend and pend.get("status") in (None, "pending", "queued"):
+                        # Rule: on index complete, run/offer pending job (no capability dump)
+                        if state.get("confirmed"):
+                            job_id = start_job(run_generate, folders, pend.get("template"), lang)
+                            pend["status"] = "running"
+                            pend["job_id"] = job_id
+                            state["pending_job"] = pend
+                            reply = (f"Indeks klar ({n} filer). Starter `{pend.get('name')}` nå."
+                                     if lang != "en" else
+                                     f"Index ready ({n} files). Starting `{pend.get('name')}` now.")
+                            tool_result = {"tool": "run_generate", "ok": True, "job_id": job_id,
+                                           "template": pend.get("template")}
+                        else:
+                            reply = (f"Indeks klar ({n} filer). Bekreft prosjektmodellen, så kjører jeg `{pend.get('name')}`."
+                                     if lang != "en" else
+                                     f"Index ready ({n} files). Confirm the project model, then I'll run `{pend.get('name')}`.")
+                            tool_result = {"tool": "index_state", "ok": True, "status": "ready", "files": n}
+                    else:
+                        reply = (f"Allerede indeksert ({n} filer). Reindeksere?"
+                                 if lang != "en" else
+                                 f"Already indexed ({n} files). Refresh index?")
+                        state["chat_pending"] = {"action": "reindex", "confirm": True}
+                        tool_result = {"tool": "index_state", "ok": True, "status": "ready", "files": n,
+                                       "actions": [{"id": "confirm_generate", "label": "Ja — reindekser" if lang != "en" else "Yes — reindex"}]}
+                elif idx_state["status"] == "failed":
+                    reason = idx_state.get("reason") or "Indeksering feilet."
+                    agent_state["last_error"] = reason
+                    state["chat_pending"] = {"action": "reindex", "confirm": True}
+                    reply = (f"Indeksering feilet: {reason} Prøv igjen?"
+                             if lang != "en" else
+                             f"Indexing failed: {reason} Retry?")
+                    tool_result = {"tool": "index_state", "ok": False, "status": "failed", "error": reason}
+                else:
+                    if not KEY_SET:
+                        reply = ("API-nøkkel mangler — kan ikke indeksere."
+                                 if lang != "en" else "API key missing — cannot index.")
+                        tool_result = {"tool": "reindex", "ok": False}
+                    else:
+                        job_id = start_job(run_index, folders, lang if lang else "no")
+                        reply = ("Starter indeksering…" if lang != "en" else "Starting indexing…")
+                        tool_result = {"tool": "reindex", "ok": True, "job_id": job_id}
+                edchat.append_turn(state, "bot", reply, meta=tool_result, project_id=p.get("id"))
+                save_state(primary, state)
+                return self._send(200, {
+                    "reply": reply, "kind": "tool", "tool": tool_result,
+                    "conversation": isolated_conversation(state, p.get("id")),
+                    "chat_pending": state.get("chat_pending"),
+                    "gaps": state.get("gaps") or [],
+                    "gap_summary": ds.gaps_summary(state.get("gaps") or []),
+                })
 
             # Accept pending reference offer
             pend = state.get("chat_pending") or {}
@@ -6197,34 +6718,69 @@ class Handler(BaseHTTPRequestHandler):
                 lang = hub.detect_lang(msg)
                 tkey = execute.get("template_key")
                 gen_tf = execute.get("template") or template_file_for_key(tkey) or tf
+                pending_name = (
+                    (load_template(gen_tf, primary) or {}).get("name_no")
+                    or (load_template(gen_tf, primary) or {}).get("name")
+                    or template_stem(gen_tf or "")
+                ) if gen_tf else "dokumentjobb"
                 if not gen_tf:
                     reply = ("Ukjent dokumentmal — åpne Contract Review først."
                              if lang != "en" else
                              "Unknown template — open Contract Review first.")
                     tool_result = {"tool": "run_generate", "ok": False}
+                    state["agent_state"] = state.get("agent_state") or {}
+                    state["agent_state"]["last_error"] = reply
                 elif not state.get("confirmed"):
                     reply = ("Bekreft artefaktmodellen først (steg 2), så starter jeg genereringen."
                              if lang != "en" else
                              "Confirm the artifact model first (step 2), then I'll start generation.")
                     tool_result = {"tool": "run_generate", "ok": False}
-                else:
-                    job_id = start_job(run_generate, folders, gen_tf, lang)
-                    state["chat_pending"] = None
-                    # System event joins conversation (A1)
-                    edchat.append_turn(
-                        state, "system",
-                        f"[job_started] generate job_id={job_id} template={gen_tf}",
-                        meta={"kind": "job_started", "job_id": job_id},
-                        project_id=p.get("id"))
-                    reply = (
-                        f"Starter Contract Review — jobb `{job_id}` kjører nå."
-                        if lang != "en" else
-                        f"Starting Contract Review — job `{job_id}` is running."
-                    )
-                    tool_result = {
-                        "tool": "run_generate", "ok": True,
-                        "job_id": job_id, "template": gen_tf,
+                    state["pending_job"] = {
+                        "template": gen_tf,
+                        "name": pending_name,
+                        "status": "pending",
                     }
+                else:
+                    try:
+                        acct.precheck_ai()
+                    except acct.MeterDenied as e:
+                        reply = str(e) or "Saldo er €0 — fyll på for å bygge dokumentet."
+                        tool_result = {
+                            "tool": "run_generate", "ok": False,
+                            "code": "insufficient_balance", "need_topup": True,
+                        }
+                        state["pending_job"] = {
+                            "template": gen_tf,
+                            "name": pending_name,
+                            "status": "failed",
+                            "error": reply,
+                        }
+                        state["agent_state"] = state.get("agent_state") or {}
+                        state["agent_state"]["last_error"] = reply
+                    else:
+                        job_id = start_job(run_generate, folders, gen_tf, lang)
+                        state["chat_pending"] = None
+                        state["pending_job"] = {
+                            "template": gen_tf,
+                            "name": pending_name,
+                            "status": "running",
+                            "job_id": job_id,
+                        }
+                        # System event joins conversation (A1)
+                        edchat.append_turn(
+                            state, "system",
+                            f"[job_started] generate job_id={job_id} template={gen_tf}",
+                            meta={"kind": "job_started", "job_id": job_id},
+                            project_id=p.get("id"))
+                        reply = (
+                            f"Starter regenerering av dokumentet — jobb `{job_id}` kjører nå."
+                            if lang != "en" else
+                            f"Starting document regenerate — job `{job_id}` is running."
+                        )
+                        tool_result = {
+                            "tool": "run_generate", "ok": True,
+                            "job_id": job_id, "template": gen_tf,
+                        }
 
             elif execute and execute.get("tool") == "propose_connection_spec":
                 import connection_diagram as cdiag
@@ -6272,6 +6828,19 @@ class Handler(BaseHTTPRequestHandler):
                     spec = cdiag.propose_connection_spec(
                         components=spec["components"], lang=lang)
                 reply = preamble + cdiag.format_confirm_table(spec, lang=lang)
+                if len(spec.get("connections") or []) == 0:
+                    # Prefer foldok_route ask — empty confirm table feels like "no tool"
+                    try:
+                        from foldok_route import diagram_route as _dr
+                        comps = [
+                            {"id": c.get("id"), "label": c.get("label") or c.get("id")}
+                            for c in (spec.get("components") or [])
+                        ]
+                        routed = _dr.handle(msg, spec=None, components=comps, lang=lang)
+                        if routed.handled and routed.reply:
+                            reply = preamble + routed.reply
+                    except Exception:
+                        pass
                 state["chat_pending"] = {
                     "action": "confirm_connection_spec",
                     "spec": spec,
@@ -6316,8 +6885,11 @@ class Handler(BaseHTTPRequestHandler):
                     if confirmed.get("kind") == "process_flow":
                         title = "Funksjonsdiagram" if lang != "en" else "Process flow"
                     svg = cdiag.render_block_diagram(confirmed, title=title)
-                    section = execute.get("section") or "connection_diagram"
-                    store_connection_diagram(state, confirmed, svg, lang=lang)
+                    tpl = load_template(tf) if tf else None
+                    preferred = execute.get("section")
+                    _sec, section = store_connection_diagram(
+                        state, confirmed, svg, lang=lang,
+                        template=tpl, section=preferred)
                     try:
                         media = reports_dir(primary) / "media"
                         media.mkdir(parents=True, exist_ok=True)
@@ -6336,7 +6908,88 @@ class Handler(BaseHTTPRequestHandler):
                         "components": len(confirmed.get("components") or []),
                         "section": section,
                         "svg_bytes": len(svg.encode("utf-8")),
+                        "reload_draft": True,
                     }
+
+            elif execute and execute.get("tool") in (
+                    "create_wiring_diagram", "draw_wiring_diagram"):
+                # foldok_diagram_tool — capability claim with a real call path
+                try:
+                    from foldok_diagram_tool import run as diagram_tool_run, DiagramToolError
+                except ImportError:
+                    return self._send(200, {
+                        "reply": "Diagrammotoren er ikke installert (foldok_diagram_tool mangler).",
+                        "kind": "tool", "tool": {"tool": "create_wiring_diagram", "ok": False},
+                    })
+                lang = hub.detect_lang(msg)
+                page_hit = None
+                try:
+                    import page_address as pad
+                    page_hit = pad.resolve_page_in_message(
+                        msg, state, what="koblingsskjemaet", lang=lang)
+                except Exception:
+                    page_hit = None
+                spec = execute.get("spec") or execute.get("diagram") or {}
+                if not isinstance(spec, dict) or not spec.get("components"):
+                    reply = ("Mangler diagram-spesifikasjon (components + connections)."
+                             if lang != "en" else
+                             "Missing diagram spec (components + connections).")
+                    if page_hit and page_hit.get("describe"):
+                        reply = page_hit["describe"] + "\n\n" + reply
+                    tool_result = {"tool": "create_wiring_diagram", "ok": False}
+                else:
+                    try:
+                        result = diagram_tool_run(spec)
+                    except DiagramToolError as e:
+                        reply = str(e)
+                        tool_result = {"tool": "create_wiring_diagram", "ok": False, "error": str(e)}
+                    else:
+                        tpl = load_template(tf) if tf else None
+                        section = pick_diagram_section(
+                            state, tpl,
+                            preferred=execute.get("section")
+                            or (page_hit or {}).get("section")
+                            or "connection_diagram",
+                        )
+                        if not state.get("doc"):
+                            state["doc"] = {"sections": {}}
+                        sec = state["doc"].setdefault("sections", {}).setdefault(
+                            section, {"md": "", "files": []})
+                        title = spec.get("title") or "Koblingsskjema"
+                        block_md = (
+                            f"### {title}\n\n"
+                            f'<div class="fd-wiring">{result.svg}</div>\n'
+                        )
+                        prev = sec.get("md") or ""
+                        sec["md"] = (prev.rstrip() + "\n\n" + block_md) if prev.strip() else block_md
+                        sec["svg"] = result.svg
+                        sec["block_type"] = "wiring_diagram"
+                        sec["updated"] = ds.iso_now()
+                        state["diagram_section"] = section
+                        try:
+                            media = reports_dir(primary) / "media"
+                            media.mkdir(parents=True, exist_ok=True)
+                            (media / "wiring_diagram.svg").write_text(result.svg, encoding="utf-8")
+                        except Exception:
+                            pass
+                        if tf:
+                            persist_doc(primary, state, tf)
+                        else:
+                            save_state(primary, state)
+                        reply = result.summary()
+                        if page_hit and page_hit.get("describe"):
+                            reply = page_hit["describe"] + "\n\n" + reply
+                        reply = reply + f" [[open_doc:{section}]]"
+                        tool_result = {
+                            "tool": "create_wiring_diagram", "ok": True,
+                            "components": len(result.graph.components),
+                            "connections": len(result.graph.connections),
+                            "section": section,
+                            "warnings": result.warnings,
+                            "issues": result.issues,
+                            "page_anchor": (page_hit or {}).get("anchor"),
+                            "reload_draft": True,
+                        }
 
             elif execute and execute.get("tool") == "write_checklist":
                 import agent_truth as atruth
@@ -6830,22 +7483,54 @@ class Handler(BaseHTTPRequestHandler):
                 reply = route.get("reply") or reply
 
             elif route.get("need_model"):
-                # Same agent — full project chat context + §7 policy
-                index = load_index(folders, "no", state.get("user_facts"), project_name=p.get("name"))
-                ctx_pack = build_project_chat_context(
-                    p, folders, primary, state, index, lang=body.get("lang", "no"))
-                chat_block = ctx_pack["text"]
-                extras = chat_turn_extras(msg, index, state.get("artifact") or {}, ctx_pack["file_count"])
-                chat_extras = extras
-                lang = hub.detect_lang(msg)
-                annot_ctx = (route.get("_annot_ctx")
-                             or edchat.format_annotations_context(annotations))
-                # WORKORDER 0.56 §C5 — no open-ended create-offer while marks pending
-                if annotations and not edchat.explicitly_names_document(
-                        msg, hub.load_capabilities()):
-                    extras = dict(extras)
-                    extras["open_ended"] = False
+                # Deterministic state-first guard: avoid capability/menu dump.
+                pend_job = state.get("pending_job") or {}
+                if pend_job and pend_job.get("status") in ("pending", "running"):
+                    if pend_job.get("status") == "running":
+                        jid = pend_job.get("job_id") or "?"
+                        reply = (f"Jobben `{pend_job.get('name')}` kjører (jobb `{jid}`)."
+                                 if lang != "en" else
+                                 f"`{pend_job.get('name')}` is running (job `{jid}`).")
+                    else:
+                        idx_state = _index_state_for_project(folders, state)
+                        if idx_state.get("status") == "ready" and state.get("confirmed"):
+                            job_id = start_job(run_generate, folders, pend_job.get("template"), lang)
+                            pend_job["status"] = "running"
+                            pend_job["job_id"] = job_id
+                            state["pending_job"] = pend_job
+                            reply = (f"Indeks klar. Starter `{pend_job.get('name')}` nå (jobb `{job_id}`)."
+                                     if lang != "en" else
+                                     f"Index ready. Starting `{pend_job.get('name')}` now (job `{job_id}`).")
+                            tool_result = {"tool": "run_generate", "ok": True, "job_id": job_id,
+                                           "template": pend_job.get("template")}
+                        elif idx_state.get("status") == "running":
+                            j = idx_state.get("job") or {}
+                            reply = (f"Indeksering kjører ({int(j.get('done') or 0)}/{int(j.get('total') or 0)}). "
+                                     f"Deretter kjører jeg `{pend_job.get('name')}`."
+                                     if lang != "en" else
+                                     f"Indexing is running ({int(j.get('done') or 0)}/{int(j.get('total') or 0)}). "
+                                     f"Then I'll run `{pend_job.get('name')}`.")
+                        else:
+                            reply = (f"Jeg venter på indeksen før `{pend_job.get('name')}`. Skriv `index`."
+                                     if lang != "en" else
+                                     f"Waiting for index before `{pend_job.get('name')}`. Say `index`.")
+                if not reply:
+                    # Same agent — full project chat context + §7 policy
+                    index = load_index(folders, "no", state.get("user_facts"), project_name=p.get("name"))
+                    ctx_pack = build_project_chat_context(
+                        p, folders, primary, state, index, lang=body.get("lang", "no"))
+                    chat_block = ctx_pack["text"]
+                    extras = chat_turn_extras(msg, index, state.get("artifact") or {}, ctx_pack["file_count"])
                     chat_extras = extras
+                    lang = hub.detect_lang(msg)
+                    annot_ctx = (route.get("_annot_ctx")
+                                 or edchat.format_annotations_context(annotations))
+                    # WORKORDER 0.56 §C5 — no open-ended create-offer while marks pending
+                    if annotations and not edchat.explicitly_names_document(
+                            msg, hub.load_capabilities()):
+                        extras = dict(extras)
+                        extras["open_ended"] = False
+                        chat_extras = extras
                 # Attach last photo caption for perception discipline
                 last = state.get("last_indexed_media") or {}
                 photo_hint = ""
@@ -6862,6 +7547,14 @@ class Handler(BaseHTTPRequestHandler):
                         artifact=state.get("artifact") or {},
                         known_block=extras["known_block"],
                         estimate_eur=extras["estimate_eur"],
+                        lang=lang,
+                    )
+                    reply = edchat.scrub_chat_voice(reply)
+                elif edchat.is_source_summary_request(msg) and (ctx_pack["file_count"] or 0) > 0:
+                    reply = edchat.source_summary_reply(
+                        project_name=p.get("name") or "",
+                        brief=extras["corpus_brief"],
+                        index=index,
                         lang=lang,
                     )
                     reply = edchat.scrub_chat_voice(reply)
@@ -6885,6 +7578,8 @@ class Handler(BaseHTTPRequestHandler):
                             f"Scope focus (UI chip only — does NOT change identity): {scope or 'document'}.\n"
                             f"Ground in sentence 1. Never invent numbers. NEVER use other projects.\n"
                             f"Never claim file writes without tools. Never invent part numbers.\n"
+                            f"You DO have tools to regenerate the open document and sections — "
+                            f"never say you lack a regenerate tool or cannot access project files.\n"
                             f"Deictics (denne/her/dette) resolve to PENDING ANNOTATIONS when present — "
                             f"never invent or create a document unless the user explicitly names one.\n\n"
                             f"USER: {msg}\n\n"
@@ -6974,7 +7669,15 @@ class Handler(BaseHTTPRequestHandler):
             import manifest_claims as mc
             lang = hub.detect_lang(msg)
             tools_log = [tool_result] if tool_result else []
-            ok_claim, reply, reason = atruth.validate_completion_claims(
+            # Diagram / connection tools own their chat confirmations — don't
+            # replace a real propose with "I don't have a tool".
+            _DIAGRAM_TOOLS = {
+                "propose_connection_spec", "confirm_connection_spec",
+                "create_diagram", "create_wiring_diagram", "draw_wiring_diagram",
+            }
+            tool_name = (tool_result or {}).get("tool") or ""
+            skip_truth = tool_name in _DIAGRAM_TOOLS and (tool_result or {}).get("ok") is not False
+            ok_claim, reply, reason = (True, reply, None) if skip_truth else atruth.validate_completion_claims(
                 reply, tools_log, lang=lang)
             if not ok_claim and KEY_SET and route.get("need_model"):
                 # one retry naming the violation
@@ -7011,8 +7714,11 @@ class Handler(BaseHTTPRequestHandler):
             if not ok_money:
                 reply = mc.money_fallback(caps_money, lang)
             # WORKORDER_0.26 A — no SVG/tables/lists/dumps in chat
-            ok_art, reply_art, reason_art = atruth.validate_chat_artifacts(
-                reply, user_msg=msg, lang=lang, enforce_prose_cap=bool(route.get("need_model")))
+            if skip_truth:
+                ok_art, reply_art, reason_art = True, reply, None
+            else:
+                ok_art, reply_art, reason_art = atruth.validate_chat_artifacts(
+                    reply, user_msg=msg, lang=lang, enforce_prose_cap=bool(route.get("need_model")))
             if not ok_art:
                 if KEY_SET and route.get("need_model"):
                     try:
@@ -7469,10 +8175,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/chat/attach/confirm-template":
             import form_model as fm
             token = (body.get("token") or "").strip()
-            draft_path = ATTACH_STAGING / f"{token}_draft.json"
-            if not draft_path.exists():
+            draft_json_path = ATTACH_STAGING / f"{token}_draft.json"
+            if not draft_json_path.exists():
                 return self._send(404, {"error": "Review-utkastet er utløpt — last opp på nytt"})
-            drafted = json.loads(draft_path.read_text(encoding="utf-8"))
+            drafted = json.loads(draft_json_path.read_text(encoding="utf-8"))
             # Optional edited structure from review UI
             if body.get("template"):
                 drafted = fm.validate_form_template(body["template"])
@@ -7481,7 +8187,7 @@ class Handler(BaseHTTPRequestHandler):
             drafted["badge"] = "Egen mal"
             drafted = fm.validate_form_template(drafted)
             fname = save_company_template(drafted)
-            draft_path.unlink(missing_ok=True)
+            draft_json_path.unlink(missing_ok=True)
             caps = regen_capabilities()
             return self._send(200, {
                 "ok": True,

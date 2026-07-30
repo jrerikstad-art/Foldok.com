@@ -48,6 +48,38 @@ def is_inspection_checklist_ask(text: str) -> bool:
     return bool(INSPECTION_RE.search(text or ""))
 
 
+RESEARCH_ASK_RE = re.compile(
+    r"\b(phd|ph\.?d|forskning|research\s+project|forskningsprosjekt|"
+    r"thesis|avhandling|progress\s+report|prosjektrapport|"
+    r"selficon|selficom|preregistration)\b",
+    re.I,
+)
+
+
+def is_research_ask(text: str) -> bool:
+    return bool(RESEARCH_ASK_RE.search(text or ""))
+
+
+TOPIC_BRIEF_ASK_RE = re.compile(
+    r"\b(temabrief|topic\s*brief|fagpakke|emc\s*brief|sone(?:r)?|"
+    r"kabelklasse|cable\s*class|earthing\s*brief|sitert\s*pakke)\b",
+    re.I,
+)
+
+SPEC_COHERENCE_ASK_RE = re.compile(
+    r"\b(spesifikasjonsgjennomgang|spec\s*coherence|konflikt(?:er)?\s*mellom\s*standard)\b",
+    re.I,
+)
+
+
+def is_topic_brief_ask(text: str) -> bool:
+    return bool(TOPIC_BRIEF_ASK_RE.search(text or ""))
+
+
+def is_spec_coherence_ask(text: str) -> bool:
+    return bool(SPEC_COHERENCE_ASK_RE.search(text or ""))
+
+
 def match_curated_template(text: str, caps: dict) -> dict | None:
     if is_installation_manual_ask(text):
         for t in caps.get("templates") or []:
@@ -57,6 +89,19 @@ def match_curated_template(text: str, caps: dict) -> dict | None:
         for t in caps.get("templates") or []:
             if t.get("key") == "inspection_checklist":
                 return t
+    if is_topic_brief_ask(text):
+        for t in caps.get("templates") or []:
+            if t.get("key") == "topic_brief":
+                return t
+    if is_spec_coherence_ask(text):
+        for t in caps.get("templates") or []:
+            if t.get("key") == "spec_coherence_review":
+                return t
+    if is_research_ask(text):
+        for key in ("research_project_report", "project_plan", "phd_materials_draft"):
+            for t in caps.get("templates") or []:
+                if t.get("key") == key:
+                    return t
     if is_commissioning_ask(text):
         return None
     return None

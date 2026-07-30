@@ -1,5 +1,5 @@
 {
-  "version": "0.78.0",
+  "version": "0.83.0",
   "templates": [
     {
       "key": "contract_review",
@@ -600,6 +600,29 @@
       "badge": null
     },
     {
+      "key": "topic_brief",
+      "file": "topic_brief.json",
+      "name_no": "Temabrief — sitert fagpakke",
+      "name": "Topic Brief — Cited Engineering Pack",
+      "one_liner": "NotebookLM-style topic pack from a source library: zones, cable classes, earthing, separation, standards.",
+      "description": "NotebookLM-style topic pack from a source library: zones, cable classes, earthing, separation, standards. Every claim cites a file. MANGLER only where the corpus is silent. Not a research report; not a fact wall.",
+      "needs": [],
+      "checklist": [
+        "□ Prosjektfiler (PDF, bilder, notater)"
+      ],
+      "applies_to": [
+        "specification",
+        "source_library",
+        "emc",
+        "standards_pack"
+      ],
+      "group": "Bygg / prosjektering",
+      "document_species": "narrative",
+      "owned": false,
+      "origin": null,
+      "badge": null
+    },
+    {
       "key": "user_manual",
       "file": "user_manual.json",
       "name_no": "Brukermanual",
@@ -669,8 +692,7 @@
     "utforme juridisk tekst",
     "lese native CAD (DWG/STEP)",
     "signere for deg",
-    "finne på verdier som ikke finnes i kilder",
-    "tegne eller modellere i 3D"
+    "finne på verdier som ikke finnes i kilder"
   ],
   "privacy": [
     "Filene dine ligger på din maskin. Foldok laster dem aldri opp til noen Foldok-sky og lagrer ingen kopier hos oss.",
@@ -739,5 +761,254 @@
     "vi har ikke tilgang til dataene dine",
     "completely offline",
     "nothing leaves your machine"
+  ],
+  "capabilities": [
+    {
+      "id": "capture",
+      "verb": "collect",
+      "object": "site photographs against open requirements",
+      "summary": "Send open photo requirements to the Capture app and close them automatically when the pictures come back, each citing the file and the moment",
+      "confidence": "shipped",
+      "produces": [
+        "jpg"
+      ],
+      "limits": [
+        {
+          "text": "photographs are never sent to a model unless you approve each one",
+          "reason": "an image cannot be masked"
+        }
+      ],
+      "evidence": {
+        "engine": "foldok_capture"
+      },
+      "anchors": [
+        "capture",
+        "kamera",
+        "photo capture",
+        "bildeoppdrag"
+      ],
+      "engine": "foldok_capture"
+    },
+    {
+      "id": "diagrams",
+      "verb": "produce",
+      "object": "single-line, interconnection and piping diagrams",
+      "summary": "Produce single-line, interconnection and piping diagrams as print-ready SVG, from a component graph you can edit on canvas",
+      "confidence": "shipped",
+      "domains": [
+        "electrical",
+        "hybrid",
+        "mechanical",
+        "piping"
+      ],
+      "produces": [
+        "svg",
+        "pdf"
+      ],
+      "limits": [
+        {
+          "text": "board-level electronics are out of scope",
+          "reason": "there are no microcontroller, header-pin, bus or GPIO symbols in the pack; for those Foldok produces a structured pin table instead"
+        },
+        {
+          "text": "native CAD files are not read or written",
+          "reason": "DWG and STEP are not parsed; a drawing PDF can be indexed as evidence"
+        },
+        {
+          "text": "no 3D modelling",
+          "reason": "the engine is 2D on a page grid"
+        }
+      ],
+      "evidence": {
+        "by_domain": {
+          "electrical": 22,
+          "hybrid": 1,
+          "mechanical": 8,
+          "piping": 14
+        },
+        "engine": "foldok_diagram + diagram_engine",
+        "profiles": [
+          "drainage_riser",
+          "mechanical",
+          "piping",
+          "single_line",
+          "wiring"
+        ],
+        "symbols": 45
+      },
+      "anchors": [
+        "diagram",
+        "schematic",
+        "koblingsskjema",
+        "enlinjeskjema",
+        "single-line"
+      ],
+      "engine": "foldok_diagram"
+    },
+    {
+      "id": "gaps",
+      "verb": "check",
+      "object": "what a document is still missing",
+      "summary": "Check a document against a requirement pack and list every gap, per circuit, machine or cage, with the clause it comes from",
+      "confidence": "shipped",
+      "domains": [
+        "aquaculture",
+        "electrical",
+        "machinery",
+        "prototype"
+      ],
+      "produces": [
+        "md",
+        "pdf"
+      ],
+      "limits": [
+        {
+          "text": "completeness is not compliance",
+          "reason": "Foldok can say every item is resolved; whether the installation complies is a judgement for someone with a licence"
+        },
+        {
+          "text": "measured values are never generated",
+          "reason": "the engine builds the empty form and says what to capture"
+        }
+      ],
+      "evidence": {
+        "packs": [
+          "aquaculture_site",
+          "eu_machinery_technical_file",
+          "no_electrical_installation",
+          "prototype_build_log"
+        ],
+        "requirements": 37,
+        "segments": [
+          "aquaculture",
+          "electrical",
+          "machinery",
+          "prototype"
+        ]
+      },
+      "anchors": [
+        "gap",
+        "mangler",
+        "avvik",
+        "missing",
+        "krav"
+      ],
+      "engine": "foldok_gaps"
+    },
+    {
+      "id": "index",
+      "verb": "read",
+      "object": "a project folder",
+      "summary": "Index a project folder locally and answer questions from it, with a citation for every fact and a list of files it could not read",
+      "confidence": "shipped",
+      "produces": [
+        "md"
+      ],
+      "limits": [
+        {
+          "text": "scanned documents need OCR first",
+          "reason": "a PDF with no text layer is reported as unreadable rather than skipped"
+        },
+        {
+          "text": "native CAD is not parsed",
+          "reason": "DWG and STEP are indexed as files, not content"
+        }
+      ],
+      "evidence": {
+        "engine": "foldok_index",
+        "formats": [
+          ".c",
+          ".cfg",
+          ".cpp",
+          ".csv",
+          ".dart",
+          ".docx",
+          ".h",
+          ".htm",
+          ".html",
+          ".ini",
+          ".java",
+          ".js",
+          ".json",
+          ".jsonl",
+          ".log",
+          ".markdown"
+        ]
+      },
+      "anchors": [
+        "index",
+        "indeks",
+        "søk",
+        "search"
+      ],
+      "engine": "foldok_index"
+    },
+    {
+      "id": "layout",
+      "verb": "produce",
+      "object": "paginated documents on a column grid",
+      "summary": "Lay out and paginate a document on a 12-column grid, with every block resizable by hand and the PDF matching the canvas exactly",
+      "confidence": "shipped",
+      "produces": [
+        "pdf",
+        "html"
+      ],
+      "limits": [
+        {
+          "text": "free pixel positioning is not offered",
+          "reason": "boxes sit on the page grid so pagination and reflow keep working"
+        }
+      ],
+      "evidence": {
+        "engine": "foldok_boxes",
+        "page_sizes": [
+          "A4",
+          "A5",
+          "Legal",
+          "Letter"
+        ]
+      },
+      "anchors": [
+        "layout",
+        "ombrekk",
+        "pagination",
+        "sidebrytning"
+      ],
+      "engine": "foldok_boxes"
+    },
+    {
+      "id": "privacy",
+      "verb": "show",
+      "object": "exactly what leaves the machine",
+      "summary": "Show every model request before it is sent, with client and project names replaced by tokens and restored locally afterwards",
+      "confidence": "shipped",
+      "limits": [
+        {
+          "text": "masking hides identifiers, not findings",
+          "reason": "a failed test stays legible once the names are removed"
+        }
+      ],
+      "evidence": {
+        "engine": "foldok_private",
+        "purposes": [
+          "index_file",
+          "partition_facts",
+          "generate_section_prose",
+          "gap_fill_code"
+        ]
+      },
+      "anchors": [
+        "masking",
+        "maskering",
+        "what leaves",
+        "trust boundary"
+      ],
+      "engine": "foldok_private"
+    }
+  ],
+  "capabilities_generated": true,
+  "capabilities_note": "Generated from the engines by foldok_capabilities. Do not hand-edit: a hand-maintained list falls behind the code and the assistant then denies features that ship.",
+  "cannot_moved_to_limits": [
+    "tegne eller modellere i 3D"
   ]
 }

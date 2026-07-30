@@ -7,6 +7,33 @@ Versioning rules (semver, honestly applied):
   Templates carry their own `version` field (already in schema).
   The zip filename always carries the version: foldok-engine-vX.Y.Z.zip.
 
+## 0.83.0 — Topic brief (cited packs) + corpus router
+- **North star:** default output for EMC/spec libraries is a **cited topic brief**, not a hollow research report
+- New template `topic_brief` — zones, cable classes, earthing, standards register, gaps, sources
+- Facet retrieval (`topic_brief_compile.py`) + AuthoringEngine per section; MANGLER only when facet silent
+- Corpus router: `classify_corpus` → `spec_library | lab_campaign | research_lab | install_job | general`
+- Generate guard: `research_project_report` on spec libraries without lab keys → auto-switch to `topic_brief`
+- Suggestions / Checkpoint A chips: Temabrief + Spec coherence primary; research secondary
+- Research Metode hard-stop unchanged (body &lt; 500 chars, no fact walls)
+- Regression: EMC-like index → zones/class structure or gap; never phones; classify EMC as spec_library
+
+## 0.82.0 — Shredder + console + local learning
+- Vendored `foldok_learn` — Tier 1 local lessons; standards → citations only (never clause text)
+- Vendored `foldok_console` — operator snapshot + ranked decision queue; failure-tolerant probes
+- New `foldok_shred` — document intake: read → measure → propose → **drop text** → return
+- `Shred` has no body-text field; `source_id` is content hash (filename never stored)
+- Grades: `sample`/`ours` measure only; `exemplary` offers skeleton/design/obligation proposals
+- Console `probe_shred` maps bay proposals into the decision queue (never auto-applied)
+- Regression: fixture body phrases must not appear in `to_dict()` / proposal JSON
+- Package tests: learn + console + shred green
+
+## 0.81.0 — Get Capture widget (foldok_getapp)
+- Vendored `foldok_getapp` — header control for installing the Capture app (QR on desktop, direct install on Android, honest iOS line)
+- Inline SVG QR at build time (`segno`); no third-party requests on page load
+- QR points at `https://foldok.com/capture` — durable landing page; distribution can change without invalidating printed codes
+- `public/capture.html` — platform-aware install landing (Android APK sideload, iOS coming, desktop hint)
+- 23 package tests green
+
 ## 0.78.0 — Capture bridge (foldok_capture)
 - Vendored `foldok_capture` for Capture app folder-bridge integration (`.foldok/capture_tasks.json`, `binding.json`, `*.foldok.json` sidecars)
 - Includes desktop publish/ingest flow: no guessing, checksum verification, idempotent gap closure

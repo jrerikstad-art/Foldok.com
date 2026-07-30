@@ -6,18 +6,18 @@
 <title>Foldok — engineering documentation OS</title>
 <meta name="description" content="Foldok is an engineering documentation operating system. Project folders become structured, cited, deliverable packages. Documentation is the primary workspace. You confirm before anything is final." />
 <meta name="application-name" content="Foldok" />
-<meta name="theme-color" content="#16181D" />
-<link rel="icon" href="/favicon.ico?v=4" sizes="any" />
-<link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml" />
-<link rel="icon" href="/favicon-32.png?v=4" type="image/png" sizes="32x32" />
-<link rel="icon" href="/favicon-16.png?v=4" type="image/png" sizes="16x16" />
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4" sizes="180x180" />
+<meta name="theme-color" content="#F5C400" />
+<link rel="icon" href="/favicon-32.png?v=6" type="image/png" sizes="32x32" />
+<link rel="icon" href="/favicon-16.png?v=6" type="image/png" sizes="16x16" />
+<link rel="icon" href="/favicon.svg?v=6" type="image/svg+xml" />
+<link rel="shortcut icon" href="/favicon.ico?v=6" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=6" sizes="180x180" />
 <meta property="og:title" content="Foldok — engineering documentation OS" />
 <meta property="og:description" content="Project folders in. Complete documentation out. An operating system for engineering documentation packages." />
 <meta property="og:type" content="website" />
-<meta property="og:image" content="/apple-touch-icon.png?v=4" />
+<meta property="og:image" content="/apple-touch-icon.png?v=6" />
 <meta name="twitter:card" content="summary" />
-<meta name="twitter:image" content="/apple-touch-icon.png?v=4" />
+<meta name="twitter:image" content="/apple-touch-icon.png?v=6" />
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -27,7 +27,7 @@
   "operatingSystem": "Windows, macOS, Linux",
   "description": "Engineering documentation operating system. Project folders become structured, cited, deliverable packages. Human confirmation before formal claims.",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
-  "softwareVersion": "0.78.0"
+  "softwareVersion": "0.82.0"
 }
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -121,7 +121,22 @@
   header .right {
     margin-left:auto; font-family:"IBM Plex Mono",monospace; font-size:11px; color:#c8ccd2;
     position:relative; z-index:90; flex-shrink:0;
+    display:inline-flex; align-items:center; gap:10px;
   }
+  #getCapture .gc-btn {
+    border-color: var(--signal);
+    color: var(--ink);
+    background: var(--signal);
+    font-weight: 700;
+  }
+  #getCapture .gc-btn:hover { filter: brightness(1.06); border-color: var(--signal); }
+  #getCapture .gc-btn svg { stroke: var(--ink); }
+  .capture-promo {
+    margin-top: 18px; padding: 14px 16px; max-width: 42em;
+    border: 1px solid var(--line); border-radius: 10px; background: var(--sheet);
+  }
+  .capture-promo p { margin: 6px 0 12px; font-size: 14px; line-height: 1.45; color: var(--steel); }
+  .capture-promo .capture-promo-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   main { max-width:960px; margin:0 auto; padding:28px 20px 80px; }
   /* Project page: same column / type scale as the hub landing */
   main.editor-mode {
@@ -721,6 +736,28 @@
   }
   .assist-foot .hint { font-family:"IBM Plex Mono",monospace; font-size:9.5px; color:var(--steel); margin:0; flex:1; }
   .assist-foot .compose-actions .btn { flex-shrink:0; min-height:42px; padding:10px 18px; }
+  .assist-foot .compose-actions .btn[disabled],
+  .assist-foot .compose-actions .btn.is-busy {
+    opacity: 0.75; cursor: wait; pointer-events: none;
+  }
+  .assist-bubble.thinking {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--steel); font-size: 13px;
+  }
+  .assist-bubble.thinking .dots {
+    display: inline-flex; gap: 4px; align-items: center;
+  }
+  .assist-bubble.thinking .dots i {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--ink);
+    opacity: 0.35; animation: assist-dot 1s ease-in-out infinite;
+  }
+  .assist-bubble.thinking .dots i:nth-child(2) { animation-delay: 0.15s; }
+  .assist-bubble.thinking .dots i:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes assist-dot {
+    0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(-2px); }
+  }
+  .assist-foot .hint.is-busy { color: var(--ink); font-weight: 700; }
   .annot-chat-badge {
     display:none; align-items:center; gap:6px;
     font-family:"IBM Plex Mono",monospace; font-size:10px; font-weight:700;
@@ -767,6 +804,57 @@
   .fig-wrap { max-width:100%; margin:14px 0; overflow:hidden; }
   .draft figure.fd-fig, .draft .fd-fig { margin:0; padding:0; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--paper); position:relative; max-width:100%; width:100%; box-sizing:border-box; }
   .draft figure.fd-fig img, .draft .fd-fig img { display:block; max-width:100%; width:100%; height:auto; max-height:min(420px,52vh); object-fit:contain; background:#E8E6E0; cursor:zoom-in; }
+  .draft .fd-wiring { margin:12px 0; padding:10px; border:1px solid var(--line); border-radius:8px; background:#fff; max-width:100%; overflow:auto; }
+  .draft .fd-wiring svg, .draft svg[data-foldok="connection_spec"] {
+    display:block; max-width:100%; width:100%; height:auto;
+  }
+  .diag-inline {
+    margin:12px 0; border:1px solid var(--line); border-radius:8px; background:#fff; max-width:100%;
+  }
+  .diag-inline .diag-inline-bar {
+    display:flex; gap:8px; align-items:center; padding:6px 10px;
+    border-bottom:1px solid var(--line); background:var(--sheet);
+  }
+  .diag-inline .diag-inline-bar button {
+    font-size:12px; font-weight:700; padding:4px 10px; border:1px solid var(--line);
+    border-radius:6px; background:var(--paper); cursor:pointer; color:var(--ink);
+  }
+  .diag-inline .diag-inline-bar button:hover { border-color:var(--ink); }
+  .diag-inline .diag-inline-body { padding:8px; overflow:auto; }
+  .diag-inline .diag-inline-body svg { display:block; max-width:100%; width:100%; height:auto; }
+  .doc-zoom-bar {
+    display:flex; gap:6px; align-items:center; flex-wrap:wrap;
+    padding:6px 0 10px; margin-bottom:4px; position:sticky; top:0; z-index:5;
+    background:var(--paper);
+  }
+  .doc-zoom-bar button {
+    font-size:12px; font-weight:800; padding:5px 11px; border:1px solid var(--line);
+    border-radius:6px; background:var(--sheet); cursor:pointer; color:var(--ink);
+  }
+  .doc-zoom-bar button:hover { border-color:var(--ink); }
+  .doc-zoom-bar .doc-zoom-pct {
+    font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:700; min-width:3.2em;
+  }
+  .doc-zoom-bar .doc-zoom-hint { font-size:11px; color:var(--steel); margin-left:4px; }
+  #draft-area.doc-zoomed { transform-origin: top left; }
+  .fig-lightbox.diag-lb {
+    flex-direction:column; gap:10px; cursor:default; background:rgba(22,24,29,.88);
+  }
+  .fig-lightbox.diag-lb .diag-lb-bar {
+    display:flex; gap:8px; align-items:center; color:#fff; font-size:13px;
+  }
+  .fig-lightbox.diag-lb .diag-lb-bar button {
+    font-size:12px; font-weight:700; padding:6px 12px; border-radius:6px;
+    border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.1);
+    color:#fff; cursor:pointer;
+  }
+  .fig-lightbox.diag-lb .diag-lb-stage {
+    width:min(96vw, 1400px); height:min(84vh, 900px); overflow:hidden;
+    background:#fff; border-radius:8px; cursor:grab; touch-action:none;
+  }
+  .fig-lightbox.diag-lb .diag-lb-stage.is-panning { cursor:grabbing; }
+  .fig-lightbox.diag-lb .diag-world { transform-origin:0 0; display:inline-block; }
+  .fig-lightbox.diag-lb .diag-world svg { display:block; max-width:none; }
   .draft img { max-width:100%; height:auto; }
   .draft figure.fd-fig figcaption, .draft .fd-fig .cap { font-size:11.5px; padding:8px 12px; color:var(--steel); word-break:break-word; }
   .fig-remove { position:absolute; top:8px; right:8px; z-index:2; width:28px; height:28px; border:none; border-radius:50%;
@@ -910,6 +998,24 @@
     font-size:13.5px; line-height:1.4;
   }
   .story-who b { display:block; font-size:13px; font-weight:800; margin-bottom:4px; }
+  .story-mv {
+    display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:8px;
+  }
+  @media (max-width:640px) { .story-mv { grid-template-columns:1fr; } }
+  .story-mv article {
+    border-top:3px solid var(--signal); padding-top:12px;
+  }
+  .story-mv .lab {
+    font-family:"IBM Plex Mono",monospace; font-size:10px; font-weight:700;
+    letter-spacing:.08em; text-transform:uppercase; margin:0 0 8px; color:var(--steel);
+  }
+  .story-mv p { margin:0; font-size:14.5px; line-height:1.45; }
+  .site-footer {
+    margin-top:28px; padding-top:18px; border-top:1px solid var(--line);
+    font-size:12.5px; line-height:1.55; color:var(--steel); max-width:42em;
+  }
+  .site-footer a { color:var(--ink); font-weight:600; }
+  .site-footer .row { margin:0 0 8px; }
   .story-price {
     background:var(--sheet); border:1px solid var(--line); border-radius:10px;
     padding:16px 18px; max-width:36em; margin-top:8px;
@@ -1200,6 +1306,41 @@
     margin:8px 12px; padding:8px 10px; font-size:12px;
     background:#FFF8E8; border:1px solid #E8D4A8; border-radius:8px;
   }
+  #doc-build-banner {
+    position: sticky; top: 0; z-index: 90;
+    margin: 0 0 12px; padding: 12px 14px;
+    background: #FFF8E0; border: 1px solid #E2C56A; border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.06);
+    font-size: 13px; line-height: 1.4;
+  }
+  #doc-build-banner[hidden] { display: none !important; }
+  #doc-build-banner .dbb-title {
+    font-weight: 800; letter-spacing: .01em; margin: 0 0 4px;
+  }
+  #doc-build-banner .dbb-title::before {
+    content: ""; display: inline-block; width: 9px; height: 9px;
+    margin-right: 8px; border-radius: 50%; background: var(--signal, #F2B705);
+    box-shadow: 0 0 0 0 rgba(242,183,5,.55);
+    animation: dbb-pulse 1.1s ease-out infinite;
+    vertical-align: middle;
+  }
+  #doc-build-banner .dbb-meta {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--steel, #5A6472);
+  }
+  #doc-build-banner .progress { margin-top: 8px; height: 6px; background: #F0E6C2; border-radius: 99px; overflow: hidden; }
+  #doc-build-banner .progress > i { display:block; height:100%; background: var(--signal, #F2B705); transition: width .25s ease; }
+  @keyframes dbb-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(242,183,5,.55); }
+    70% { box-shadow: 0 0 0 8px rgba(242,183,5,0); }
+    100% { box-shadow: 0 0 0 0 rgba(242,183,5,0); }
+  }
+  body.is-building-doc #draft-area { opacity: .55; pointer-events: none; }
+  body.is-building-doc #draft-area::before {
+    content: "Bygger dokument… vent til jobben er ferdig";
+    display: block; margin: 0 0 10px; padding: 8px 10px;
+    font-family: "IBM Plex Mono", monospace; font-size: 11px;
+    color: #6B5B00; background: #FFF8E0; border: 1px dashed #E2C56A; border-radius: 8px;
+  }
 </style>
 </head>
 <body data-lang="en">
@@ -1228,14 +1369,129 @@
       <span data-l="en">This website was compiled by <strong>Foldok</strong></span>
     </span>
   </div>
-  <span class="right" id="keystate"></span>
+  <span class="right">
+<!-- Foldok :: get the Capture app. Self-contained; safe to remove as one block. -->
+<div id="getCapture" class="gc">
+  <button class="gc-btn" type="button" aria-haspopup="dialog" aria-expanded="false"
+          aria-controls="getCapture-pop" title="Get Capture on your phone">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="6" y="2.5" width="12" height="19" rx="2.5"/>
+      <circle cx="12" cy="11" r="3.2"/>
+      <path d="M10.5 6.4h3"/>
+    </svg>
+    <span class="gc-label"><span data-i18n-no="Kamera-app" data-i18n-en="Capture app">Capture app</span></span>
+  </button>
+
+  <div class="gc-pop" id="getCapture-pop" role="dialog" aria-modal="false"
+       aria-label="Get Capture on your phone" hidden>
+    <p class="gc-title"><span data-i18n-no="Få Capture på telefonen" data-i18n-en="Get Capture on your phone">Get Capture on your phone</span></p>
+    <p class="gc-blurb"><span data-i18n-no="Ta bilder rett inn i prosjektmappen. Bildene havner i mappen du allerede bruker — ingenting lastes opp til oss." data-i18n-en="Photograph straight into the project folder. Pictures land in the folder you already use — nothing is uploaded to us.">Photograph straight into the project folder. Pictures land in the folder you already use — nothing is uploaded to us.</span></p>
+
+    <div class="gc-desktop">
+      <div class="gc-qr"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29" width="168" height="168" shape-rendering="crispEdges" role="img" aria-label="Foldok Capture"><title>Foldok Capture</title><g class="gc-qr-ink" fill="#16181D"><rect x="2" y="2" width="7" height="1"/><rect x="10" y="2" width="1" height="1"/><rect x="12" y="2" width="3" height="1"/><rect x="16" y="2" width="1" height="1"/><rect x="20" y="2" width="7" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="8" y="3" width="1" height="1"/><rect x="11" y="3" width="1" height="1"/><rect x="14" y="3" width="1" height="1"/><rect x="16" y="3" width="1" height="1"/><rect x="18" y="3" width="1" height="1"/><rect x="20" y="3" width="1" height="1"/><rect x="26" y="3" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="4" y="4" width="3" height="1"/><rect x="8" y="4" width="1" height="1"/><rect x="10" y="4" width="1" height="1"/><rect x="15" y="4" width="1" height="1"/><rect x="20" y="4" width="1" height="1"/><rect x="22" y="4" width="3" height="1"/><rect x="26" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="4" y="5" width="3" height="1"/><rect x="8" y="5" width="1" height="1"/><rect x="11" y="5" width="1" height="1"/><rect x="13" y="5" width="1" height="1"/><rect x="15" y="5" width="1" height="1"/><rect x="17" y="5" width="1" height="1"/><rect x="20" y="5" width="1" height="1"/><rect x="22" y="5" width="3" height="1"/><rect x="26" y="5" width="1" height="1"/><rect x="2" y="6" width="1" height="1"/><rect x="4" y="6" width="3" height="1"/><rect x="8" y="6" width="1" height="1"/><rect x="11" y="6" width="1" height="1"/><rect x="13" y="6" width="2" height="1"/><rect x="16" y="6" width="1" height="1"/><rect x="20" y="6" width="1" height="1"/><rect x="22" y="6" width="3" height="1"/><rect x="26" y="6" width="1" height="1"/><rect x="2" y="7" width="1" height="1"/><rect x="8" y="7" width="1" height="1"/><rect x="10" y="7" width="2" height="1"/><rect x="13" y="7" width="1" height="1"/><rect x="15" y="7" width="2" height="1"/><rect x="18" y="7" width="1" height="1"/><rect x="20" y="7" width="1" height="1"/><rect x="26" y="7" width="1" height="1"/><rect x="2" y="8" width="7" height="1"/><rect x="10" y="8" width="1" height="1"/><rect x="12" y="8" width="1" height="1"/><rect x="14" y="8" width="1" height="1"/><rect x="16" y="8" width="1" height="1"/><rect x="18" y="8" width="1" height="1"/><rect x="20" y="8" width="7" height="1"/><rect x="12" y="9" width="3" height="1"/><rect x="16" y="9" width="2" height="1"/><rect x="2" y="10" width="1" height="1"/><rect x="4" y="10" width="1" height="1"/><rect x="8" y="10" width="2" height="1"/><rect x="13" y="10" width="2" height="1"/><rect x="17" y="10" width="2" height="1"/><rect x="21" y="10" width="1" height="1"/><rect x="24" y="10" width="1" height="1"/><rect x="26" y="10" width="1" height="1"/><rect x="2" y="11" width="2" height="1"/><rect x="7" y="11" width="1" height="1"/><rect x="10" y="11" width="2" height="1"/><rect x="17" y="11" width="2" height="1"/><rect x="20" y="11" width="2" height="1"/><rect x="23" y="11" width="1" height="1"/><rect x="25" y="11" width="2" height="1"/><rect x="2" y="12" width="2" height="1"/><rect x="8" y="12" width="1" height="1"/><rect x="10" y="12" width="2" height="1"/><rect x="13" y="12" width="2" height="1"/><rect x="16" y="12" width="3" height="1"/><rect x="21" y="12" width="1" height="1"/><rect x="23" y="12" width="2" height="1"/><rect x="26" y="12" width="1" height="1"/><rect x="4" y="13" width="2" height="1"/><rect x="7" y="13" width="1" height="1"/><rect x="10" y="13" width="2" height="1"/><rect x="13" y="13" width="2" height="1"/><rect x="16" y="13" width="6" height="1"/><rect x="23" y="13" width="1" height="1"/><rect x="3" y="14" width="1" height="1"/><rect x="6" y="14" width="1" height="1"/><rect x="8" y="14" width="3" height="1"/><rect x="14" y="14" width="1" height="1"/><rect x="18" y="14" width="1" height="1"/><rect x="20" y="14" width="2" height="1"/><rect x="26" y="14" width="1" height="1"/><rect x="4" y="15" width="1" height="1"/><rect x="6" y="15" width="1" height="1"/><rect x="9" y="15" width="3" height="1"/><rect x="17" y="15" width="1" height="1"/><rect x="20" y="15" width="2" height="1"/><rect x="25" y="15" width="2" height="1"/><rect x="2" y="16" width="3" height="1"/><rect x="8" y="16" width="1" height="1"/><rect x="12" y="16" width="2" height="1"/><rect x="15" y="16" width="3" height="1"/><rect x="23" y="16" width="2" height="1"/><rect x="26" y="16" width="1" height="1"/><rect x="4" y="17" width="1" height="1"/><rect x="6" y="17" width="2" height="1"/><rect x="10" y="17" width="1" height="1"/><rect x="14" y="17" width="1" height="1"/><rect x="16" y="17" width="2" height="1"/><rect x="21" y="17" width="3" height="1"/><rect x="2" y="18" width="2" height="1"/><rect x="7" y="18" width="2" height="1"/><rect x="10" y="18" width="1" height="1"/><rect x="12" y="18" width="3" height="1"/><rect x="18" y="18" width="5" height="1"/><rect x="25" y="18" width="1" height="1"/><rect x="10" y="19" width="1" height="1"/><rect x="13" y="19" width="2" height="1"/><rect x="16" y="19" width="1" height="1"/><rect x="18" y="19" width="1" height="1"/><rect x="22" y="19" width="1" height="1"/><rect x="26" y="19" width="1" height="1"/><rect x="2" y="20" width="7" height="1"/><rect x="10" y="20" width="2" height="1"/><rect x="13" y="20" width="4" height="1"/><rect x="18" y="20" width="1" height="1"/><rect x="20" y="20" width="1" height="1"/><rect x="22" y="20" width="1" height="1"/><rect x="26" y="20" width="1" height="1"/><rect x="2" y="21" width="1" height="1"/><rect x="8" y="21" width="1" height="1"/><rect x="12" y="21" width="2" height="1"/><rect x="17" y="21" width="2" height="1"/><rect x="22" y="21" width="1" height="1"/><rect x="26" y="21" width="1" height="1"/><rect x="2" y="22" width="1" height="1"/><rect x="4" y="22" width="3" height="1"/><rect x="8" y="22" width="1" height="1"/><rect x="11" y="22" width="1" height="1"/><rect x="13" y="22" width="1" height="1"/><rect x="17" y="22" width="6" height="1"/><rect x="25" y="22" width="1" height="1"/><rect x="2" y="23" width="1" height="1"/><rect x="4" y="23" width="3" height="1"/><rect x="8" y="23" width="1" height="1"/><rect x="11" y="23" width="4" height="1"/><rect x="16" y="23" width="4" height="1"/><rect x="22" y="23" width="1" height="1"/><rect x="24" y="23" width="2" height="1"/><rect x="2" y="24" width="1" height="1"/><rect x="4" y="24" width="3" height="1"/><rect x="8" y="24" width="1" height="1"/><rect x="10" y="24" width="1" height="1"/><rect x="13" y="24" width="1" height="1"/><rect x="15" y="24" width="1" height="1"/><rect x="19" y="24" width="1" height="1"/><rect x="21" y="24" width="3" height="1"/><rect x="25" y="24" width="2" height="1"/><rect x="2" y="25" width="1" height="1"/><rect x="8" y="25" width="1" height="1"/><rect x="11" y="25" width="2" height="1"/><rect x="14" y="25" width="1" height="1"/><rect x="18" y="25" width="2" height="1"/><rect x="21" y="25" width="2" height="1"/><rect x="2" y="26" width="7" height="1"/><rect x="10" y="26" width="2" height="1"/><rect x="13" y="26" width="1" height="1"/><rect x="18" y="26" width="3" height="1"/><rect x="23" y="26" width="1" height="1"/><rect x="26" y="26" width="1" height="1"/></g></svg></div>
+      <p class="gc-hint"><span data-i18n-no="Skann med telefonen" data-i18n-en="Scan with your phone">Scan with your phone</span></p>
+      <a class="gc-link" href="https://foldok.com/capture"><span data-i18n-no="Åpne siden" data-i18n-en="Open the page">Open the page</span></a>
+    </div>
+
+    <div class="gc-android" hidden>
+      <a class="gc-cta" href="https://foldok.com/capture"><span data-i18n-no="Installer på Android" data-i18n-en="Install on Android">Install on Android</span></a>
+    </div>
+
+    <div class="gc-ios" hidden>
+      <p class="gc-hint"><span data-i18n-no="iOS kommer" data-i18n-en="iOS coming">iOS coming</span></p>
+    </div>
+  </div>
+</div>
+
+<style>
+#getCapture { position: relative; display: inline-flex; }
+#getCapture .gc-btn {
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  font: 600 12.5px/1 inherit; color: inherit;
+  padding: 7px 11px; border: 1px solid var(--line, #DAD7CC);
+  border-radius: 8px; background: transparent;
+}
+#getCapture .gc-btn:hover { border-color: var(--signal, #F2B705); }
+#getCapture .gc-btn[aria-expanded="true"] {
+  border-color: var(--signal, #F2B705); background: color-mix(in srgb, var(--signal, #F2B705) 12%, transparent);
+}
+#getCapture .gc-pop {
+  position: absolute; top: calc(100% + 9px); right: 0; z-index: 60;
+  width: 272px; padding: 16px;
+  background: var(--paper, #FAF9F5); color: var(--ink, #16181D);
+  border: 1px solid var(--line, #DAD7CC); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.16);
+}
+#getCapture .gc-pop[hidden] { display: none; }
+#getCapture .gc-title { margin: 0 0 6px; font: 700 14px/1.3 inherit; }
+#getCapture .gc-blurb { margin: 0 0 13px; font-size: 12.5px; line-height: 1.45;
+  color: var(--steel, #8A8577); }
+#getCapture .gc-qr { display: flex; justify-content: center; padding: 9px;
+  background: #fff; border: 1px solid var(--line, #DAD7CC); border-radius: 8px; }
+#getCapture .gc-hint { margin: 9px 0 0; text-align: center; font-size: 12px;
+  color: var(--steel, #8A8577); }
+#getCapture .gc-link { display: block; margin-top: 7px; text-align: center;
+  font-size: 12px; color: inherit; }
+#getCapture .gc-cta {
+  display: block; text-align: center; text-decoration: none;
+  padding: 11px 14px; border-radius: 9px; font: 600 13px/1 inherit;
+  background: var(--signal, #F2B705); color: var(--ink, #16181D);
+}
+@media (max-width: 640px) { #getCapture .gc-label { display: none; } }
+@media (prefers-reduced-motion: no-preference) {
+  #getCapture .gc-pop { animation: gc-in .13s ease-out; }
+  @keyframes gc-in { from { opacity: 0; transform: translateY(-4px); } }
+}
+</style>
+
+<script>
+(function () {
+  var root = document.getElementById("getCapture");
+  if (!root) return;
+  var btn = root.querySelector(".gc-btn");
+  var pop = root.querySelector(".gc-pop");
+
+  /* A QR is useless to someone already holding the phone it points at. */
+  var ua = navigator.userAgent || "";
+  var android = /Android/i.test(ua);
+  var ios = /iPad|iPhone|iPod/.test(ua) ||
+            (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (android || ios) root.querySelector(".gc-desktop").hidden = true;
+  if (android) root.querySelector(".gc-android").hidden = false;
+  if (ios) root.querySelector(".gc-ios").hidden = false;
+
+  function open(state) {
+    pop.hidden = !state;
+    btn.setAttribute("aria-expanded", state ? "true" : "false");
+    if (state) {
+      var focusable = pop.querySelector("a");
+      if (focusable) focusable.focus({ preventScroll: true });
+    }
+  }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); open(pop.hidden); });
+  document.addEventListener("click", function (e) {
+    if (!pop.hidden && !root.contains(e.target)) open(false);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !pop.hidden) { open(false); btn.focus(); }
+  });
+})();
+</script>
+<!-- /Foldok :: get the Capture app -->
+    <span id="keystate"></span>
+  </span>
 </header>
 <div id="acct-panel" class="acct-panel" role="dialog" aria-label="Account"
      onclick="event.stopPropagation()"></div>
 <main id="main">
-  <!-- Static shell for crawlers / fetchers (replaced by JS when boot() runs) -->
-  <article class="static-landing hub-shell" id="static-landing" style="max-width:960px;margin:0 auto;padding:28px 20px 80px">
-    <p style="font-family:IBM Plex Mono,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5A6472;margin:0 0 12px">Foldok · v0.78.0</p>
+  <!-- Local workbench: avoid pre-boot marketing flash on refresh -->
+  <div id="boot-shell" style="max-width:960px;margin:0 auto;padding:28px 20px 36px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5A6472">
+    Foldok starter…
+  </div>
+  <!-- Static shell for crawlers / fetchers (hidden in local workbench) -->
+  <article class="static-landing hub-shell" id="static-landing" style="display:none;max-width:960px;margin:0 auto;padding:28px 20px 80px">
+    <p style="font-family:IBM Plex Mono,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5A6472;margin:0 0 12px">Foldok · v0.82.0</p>
     <h1 style="font-size:clamp(1.6rem,4vw,2.2rem);font-weight:900;letter-spacing:-0.03em;line-height:1.15;margin:0 0 14px">
       An operating system for engineering documentation
     </h1>
@@ -1248,6 +1504,14 @@
       Not a chat app. Not a PM tool. Projects organize documentation. Documentation delivers projects.
     </p>
 
+    <div style="margin:0 0 28px;padding:14px 16px;max-width:42em;border:1px solid #DAD7CC;border-radius:10px;background:#fff">
+      <strong style="font-size:15px">Capture app</strong>
+      <p style="margin:6px 0 12px;font-size:14px;line-height:1.45;color:#5A6472">
+        Photograph straight into the project folder on your phone — nothing uploaded to Foldok.
+      </p>
+      <a href="/capture" style="display:inline-block;font-weight:700;font-size:14px;padding:10px 16px;border-radius:8px;background:#F2B705;color:#16181D;text-decoration:none">Get the Capture app →</a>
+    </div>
+
     <h2 style="font-size:1.15rem;font-weight:800;margin:28px 0 10px">1 — What this is</h2>
     <p style="margin:0 0 10px;max-width:42em">Connect a project → edit documentation → deliver a package.</p>
 
@@ -1257,17 +1521,35 @@
       <li><strong>Build knowledge</strong> — facts and citations stay inspectable.</li>
       <li><strong>Resolve gaps</strong> — missing evidence with guided Fix / Link / Create / Ignore actions.</li>
       <li><strong>Edit documents</strong> — structured sections, figures, diagrams, and layout boxes.</li>
-      <li><strong>Deliver</strong> — versioned packages with a clear claim boundary: structural profiles, not legal certification.</li>
+      <li><strong>Deliver</strong> — versioned packages against a requirement profile (evidence coverage), not legal certification.</li>
       <li><strong>Private by design</strong> — model calls see masked entities (<code>CLIENT_A</code>); real values stay in your vault.</li>
     </ul>
 
     <h2 style="font-size:1.15rem;font-weight:800;margin:28px 0 10px">Surfaces</h2>
     <p style="margin:0 0 8px;max-width:42em">Documents · Diagrams · Requirements · Sources · Compiler · Compliance · Deliver · Assets</p>
 
+    <h2 style="font-size:1.15rem;font-weight:800;margin:28px 0 10px">Mission &amp; Vision</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:42em">
+      <div style="border-top:3px solid #F2B705;padding-top:12px">
+        <p style="font-family:IBM Plex Mono,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#8A8577;margin:0 0 8px">Mission</p>
+        <p style="margin:0;font-size:14.5px;line-height:1.45">Make incomplete engineering documentation hard to ignore — and complete packages the path of least resistance.</p>
+      </div>
+      <div style="border-top:3px solid #F2B705;padding-top:12px">
+        <p style="font-family:IBM Plex Mono,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#8A8577;margin:0 0 8px">Vision</p>
+        <p style="margin:0;font-size:14.5px;line-height:1.45">Foldok becomes the place engineering documentation lives — from first site photo to delivered package and later updates.</p>
+      </div>
+    </div>
+    <p style="margin:16px 0 0;font-size:14px;max-width:42em;color:#5A6472">
+      Foldok helps you handle the documents you have, build the ones you’re missing, and fix the ones you already started.
+      <a href="/about">About Foldok →</a>
+    </p>
+
     <p style="margin:24px 0 0;font-size:13px;color:#5A6472">
-      Source: <a href="https://github.com/jrerikstad-art/Foldok.com">github.com/jrerikstad-art/Foldok.com</a>
+      <a href="/about">About</a>
+      · <a href="/capture">Capture</a>
+      · <a href="https://github.com/jrerikstad-art/Foldok.com">github.com/jrerikstad-art/Foldok.com</a>
       · <a href="https://github.com/jrerikstad-art/Foldok.com/releases">Releases</a>
-      · Claim boundary: structural profiles and evidence completeness — never “certified to …”
+      · Claim boundary: requirement profiles + evidence coverage — never “certified to …” or “legally compliant”
     </p>
     <noscript>
       <p style="margin-top:20px;padding:12px;border:1px solid #C74E19;background:#FDF0E8">
@@ -1284,6 +1566,8 @@ let MANGler_CTX = null;
 let CHAT_SCOPE = { type: "document", section: null };
 let CHAT_TURNS = 0;
 let CHAT_HTML = "";
+let CHAT_BUSY = false;
+let HUB_BUSY = false;
 let HUB_CHAT_HTML = "";
 let HUB_TURNS = [];
 let HUB_PENDING = null; // { template_key, name? }
@@ -1322,6 +1606,8 @@ const api = (p, opt) => fetch(p, opt).then(async r => {
 async function boot() {
   try {
     BOOT = await api("/api/bootstrap");
+    BOOT.marketing = false;
+    BOOT.local_admin = BOOT.local_admin !== false;
   } catch (_) {
     // Static / marketing host (e.g. Vercel) — same UI as local home, no engine APIs
     let meta = { document: "FOLDOK-WEB-001", revision: "C", date: "auto", default_language: "en" };
@@ -1342,9 +1628,16 @@ async function boot() {
       account: { signed_in: false },
       web_meta: meta,
       marketing: true,
+      local_admin: false,
     };
   }
   applyHeaderMeta(BOOT.web_meta || { version: BOOT.version });
+  // Local workbench: ensure demo admin session so projects/edit work without a dance
+  if (!BOOT.marketing && BOOT.local_admin && !BOOT.account?.signed_in && !BOOT.account?.guest) {
+    try {
+      await accountDummySignIn();
+    } catch (_) {}
+  }
   renderAccountHeader();
   // Don't POST /api/pick-folder here — that opens a native dialog and blocks the UI.
   const ver = String(BOOT.version || "0");
@@ -1547,6 +1840,17 @@ function applyUiLang(lang, opts = {}) {
   document.querySelectorAll(".hub-chat .compose .btn").forEach(el => {
     if (!el.classList.contains("chat-attach-btn")) el.textContent = pack.hubSend;
   });
+  document.querySelectorAll("[data-i18n-no][data-i18n-en]").forEach(el => {
+    const text = lang === "no" ? el.getAttribute("data-i18n-no") : el.getAttribute("data-i18n-en");
+    if (text) el.textContent = text;
+  });
+  const gcBtn = document.querySelector("#getCapture .gc-btn");
+  if (gcBtn) {
+    const title = lang === "no"
+      ? document.querySelector("#getCapture [data-i18n-no='Få Capture på telefonen']")?.getAttribute("data-i18n-no")
+      : document.querySelector("#getCapture [data-i18n-en='Get Capture on your phone']")?.getAttribute("data-i18n-en");
+    if (title) gcBtn.title = title;
+  }
 }
 
 function setUiLang(lang, ev) {
@@ -1575,7 +1879,15 @@ function renderAccountHeader() {
   if (!host) return;
   const a = BOOT?.account || {};
   let label = L("Konto", "Account");
-  if (a.signed_in && a.account) {
+  if (BOOT?.local_admin && !BOOT?.marketing) {
+    label = L("Admin · lokal", "Admin · local");
+    if (a.signed_in && a.account) {
+      const keyOk = BOOT?.key_set !== false;
+      label = keyOk
+        ? `${esc(a.account.name || "demo")} · ${L("lokal API", "local API")}`
+        : `${esc(a.account.name || "demo")} · ${L("admin", "admin")}`;
+    }
+  } else if (a.signed_in && a.account) {
     label = `${esc(a.account.name || L("Konto", "Account"))} · ${fmtMoney(a.account.balance_eur)}`;
   } else if (a.guest) {
     label = `${L("Gjest", "Guest")} · ${fmtMoney(a.account?.balance_eur)}`;
@@ -1704,6 +2016,12 @@ async function renderAccountPanel(opts = {}) {
         onclick="event.stopPropagation();$('#acct-panel').classList.remove('open')">✕</button>
     </div>
     <div class="mono" style="font-size:12px;margin:4px 0 0">${fmtMoney(a.account?.balance_eur)} ${L("igjen", "left")}</div>
+    ${BOOT?.local_admin && BOOT?.key_set
+      ? `<div style="font-size:11px;color:var(--steel);margin:4px 0 0;line-height:1.35">${L(
+          "Lokal API-nøkkel aktiv — AI belastes Anthropic (ikke Foldok-€ ovenfor). Foldok-saldo brukes til eksport/produktmåling.",
+          "Local API key active — AI is billed to Anthropic (not the Foldok € above). Foldok balance is for export/product metering."
+        )}</div>`
+      : ""}
     <div class="acct-tabs">${tabs.map(([id, lab]) =>
       `<button type="button" data-acct-tab="${id}" class="${ACCT_TAB === id ? "on" : ""}">${lab}</button>`
     ).join("")}</div>
@@ -2109,6 +2427,38 @@ function route() {
   if (m) renderProject(m[1]); else renderHome();
 }
 
+async function removeDocument(projectId, template) {
+  if (!confirm(`Fjern dokumentet «${template}» fra prosjektet?`)) return;
+  try {
+    const r = await api("/api/doc/remove", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: projectId, template }),
+    });
+    // Switch to the new active template before re-rendering
+    ACTIVE_DOC = r.active_template || null;
+  } catch (e) {
+    alert("Kunne ikke fjerne: " + (e?.payload?.error || e.message));
+    return;
+  }
+  LAST_PID = null; // force full re-render
+  await renderProject(projectId);
+}
+
+async function deleteProject(id) {
+  try {
+    await api("/api/project/delete", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+  } catch (e) {
+    alert("Kunne ikke slette: " + (e?.payload?.error || e.message));
+    return;
+  }
+  location.hash = "";
+}
+
 /* ── HOME: chat as product, marketing story below, seamless loop ── */
 let LANDING_LOOP_CLEANUP = null;
 
@@ -2172,7 +2522,11 @@ function landingProjectsBlock(opts = {}) {
         ${(BOOT.projects || []).map(p => `
           <div class="proj" ${clone ? "" : `onclick="location.hash='#/p/${p.id}'"`}>
             <span class="ic">📁</span>
-            <span><b>${esc(p.name)}</b><small class="mono">${(p.folders || []).map(esc).join(" + ") || (getUiLang()==="no"?"uten mappe":"no folder")}</small></span>
+            <span>
+              <b>${esc(p.name)}</b>
+              <small class="mono">${(p.folders || []).map(esc).join(" + ") || (getUiLang()==="no"?"uten mappe":"no folder")}</small>
+              ${p._folder_missing ? `<small style="color:var(--err,#c0392b);display:block">⚠ Mappen finnes ikke lenger</small>` : ""}
+            </span>
             <span style="margin-left:auto;color:var(--steel)">→</span>
           </div>`).join("") || `<div class="sub">${t("noProjects")}</div>`}
         <details class="card" style="padding:14px 16px;margin-top:12px">
@@ -2216,6 +2570,17 @@ function landingStoryHtml(opts = {}) {
         <span class="node">${t("s1a")}</span><span class="arrow">→</span>
         <span class="node">${t("s1b")}</span><span class="arrow">→</span>
         <span class="node">${t("s1c")}</span>
+      </div>
+      <div class="capture-promo">
+        <strong>${L("Kamera-app", "Capture app")}</strong>
+        <p>${L(
+          "Ta bilder rett inn i prosjektmappen på telefonen. Bildene synker via mappen du allerede bruker — ingenting lastes opp til oss.",
+          "Photograph straight into the project folder on your phone. Pictures sync through the folder you already use — nothing is uploaded to us."
+        )}</p>
+        <div class="capture-promo-row">
+          <a href="/capture" class="btn">${L("Få Capture-appen", "Get the Capture app")}</a>
+          <button type="button" class="btn ghost" onclick="document.querySelector('#getCapture .gc-btn')?.click()">${L("Vis QR-kode", "Show QR code")}</button>
+        </div>
       </div>
     </section>
 
@@ -2597,15 +2962,58 @@ function landingStoryHtml(opts = {}) {
       )}</p>
     </section>
 
+    <section class="story-block">
+      <div class="story-kicker">${L("Mission &amp; Vision", "Mission &amp; Vision")}</div>
+      <h2>${L(
+        "Ufullstendig dokumentasjon skal være vanskelig å overse.",
+        "Incomplete documentation should be hard to ignore."
+      )}</h2>
+      <div class="story-mv">
+        <article>
+          <p class="lab">${L("Misjon", "Mission")}</p>
+          <p>${L(
+            "Gjør ufullstendig teknisk dokumentasjon vanskelig å overse — og komplette pakker til den enkleste veien.",
+            "Make incomplete engineering documentation hard to ignore — and complete packages the path of least resistance."
+          )}</p>
+        </article>
+        <article>
+          <p class="lab">${L("Visjon", "Vision")}</p>
+          <p>${L(
+            "Foldok blir stedet teknisk dokumentasjon lever — fra første feltfoto til levert pakke og senere oppdateringer.",
+            "Foldok becomes the place engineering documentation lives — from first site photo to delivered package and later updates."
+          )}</p>
+        </article>
+      </div>
+      <p class="story-note" style="margin-top:14px">${L(
+        "Foldok hjelper deg å håndtere dokumentene du har, bygge dem du mangler, og fikse dem du allerede har startet.",
+        "Foldok helps you handle the documents you have, build the ones you’re missing, and fix the ones you already started."
+      )}
+        <a href="/about">${L("Les mer →", "Read more →")}</a></p>
+    </section>
+
     <section class="story-block"${id("story-cta")}>
       <div class="story-kicker">${t("s15k")}</div>
       <h2>${t("s15h")}</h2>
       <div class="story-cta-row">
           <button type="button" class="btn" onclick="landingCtaOpenProject()">${t("s15a")}</button>
+          <a href="/capture" class="btn ghost">${L("Få Capture-appen", "Get Capture app")}</a>
           <button type="button" class="btn ghost" onclick="focusHubChat(event)">${t("s15b")}</button>
           <button type="button" class="btn ghost" onclick="document.getElementById('story-what')?.scrollIntoView({behavior:'smooth'})">${t("s15c")}</button>
         </div>
         <p class="story-reassure">${t("s15r")}</p>
+      <div class="site-footer">
+        <p class="row"><b>${L("Misjon", "Mission")}</b> —
+          ${L("Ufullstendige dokumenter skal ikke gli gjennom. Å fullføre dem skal være den enkle veien.",
+            "Incomplete docs shouldn’t slip through. Completing them should be the easy path.")}</p>
+        <p class="row"><b>${L("Visjon", "Vision")}</b> —
+          ${L("Operativsystemet for teknisk dokumentasjon — fra feltevidens til levert pakke.",
+            "The operating system for engineering documentation — from field evidence to delivered package.")}</p>
+        <p class="row">
+          <a href="/about">${L("Om Foldok", "About Foldok")}</a>
+          · <a href="/capture">${L("Capture-app", "Capture app")}</a>
+          · <a href="https://github.com/jrerikstad-art/Foldok.com">GitHub</a>
+        </p>
+      </div>
     </section>
     </div>
 `;
@@ -2886,7 +3294,7 @@ function hubInit() {
 
 function hubBubble(who, html, opts) {
   const log = $("#hub-log");
-  if (!log) return;
+  if (!log) return null;
   const div = document.createElement("div");
   div.className = "assist-bubble " + who;
   div.innerHTML = html;
@@ -2896,9 +3304,10 @@ function hubBubble(who, html, opts) {
   syncHubCloneLog();
   if (!opts?.skipTurn) {
     const plain = (div.textContent || "").trim();
-    if (plain && plain !== "…")
+    if (plain && plain !== "…" && !plain.startsWith("Tenker") && !plain.startsWith("Thinking"))
       HUB_TURNS.push({ role: who === "user" ? "user" : "bot", text: plain, html: who === "bot" ? html : undefined });
   }
+  return div;
 }
 
 function hubHint(text) {
@@ -2938,32 +3347,61 @@ let HUB_HISTORY = [];
 
 async function hubSend() {
   const input = $("#hub-in");
+  const btn = input?.closest(".hub-compose, .row, form")?.querySelector("button.btn")
+    || document.querySelector("#hub-compose button.btn, .hub-foot button.btn");
   const text = (input?.value || "").trim();
-  if (!text) return;
+  if (!text || HUB_BUSY) return;
   input.value = "";
+  HUB_BUSY = true;
   input.disabled = true;
+  if (btn) {
+    btn.disabled = true;
+    btn.dataset.label = btn.textContent;
+    btn.textContent = L("Sender…", "Sending…");
+    btn.classList.add("is-busy");
+  }
   hubBubble("user", esc(text));
   HUB_HISTORY.push({ role: "user", text });
   if (BOOT?.marketing) {
     const no = getUiLang() === "no";
     hubBubble("bot", no
-      ? `Dette er markedsføringssiden. Kjør arbeidsbenken lokalt for prosjekter:<br><code>.\\scripts\\workbench.ps1</code> → <a href="http://127.0.0.1:8766/">http://127.0.0.1:8766/</a>`
-      : `This is the marketing site. Run the workbench locally for projects:<br><code>.\\scripts\\workbench.ps1</code> → <a href="http://127.0.0.1:8766/">http://127.0.0.1:8766/</a>`);
+      ? `Dette er <b>markedsføringssiden</b> (ingen motor her).<br><br>
+         <b>Lokal arbeidsbenk (admin):</b><br>
+         1. Åpne PowerShell i mappen <code>feltdok-engine</code><br>
+         2. Kjør <code>.\\scripts\\workbench.ps1</code><br>
+         3. Åpne <a href="http://127.0.0.1:8766/" target="_blank" rel="noopener">http://127.0.0.1:8766/</a><br><br>
+         Fra workspace-roten: <code>.\\scripts\\workbench.ps1</code> (starter motoren).`
+      : `This is the <b>marketing site</b> (no engine here).<br><br>
+         <b>Local workbench (admin):</b><br>
+         1. Open PowerShell in the <code>feltdok-engine</code> folder<br>
+         2. Run <code>.\\scripts\\workbench.ps1</code><br>
+         3. Open <a href="http://127.0.0.1:8766/" target="_blank" rel="noopener">http://127.0.0.1:8766/</a><br><br>
+         From the workspace root: <code>.\\scripts\\workbench.ps1</code> (starts the engine).`);
+    HUB_BUSY = false;
     input.disabled = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = btn.dataset.label || t("hubSend");
+      btn.classList.remove("is-busy");
+    }
     input.focus();
+    fetch("http://127.0.0.1:8766/api/bootstrap").then(r => {
+      if (r.ok) hubBubble("bot", L(
+        `Lokal arbeidsbenk kjører allerede — <a href="http://127.0.0.1:8766/" target="_blank" rel="noopener">åpne admin her →</a>`,
+        `Local workbench is already running — <a href="http://127.0.0.1:8766/" target="_blank" rel="noopener">open admin here →</a>`
+      ), { skipTurn: true });
+    }).catch(() => {});
     return;
   }
-  hubBubble("bot", "…", { skipTurn: true });
+  const thinking = hubBubble("bot thinking", thinkingHtml(), { skipTurn: true });
   try {
     let base = BOOT?.settings?.projects_base_dir || "";
     const r = await api("/api/hub/chat", { method:"POST", headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({ message: text, history: HUB_HISTORY.slice(-16), base_dir: base || undefined }) });
-    // WO 0.21 — if create needs base dir, ask once then retry execute
     if (r.code === "need_base_dir" || r.kind === "need_base_dir") {
       base = await hubEnsureBaseDir();
       if (!base) {
-        const log = $("#hub-log");
-        if (log?.lastChild) log.lastChild.remove();
+        thinking?.remove();
         hubBubble("bot", esc(r.reply || "Basismappe kreves."));
         return;
       }
@@ -2971,8 +3409,7 @@ async function hubSend() {
         body: JSON.stringify({ message: text, history: HUB_HISTORY.slice(-16), base_dir: base }) });
       Object.assign(r, r2);
     }
-    const log = $("#hub-log");
-    if (log?.lastChild) log.lastChild.remove();
+    thinking?.remove();
     if (r.template_key) HUB_PENDING = { template_key: r.template_key };
     if (r.project) {
       BOOT.projects = BOOT.projects || [];
@@ -2993,11 +3430,16 @@ async function hubSend() {
       setTimeout(() => { location.hash = "#/p/" + r.open_project_id; }, 400);
     }
   } catch (e) {
-    const log = $("#hub-log");
-    if (log?.lastChild) log.lastChild.remove();
+    thinking?.remove();
     hubBubble("bot", esc(e.message));
   } finally {
+    HUB_BUSY = false;
     input.disabled = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = btn.dataset.label || t("hubSend");
+      btn.classList.remove("is-busy");
+    }
     input.focus();
   }
 }
@@ -3203,25 +3645,36 @@ function closeFolderBrowser() {
 }
 
 async function createProject() {
-  $("#np-err").innerHTML = "";
+  const errEl = $("#np-err");
+  if (errEl) errEl.innerHTML = "";
   syncProjectNameFromFolder(false);
-  const folder = ($("#np-folder").value || "").trim();
-  const name = ($("#np-name").value || "").trim() || folderBasename(folder);
+  const folder = ($("#np-folder")?.value || "").trim();
+  const name = ($("#np-name")?.value || "").trim() || folderBasename(folder);
   if (!folder) {
-    $("#np-err").innerHTML = `<div class="err">Lim inn en mappesti eller velg mappe først.</div>`;
+    if (errEl) errEl.innerHTML = `<div class="err">${L("Lim inn en mappesti eller velg mappe først.", "Paste a folder path or browse first.")}</div>`;
+    return;
+  }
+  // Already registered? Open it instead of failing.
+  const existing = (BOOT.projects || []).find(p =>
+    (p.folders || []).some(f => String(f).replace(/\\/g, "/").toLowerCase() === folder.replace(/\\/g, "/").toLowerCase())
+  );
+  if (existing) {
+    location.hash = "#/p/" + existing.id;
     return;
   }
   const btn = document.querySelector('button[onclick="createProject()"]');
-  if (btn) { btn.disabled = true; btn.textContent = "Oppretter…"; }
+  if (btn) { btn.disabled = true; btn.textContent = L("Oppretter…", "Creating…"); }
   try {
     const p = await api("/api/projects", { method:"POST", headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({ name, folder }) });
-    BOOT.projects.push(p);
+    const i = (BOOT.projects || []).findIndex(x => x.id === p.id);
+    if (i >= 0) BOOT.projects[i] = p;
+    else BOOT.projects = [...(BOOT.projects || []), p];
     location.hash = "#/p/" + p.id;
   } catch (e) {
-    $("#np-err").innerHTML = `<div class="err">${esc(e.message)}</div>`;
+    if (errEl) errEl.innerHTML = `<div class="err">${esc(e.message)}</div>`;
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = "+ Opprett prosjekt"; }
+    if (btn) { btn.disabled = false; btn.textContent = t("createProj"); }
   }
 }
 
@@ -3488,9 +3941,14 @@ async function renderProject(id) {
             <button class="btn" id="btn-index-selected" onclick="startIndexSelected('${id}')"
               ${selectedPending <= 0 ? "disabled" : ""}>
               ${selectedPending > 0
-                ? `Start indeksering · ${selectedPending} valgt · ~€${(p.estimate_eur || 0).toFixed(2)}`
-                : (selectedIndexed > 0 ? "Ingen nye valgt" : "Velg filer, deretter indekser")}
+                ? (selectedIndexed > 0
+                  ? `Fortsett indeksering · ${selectedPending} gjenstår · ~€${(p.estimate_eur || 0).toFixed(2)}`
+                  : `Start indeksering · ${selectedPending} valgt · ~€${(p.estimate_eur || 0).toFixed(2)}`)
+                : (selectedIndexed > 0 ? `✓ ${selectedIndexed} indeksert` : "Velg filer, deretter indekser")}
             </button>
+            ${selectedIndexed > 0
+              ? `<span class="chip ok">✓ ${selectedIndexed} indeksert</span>`
+              : ""}
             ${unindexed === 0 && indexed > 0
               ? `<span class="chip ok">✓ Ingen ventende PDF/bilder</span>`
               : ""}
@@ -3518,7 +3976,7 @@ async function renderProject(id) {
           </summary>
           <div id="artifact-area">${artifactHTML(p.artifact ? p : { ...p, artifact: emptyArtifactSeed(p) }, { hideChat: !!showDoc })}</div>
           <div id="prog-artifact"></div>
-          <div id="prog-generate" style="display:none"></div>
+          <div id="prog-generate" style="display:none" aria-live="polite"></div>
           ${!p.artifact && step1ok ? `<div style="margin-top:10px">
             <button class="btn ghost" style="font-size:12px" onclick="startArtifact('${id}')">Eller bygg modell fra indekserte kilder (1 Sonnet-kall)</button>
           </div>` : ""}
@@ -3600,8 +4058,29 @@ async function renderProject(id) {
       window.__editorRailUser = true;
     }
     setEditorRail(EDITOR_RAIL, { user: false });
-    loadDraft(id, ACTIVE_DOC);
-    setupEditorScrollFolds();
+  loadDraft(id, ACTIVE_DOC).catch(err => {
+    const isGone = err.status === 404;
+    const detail = err?.payload?.detail || err?.payload?.error || err.message || "";
+    const isFolderMissing = isGone && (
+      detail.includes("folder_missing") || detail.includes("no_folder") ||
+      (err?.payload?.error === "folder_missing") || (err?.payload?.error === "no_folder")
+    );
+    const msg = isFolderMissing
+      ? `Mappen til dette prosjektet finnes ikke lenger på disk.<br><small style="color:var(--steel)">${detail}</small>`
+      : isGone
+        ? "Utkastet ble ikke funnet — malen eller filen mangler."
+        : `Kunne ikke laste utkast: ${esc(detail || String(err))}`;
+    const draftArea = $("#draft-area");
+    if (draftArea) draftArea.innerHTML = `
+      <div style="padding:24px 0;display:flex;flex-direction:column;gap:16px;align-items:flex-start">
+        <div style="color:var(--err,#c0392b)">${msg}</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn ghost" type="button" onclick="location.hash=''">← Tilbake til prosjekter</button>
+          ${isFolderMissing ? `<button class="btn ghost" type="button" onclick="if(confirm('Slett dette prosjektet?')) deleteProject('${id}')">Slett prosjekt</button>` : ""}
+        </div>
+      </div>`;
+  });
+  setupEditorScrollFolds();
     updateAnnotChatBadge();
     if (p.folderless || p.need_folder_banner || !(p.folders || []).length) {
       setTimeout(() => showNeedFolderOrBanner(
@@ -3611,6 +4090,10 @@ async function renderProject(id) {
     // Do not auto-collapse/jump on every refresh — keeps project structure readable
   } else {
     aInitAssist();
+  }
+  // Keep build banner alive across project re-renders while a generate job runs
+  if (ACTIVE_BUILD?.jobId && JOB_POLLS[ACTIVE_BUILD.jobId]) {
+    setDocBuilding(true, { status: "running", step: "Bygger dokument", done: 0, total: 0 }, ACTIVE_BUILD.jobId);
   }
   if (PENDING_STREAM_DONE) {
     const d = PENDING_STREAM_DONE;
@@ -3814,19 +4297,46 @@ function artifactHTML(p, opts) {
   const nL = (a.lifecycle_stages || []).length;
   const pct = Math.round((a.confidence || 0) * 100);
   const hasSrc = projectHasIndexedSources(p);
+  const researchish = /phd|forskning|research|selficon|thesis|avhandling/i.test(
+    [a.name, a.purpose, a.artifact_type, p?.name].filter(Boolean).join(" "))
+    && !/emc|cable\s*tray|shield|electromagnetic|earthing/i.test(
+      [a.name, a.purpose, a.artifact_type, p?.name].filter(Boolean).join(" "));
+  const specLib = /emc|cable\s*tray|shield|electromagnetic|earthing|source_library|kildesamling/i.test(
+    [a.name, a.purpose, a.artifact_type, a.corpus_type, p?.name].filter(Boolean).join(" "));
   const tplOptions = (BOOT?.templates || []).map(t =>
     `<option value="${t.file}">${esc(t.name_no)}</option>`).join("");
   const techFile = (BOOT?.templates || []).find(t =>
     (t.key || "").includes("technical") || (t.file || "").includes("technical_doc"))?.file;
   const planFile = (BOOT?.templates || []).find(t =>
     (t.key || "").includes("project_plan") || (t.file || "").includes("project_plan"))?.file;
+  const researchFile = (BOOT?.templates || []).find(t =>
+    (t.key || "") === "research_project_report"
+    || (t.file || "").includes("research_project_report"))?.file;
+  const topicFile = (BOOT?.templates || []).find(t =>
+    (t.key || "") === "topic_brief" || (t.file || "").includes("topic_brief"))?.file;
+  const coherenceFile = (BOOT?.templates || []).find(t =>
+    (t.key || "") === "spec_coherence_review"
+    || (t.file || "").includes("spec_coherence"))?.file;
   const techEur = techFile ? estimateGenerateEur(techFile) : 0.18;
   const planEur = planFile ? estimateGenerateEur(planFile) : 0.15;
+  const researchEur = researchFile ? estimateGenerateEur(researchFile) : 0.18;
+  const topicEur = topicFile ? estimateGenerateEur(topicFile) : 0.12;
+  const coherenceEur = coherenceFile ? estimateGenerateEur(coherenceFile) : 0.15;
   const hints = hasSrc
-    ? `<button type="button" onclick="aHint('Oppsummer prosjektet ut fra kildene')">Oppsummer prosjektet</button>
+    ? (specLib
+      ? `<button type="button" onclick="lagDokumentFromChip(${topicFile ? `'${topicFile}'` : "null"}, 'Temabrief')">Temabrief — sitert fagpakke (€${topicEur.toFixed(2).replace(".", ",")})</button>
+       <button type="button" onclick="lagDokumentFromChip(${coherenceFile ? `'${coherenceFile}'` : "null"}, 'Spesifikasjonsgjennomgang')">Spesifikasjonsgjennomgang (€${coherenceEur.toFixed(2).replace(".", ",")})</button>
+       <button type="button" onclick="aHint('Oppsummer prosjektet ut fra kildene')">Oppsummer prosjektet</button>
+       <button type="button" onclick="lagDokumentFromChip(${researchFile ? `'${researchFile}'` : "null"}, 'Forskningsprosjektrapport')">Forskningsrapport (kun med metode) (€${researchEur.toFixed(2).replace(".", ",")})</button>`
+      : researchish
+      ? `<button type="button" onclick="aHint('Oppsummer prosjektet ut fra kildene')">Oppsummer prosjektet</button>
+       <button type="button" onclick="proposeTemplateFromChat()">Hvilket dokument passer?</button>
+       <button type="button" onclick="lagDokumentFromChip(${researchFile ? `'${researchFile}'` : "null"}, 'Forskningsprosjektrapport')">Lag forskningsrapport (€${researchEur.toFixed(2).replace(".", ",")})</button>
+       <button type="button" onclick="lagDokumentFromChip(${planFile ? `'${planFile}'` : "null"}, 'Prosjektplan')">Lag prosjektplan (€${planEur.toFixed(2).replace(".", ",")})</button>`
+      : `<button type="button" onclick="aHint('Oppsummer prosjektet ut fra kildene')">Oppsummer prosjektet</button>
        <button type="button" onclick="proposeTemplateFromChat()">Hvilket dokument passer?</button>
        <button type="button" onclick="lagDokumentFromChip(${techFile ? `'${techFile}'` : "null"}, 'Teknisk dokumentasjonspakke')">Lag teknisk dokumentasjonspakke (€${techEur.toFixed(2).replace(".", ",")})</button>
-       <button type="button" onclick="lagDokumentFromChip(${planFile ? `'${planFile}'` : "null"}, 'Prosjektplan')">Lag prosjektplan (€${planEur.toFixed(2).replace(".", ",")})</button>`
+       <button type="button" onclick="lagDokumentFromChip(${planFile ? `'${planFile}'` : "null"}, 'Prosjektplan')">Lag prosjektplan (€${planEur.toFixed(2).replace(".", ",")})</button>`)
     : `<button type="button" onclick="aHint('Dette prosjektet handler om: ')">Beskriv prosjektet</button>
        <button type="button" onclick="lagDokumentFromChip(${planFile ? `'${planFile}'` : "null"}, 'Prosjektplan')">Lag prosjektplan (€${planEur.toFixed(2).replace(".", ",")})</button>
        <button type="button" onclick="proposeTemplateFromChat()">Hvilket dokument passer?</button>
@@ -4102,7 +4612,16 @@ function aInitAssist() {
     A_CHAT_HTML = log.innerHTML;
     return;
   }
-  if (A_CHAT_HTML) { log.innerHTML = A_CHAT_HTML; log.scrollTop = log.scrollHeight; return; }
+  if (A_CHAT_HTML) {
+    const hasSrcNow = projectHasIndexedSources(PROJECT);
+    if (/Ingen indekserte kilder ennå/i.test(A_CHAT_HTML) && hasSrcNow) {
+      A_CHAT_HTML = "";
+    } else {
+      log.innerHTML = A_CHAT_HTML;
+      log.scrollTop = log.scrollHeight;
+      return;
+    }
+  }
   log.innerHTML = "";
   const u = agentUnderstoodLines(PROJECT?.artifact, PROJECT);
   if (u.hasSubstance) {
@@ -4370,7 +4889,16 @@ async function aChatSend() {
   } catch (e) {
     const log = $("#a-assist-log");
     if (log?.lastChild) log.lastChild.remove();
-    aBubble("bot", esc(e.message));
+    const payload = e?.payload || {};
+    const msg = payload.error || e?.message || "Ukjent feil";
+    const hint = payload.hint
+      ? `<br><span style="color:var(--steel)">${esc(payload.hint)}</span>`
+      : (/failed to fetch|networkerror|connection/i.test(String(msg))
+        ? `<br><span style="color:var(--steel)">Tilkoblingen brøt — hard-refresh og prøv igjen, eller restart workbench.</span>`
+        : (e?.status === 402
+          ? `<br><span style="color:var(--steel)">Saldo er tom for AI-kall. Oppsummering fra indeksen er gratis — klikk «Oppsummer prosjektet» på nytt.</span>`
+          : ""));
+    aBubble("bot", esc(String(msg)) + hint);
   } finally {
     input.disabled = false;
     input.focus();
@@ -4835,7 +5363,12 @@ async function createDocumentFromPicker(file, opts) {
     ACTIVE_DOC = r.template || file;
     if (r.job) {
       PENDING_STREAM_DONE = { name: r.name_no || file, file: ACTIVE_DOC };
-      pollJob(r.job, PROJECT.id, { host: "#prog-generate", surface: "editor" });
+      pollJob(r.job, PROJECT.id, {
+        host: "#prog-generate",
+        surface: "editor",
+        name: r.name_no || file,
+      });
+      showToast("Bygger dokument…");
     }
     await renderProject(PROJECT.id);
     // Ensure tab / active doc after refresh
@@ -5023,11 +5556,76 @@ function scrollToFirstMangler() {
   }, 350);
 }
 
+let ACTIVE_BUILD = null; // { jobId, name, kind }
+
+function isGenerateJob(j) {
+  if (!j) return false;
+  if (j.kind === "generate") return true;
+  const step = String(j.step || "").toLowerCase();
+  return !!j.template
+    || step.includes("generer")
+    || step.includes("kartlegg")
+    || step.includes("bygger dokument")
+    || step.includes("forbereder dokument");
+}
+
+function ensureDocBuildBanner() {
+  let el = document.getElementById("doc-build-banner");
+  if (el) return el;
+  el = document.createElement("div");
+  el.id = "doc-build-banner";
+  el.hidden = true;
+  el.setAttribute("role", "status");
+  el.setAttribute("aria-live", "polite");
+  const host = $("#doc-panel .card")
+    || $("#editor-canvas")
+    || $("#doc-panel")
+    || $("#main");
+  if (host) host.insertBefore(el, host.firstChild);
+  return el;
+}
+
+function setDocBuilding(on, j, jobId) {
+  document.body.classList.toggle("is-building-doc", !!on);
+  const banner = ensureDocBuildBanner();
+  const box = $("#prog-generate");
+  if (box) box.style.display = on ? "block" : (box.innerHTML.trim() ? "block" : "none");
+  if (!on) {
+    if (banner) banner.hidden = true;
+    return;
+  }
+  if (!banner) return;
+  banner.hidden = false;
+  const done = j?.done || 0;
+  const total = j?.total || 0;
+  const pct = total ? Math.round(100 * done / total) : 12;
+  const eta = (j?.eta_s != null && j.eta_s > 0) ? ` · ~${j.eta_s}s igjen` : "";
+  const detail = (j?.detail || "").replace(/\s*·\s*~\d+\s*s\s*igjen/, "");
+  const step = j?.step || "Bygger dokument";
+  const name = ACTIVE_BUILD?.name || detail || "dokumentet";
+  const counter = total ? `${done}/${total} seksjoner` : "starter…";
+  banner.innerHTML = `
+    <div class="dbb-title">Bygger dokument — fortsatt i gang</div>
+    <div class="dbb-meta">
+      ${esc(name)} · ${esc(step)} · ${esc(counter)}${esc(eta)}
+      ${detail && detail !== name ? ` · ${esc(detail)}` : ""}
+      · jobb <code>${esc(jobId || j?.id || "")}</code>
+    </div>
+    <div class="progress"><i style="width:${pct}%"></i></div>`;
+}
+
 function updateGenStreamStatus(j) {
   const el = $("#gen-stream-status");
   if (!el) return;
   if (j.status === "error") {
-    el.textContent = "feilet";
+    const err = j.error || "";
+    el.textContent = /saldo|€0|balance|fyll p[åa]/i.test(err)
+      ? "feilet — saldo €0 (fyll på for å bygge)"
+      : ("feilet" + (err ? `: ${err.slice(0, 120)}` : ""));
+    return;
+  }
+  if (j.status === "done") {
+    el.textContent = "ferdig";
     return;
   }
   const jobId = j.id || "";
@@ -5036,16 +5634,18 @@ function updateGenStreamStatus(j) {
   const eta = (j.eta_s != null && j.eta_s > 0) ? `~${j.eta_s}s igjen`
     : (j.detail || "").match(/~\d+\s*s/)?.[0] || "";
   let core = "";
-  if (j.total && (step.includes("generer") || step.includes("kartlegg") || j.done != null)) {
-    core = `kartlegger ${counter || "…"} seksjoner`;
+  if (step.includes("kartlegg")) {
+    core = `kartlegger seksjoner${counter ? ` (${counter})` : ""}`;
+  } else if (j.total && (step.includes("generer") || j.done != null)) {
+    core = `skriver seksjon ${counter || "…"}`;
   } else if (j.detail) {
     core = j.detail;
   } else if (j.step) {
     core = j.step;
   } else {
-    core = "…";
+    core = "bygger…";
   }
-  el.textContent = [jobId ? `jobb ${jobId}` : "", core, counter && !core.includes(counter) ? counter : "", eta]
+  el.textContent = [jobId ? `jobb ${jobId}` : "", core, eta]
     .filter(Boolean).join(" · ");
 }
 
@@ -5078,11 +5678,16 @@ function formatJobProgressHtml(j, jobId) {
               onclick="resumeIndexJob('${esc(PROJECT?.id || "")}', {add_budget_eur:10})">Fortsett med €10 til</button>`
          : ""}`
     : "";
+  const genRunning = isGenerateJob(j) && j.status === "running";
   const statusLine = j.status === "done" ? ` · ferdig · €${spent}`
     : j.status === "cancelled" ? ` · stoppet · €${spent}`
     : j.status === "paused" ? ` · pauset · €${spent}`
+    : genRunning ? ` · bygger fortsatt · €${spent} brukt…`
     : ` · €${spent} brukt…`;
-  return `<div class="progress"><i style="width:${pct}%"></i></div>
+  const head = genRunning
+    ? `<div style="font-weight:800;margin-bottom:4px">Bygger dokument — fortsatt i gang</div>`
+    : "";
+  return `${head}<div class="progress"><i style="width:${pct}%"></i></div>
     <div class="mono" style="font-size:10.5px;color:var(--steel)">
       Jobb <code>${esc(jobId)}</code>
       · ${esc(step)}${counter ? ` · ${esc(counter)}` : ""}
@@ -5134,6 +5739,16 @@ function pollJob(jobId, projectId, opts) {
   const hostSel = opts && opts.host;
   if (JOB_POLLS[jobId]) clearInterval(JOB_POLLS[jobId]);
   const host = hostSel ? $(hostSel) : ensureJobProgressHost(jobId, surface);
+  if (hostSel === "#prog-generate" && host) host.style.display = "block";
+  const maybeGenHost = hostSel === "#prog-generate" || !!(opts && opts.name) || !!PENDING_STREAM_DONE;
+  if (maybeGenHost) {
+    ACTIVE_BUILD = {
+      jobId,
+      name: (opts && opts.name) || PENDING_STREAM_DONE?.name || ACTIVE_DOC || "dokumentet",
+      kind: "generate",
+    };
+    setDocBuilding(true, { status: "running", step: "Starter dokumentbygging", done: 0, total: 0 }, jobId);
+  }
   let beats = 0;
   JOB_POLLS[jobId] = setInterval(async () => {
     try {
@@ -5141,6 +5756,10 @@ function pollJob(jobId, projectId, opts) {
       if (!j || j.error === "unknown job") {
         clearInterval(JOB_POLLS[jobId]);
         delete JOB_POLLS[jobId];
+        if (ACTIVE_BUILD && ACTIVE_BUILD.jobId === jobId) {
+          ACTIVE_BUILD = null;
+          setDocBuilding(false);
+        }
         return;
       }
       j.id = j.id || jobId;
@@ -5153,12 +5772,29 @@ function pollJob(jobId, projectId, opts) {
       updateGenStreamStatus(j);
       if (host) host.innerHTML = formatJobProgressHtml(j, jobId);
       const box = $("#prog-generate");
-      if (box && box !== host) box.innerHTML = formatJobProgressHtml(j, jobId);
+      if (box && box !== host && isGenerateJob(j)) {
+        box.style.display = "block";
+        box.innerHTML = formatJobProgressHtml(j, jobId);
+      }
+      if (isGenerateJob(j) || (ACTIVE_BUILD && ACTIVE_BUILD.jobId === jobId && j.kind !== "index")) {
+        if (!ACTIVE_BUILD || ACTIVE_BUILD.jobId !== jobId) {
+          ACTIVE_BUILD = {
+            jobId,
+            name: j.template || ACTIVE_DOC || "dokumentet",
+            kind: "generate",
+          };
+        }
+        setDocBuilding(j.status === "running", j, jobId);
+      }
       if (j.status !== "running") {
         clearInterval(JOB_POLLS[jobId]);
         delete JOB_POLLS[jobId];
+        if (ACTIVE_BUILD && ACTIVE_BUILD.jobId === jobId) ACTIVE_BUILD = null;
+        if (isGenerateJob(j) || maybeGenHost) setDocBuilding(false);
         if (j.status === "error") PENDING_STREAM_DONE = null;
         if ((j.status === "done" || j.status === "cancelled" || j.status === "paused") && projectId) {
+          // Drop stale «Ingen indekserte kilder» chat after a finished index job
+          if (j.kind === "index") A_CHAT_HTML = "";
           renderProject(projectId);
         }
       }
@@ -5183,6 +5819,14 @@ async function lagDokumentet(file) {
       ARTIFACT_DRAFT.purpose = $("#a-purpose")?.value?.trim() || ARTIFACT_DRAFT.purpose;
     }
     if (!PROJECT.confirmed && ARTIFACT_DRAFT) {
+      const thin = !(String(ARTIFACT_DRAFT.purpose || "").trim()
+        || (ARTIFACT_DRAFT.main_components || []).length
+        || (ARTIFACT_DRAFT.hazards || []).length
+        || (Number(ARTIFACT_DRAFT.confidence) || 0) >= 0.4);
+      if (thin) {
+        aBubble("bot", "Modellen er for tynn til å bekrefte automatisk — oppsummer prosjektet eller fyll inn formål først.");
+        return;
+      }
       await api("/api/artifact/save", { method:"POST", headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({ id: PROJECT.id, artifact: ARTIFACT_DRAFT, confirm: true }) });
       PROJECT.confirmed = true;
@@ -5203,7 +5847,10 @@ async function lagDokumentet(file) {
     const ok = await runJob("/api/generate", { id: PROJECT.id, template: file }, "#prog-generate", PROJECT.id);
     if (!ok) {
       PENDING_STREAM_DONE = null;
-      aBubble("bot", "Kunne ikke starte generering — prøv igjen.");
+      const hint = (BOOT?.key_set === false)
+        ? "Sett ANTHROPIC_API_KEY, eller fyll på Foldok-saldo."
+        : "Prøv igjen — lokal API-nøkkel skal tillate generering.";
+      aBubble("bot", `Kunne ikke starte generering — ${hint}`);
     }
   } catch (e) {
     PENDING_STREAM_DONE = null;
@@ -5237,7 +5884,17 @@ async function runJob(endpoint, body, sel, pid) {
     return true;
   } catch (e) {
     const box = $(sel);
-    if (box) box.innerHTML = `<div class="err">${esc(e.message)}</div>`;
+    const msg = e?.payload?.error || e.message || "Feil";
+    const hint = e?.payload?.hint || (e.status === 402
+      ? "Fyll på saldo for å bygge dokumenter med AI."
+      : "");
+    if (box) box.innerHTML = `<div class="err">${esc(msg)}${hint ? `<br>${esc(hint)}` : ""}</div>`;
+    const stream = $("#gen-stream-status");
+    if (stream) {
+      stream.textContent = e.status === 402
+        ? "feilet — saldo €0 (fyll på for å bygge)"
+        : ("feilet: " + String(msg).slice(0, 120));
+    }
     return false;
   }
 }
@@ -5473,6 +6130,13 @@ function formEditField(section, key, ftype) {
   formSetField(section, key, v);
 }
 
+function findManglerCandidates(key, secKey) {
+  // Returns files from the project index that look like a match for a gap key.
+  const files = (PROJECT?.files || []);
+  const q = (key || "").toLowerCase().replace(/_/g, " ");
+  return files.filter(f => (f.name || f.path || "").toLowerCase().includes(q));
+}
+
 async function loadDraft(id, template) {
   // WORKORDER 0.59 — sketch documents render A4 canvas, not markdown only
   const species = PROJECT?.doc?.document_species
@@ -5483,8 +6147,16 @@ async function loadDraft(id, template) {
     return;
   }
   // WORKORDER_0.29 — form_fill renders interactive fields, not marked prose
+  // Empty fields:[] arrays must NOT force form mode (truthy [] was a silent blank UI).
   const hasForm = species === "form_fill"
-    || Object.values(PROJECT?.doc?.sections || {}).some(s => s?.block_type === "form_section" || s?.fields);
+    || Object.values(PROJECT?.doc?.sections || {}).some(s => {
+      if (!s) return false;
+      if (s.block_type === "form_section") return true;
+      const fields = s.fields;
+      if (!fields) return false;
+      if (Array.isArray(fields)) return fields.length > 0;
+      return typeof fields === "object" && Object.keys(fields).length > 0;
+    });
   if (hasForm) {
     await renderFormDraft(id, template);
     return;
@@ -5510,11 +6182,17 @@ async function loadDraft(id, template) {
   if (!parts[0]?.startsWith("##") && parts.length > 1) bodyParts = parts.slice(1);
   let html = h1 && !h1.startsWith("##") ? marked.parse(h1) : "";
   const srcSet = new Set();
+  const HIDDEN_SECTIONS = new Set(["abbreviations", "forkortelser"]);
   for (const part of bodyParts) {
     const lines = part.split("\n");
     const heading = lines[0].replace(/^#+\s*/, "").trim();
     const secMd = lines.slice(1).join("\n");
     const secKey = titleToKey[heading.toLowerCase()] || heading;
+    const secKeyFold = String(secKey || "").trim().toLowerCase();
+    const headingFold = String(heading || "").trim().toLowerCase();
+    if (HIDDEN_SECTIONS.has(secKeyFold) || HIDDEN_SECTIONS.has(headingFold)) {
+      continue; // keep generated content; just hide section in editor view
+    }
     const secFiles = PROJECT?.doc?.sections?.[secKey]?.files || [];
     secFiles.forEach(f => srcSet.add(f));
     const sevMap = Object.fromEntries((gapBySec[secKey] || []).map(g => [g.key, g.severity || "blocking"]));
@@ -5540,6 +6218,11 @@ async function loadDraft(id, template) {
         + (tableData.note ? marked.parse(tableData.note) : "");
     } else {
       secHtml = marked.parse(secMdFigs);
+    }
+    // If section carries a stored SVG and marked stripped raw SVG, inject it
+    const storedSvg = PROJECT?.doc?.sections?.[secKey]?.svg;
+    if (storedSvg && !/<svg[\s>]/i.test(secHtml)) {
+      secHtml += `<div class="fd-wiring">${storedSvg}</div>`;
     }
     secHtml = secHtml.replace(/<table>/g, '<div class="table-wrap"><table>').replace(/<\/table>/g, '</table></div>');
     // marked sometimes wraps block HTML in <p> — breaks figure layout
@@ -5606,9 +6289,226 @@ async function loadDraft(id, template) {
   LAST_DOC_SOURCE_NAMES = [...srcSet];
   renderDocSources(LAST_DOC_SOURCE_NAMES);
   renderExcludedFigures();
+  enhanceWiringViewports();
   wireBlockDiagramHover();
   updateAssistScope();
   ensureAnnotLayer();
+}
+
+/** Diagrams stay in document flow; zoom the document canvas instead. */
+function enhanceWiringViewports() {
+  const root = $("#draft-area");
+  if (!root) return;
+  ensureDocZoomChrome();
+  installDocZoomGuard();
+  const svgs = [...root.querySelectorAll(
+    'svg[data-foldok="connection_spec"], svg[data-graph="layered"], .fd-wiring > svg'
+  )];
+  svgs.forEach((svg) => {
+    if (svg.closest(".diag-inline, .fig-lightbox")) return;
+    // Drop fixed width/height so SVG scales with the document column
+    svg.removeAttribute("width");
+    svg.removeAttribute("height");
+    const wrap = document.createElement("div");
+    wrap.className = "diag-inline";
+    const fd = svg.closest(".fd-wiring");
+    if (fd && fd.children.length === 1 && fd.firstElementChild === svg) {
+      fd.replaceWith(wrap);
+    } else {
+      svg.replaceWith(wrap);
+    }
+    const body = document.createElement("div");
+    body.className = "diag-inline-body";
+    body.appendChild(svg);
+    wrap.innerHTML = `
+      <div class="diag-inline-bar" onclick="event.stopPropagation()">
+        <button type="button" data-act="full">Åpne forstørret</button>
+        <span style="font-size:11px;color:var(--steel)">Zoomer med dokumentet (Ctrl+scroll over utkastet)</span>
+      </div>`;
+    wrap.appendChild(body);
+    wrap.querySelector('[data-act="full"]')?.addEventListener("click", (e) => {
+      e.preventDefault(); e.stopPropagation();
+      openDiagramLightbox(svg.outerHTML);
+    });
+    body.addEventListener("dblclick", (e) => {
+      e.stopPropagation();
+      openDiagramLightbox(svg.outerHTML);
+    });
+  });
+}
+
+const DOC_ZOOM = { scale: 1 };
+
+function ensureDocZoomChrome() {
+  const canvas = document.querySelector(".editor-canvas");
+  const draft = $("#draft-area");
+  if (!canvas || !draft) return;
+  let bar = $("#doc-zoom-bar");
+  if (!bar) {
+    bar = document.createElement("div");
+    bar.id = "doc-zoom-bar";
+    bar.className = "doc-zoom-bar";
+    bar.innerHTML = `
+      <button type="button" data-dz="out" title="Zoom ut">−</button>
+      <button type="button" data-dz="in" title="Zoom inn">+</button>
+      <button type="button" data-dz="fit" title="Tilbakestill">100%</button>
+      <span class="doc-zoom-pct" id="doc-zoom-pct">100%</span>
+      <span class="doc-zoom-hint">Ctrl+scroll zoomer dokumentet — ikke hele Foldok</span>`;
+    draft.parentNode.insertBefore(bar, draft);
+    bar.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-dz]");
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const act = btn.getAttribute("data-dz");
+      if (act === "in") setDocZoom(DOC_ZOOM.scale * 1.15);
+      else if (act === "out") setDocZoom(DOC_ZOOM.scale / 1.15);
+      else if (act === "fit") setDocZoom(1);
+    });
+  }
+  applyDocZoom();
+}
+
+function setDocZoom(scale) {
+  DOC_ZOOM.scale = Math.min(2.5, Math.max(0.6, scale));
+  applyDocZoom();
+}
+
+function applyDocZoom() {
+  const draft = $("#draft-area");
+  const pct = $("#doc-zoom-pct");
+  if (!draft) return;
+  const s = DOC_ZOOM.scale;
+  // CSS zoom keeps layout/scroll coherent (Chromium/Edge). Transform fallback otherwise.
+  if ("zoom" in draft.style) {
+    draft.style.zoom = String(s);
+    draft.style.transform = "";
+    draft.style.width = "";
+    draft.classList.remove("doc-zoomed");
+  } else {
+    draft.style.zoom = "";
+    draft.style.transformOrigin = "top left";
+    draft.style.transform = `scale(${s})`;
+    draft.style.width = `${100 / s}%`;
+    draft.classList.add("doc-zoomed");
+  }
+  if (pct) pct.textContent = `${Math.round(s * 100)}%`;
+}
+
+function installDocZoomGuard() {
+  if (window.__docZoomGuard) return;
+  window.__docZoomGuard = true;
+  document.addEventListener("wheel", (e) => {
+    const lb = e.target?.closest?.(".fig-lightbox.diag-lb");
+    if (lb?._diagCtl) {
+      e.preventDefault();
+      e.stopPropagation();
+      lb._diagCtl.zoomAt(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX, e.clientY);
+      return;
+    }
+    // Zoom the document when over the draft canvas (Ctrl+wheel or plain wheel with ctrl)
+    const overDoc = e.target?.closest?.(".editor-canvas, #draft-area, #doc-zoom-bar");
+    if (!overDoc) return;
+    if (!(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setDocZoom(DOC_ZOOM.scale * (e.deltaY < 0 ? 1.1 : 1 / 1.1));
+  }, { passive: false, capture: true });
+  document.addEventListener("keydown", (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    const lb = document.querySelector(".fig-lightbox.diag-lb");
+    if (lb?._diagCtl && ["+", "=", "-", "_", "0"].includes(e.key)) {
+      e.preventDefault();
+      if (e.key === "0") lb._diagCtl.fit();
+      else if (e.key === "-" || e.key === "_") lb._diagCtl.zoomAt(1 / 1.25);
+      else lb._diagCtl.zoomAt(1.25);
+      return;
+    }
+    const overDoc = document.querySelector(".editor-canvas:hover, #draft-area:hover, #doc-zoom-bar:hover");
+    if (!overDoc) return;
+    if (["+", "=", "-", "_", "0"].includes(e.key)) {
+      e.preventDefault();
+      if (e.key === "0") setDocZoom(1);
+      else if (e.key === "-" || e.key === "_") setDocZoom(DOC_ZOOM.scale / 1.15);
+      else setDocZoom(DOC_ZOOM.scale * 1.15);
+    }
+  }, true);
+}
+
+function openDiagramLightbox(svgHtml) {
+  document.getElementById("fig-lb")?.remove();
+  const lb = document.createElement("div");
+  lb.id = "fig-lb";
+  lb.className = "fig-lightbox diag-lb";
+  lb.innerHTML = `
+    <div class="diag-lb-bar" onclick="event.stopPropagation()">
+      <button type="button" data-act="out">−</button>
+      <button type="button" data-act="in">+</button>
+      <button type="button" data-act="fit">Tilpass</button>
+      <span class="diag-pct" data-act="pct">100%</span>
+      <span style="opacity:.8">${L("Ctrl+scroll zoomer her · Esc lukker", "Ctrl+scroll zooms here · Esc closes")}</span>
+      <button type="button" data-act="close" style="margin-left:auto">Lukk</button>
+    </div>
+    <div class="diag-lb-stage"><div class="diag-world">${svgHtml}</div></div>`;
+  document.body.appendChild(lb);
+  installDocZoomGuard();
+  const stage = lb.querySelector(".diag-lb-stage");
+  const world = lb.querySelector(".diag-world");
+  const svg = world.querySelector("svg");
+  const pctEl = lb.querySelector("[data-act='pct']");
+  if (svg?.viewBox?.baseVal?.width) {
+    svg.setAttribute("width", String(svg.viewBox.baseVal.width));
+    svg.setAttribute("height", String(svg.viewBox.baseVal.height));
+  }
+  const close = () => lb.remove();
+  lb.querySelector('[data-act="close"]').onclick = (e) => { e.stopPropagation(); close(); };
+  lb.addEventListener("click", (e) => { if (e.target === lb) close(); });
+  document.addEventListener("keydown", function onEsc(ev) {
+    if (ev.key === "Escape") { close(); document.removeEventListener("keydown", onEsc); }
+  });
+  const state = { scale: 1, x: 0, y: 0 };
+  const apply = () => {
+    world.style.transform = `translate(${state.x}px,${state.y}px) scale(${state.scale})`;
+    if (pctEl) pctEl.textContent = `${Math.round(state.scale * 100)}%`;
+  };
+  const fit = () => {
+    const sw = stage.clientWidth || 1, sh = stage.clientHeight || 1;
+    const bw = svg?.viewBox?.baseVal?.width || 900;
+    const bh = svg?.viewBox?.baseVal?.height || 500;
+    state.scale = Math.min(sw / bw, sh / bh) * 0.95;
+    state.x = Math.max(0, (sw - bw * state.scale) / 2);
+    state.y = Math.max(0, (sh - bh * state.scale) / 2);
+    apply();
+  };
+  const zoomAt = (factor, cx, cy) => {
+    const rect = stage.getBoundingClientRect();
+    const px = (cx ?? rect.left + rect.width / 2) - rect.left;
+    const py = (cy ?? rect.top + rect.height / 2) - rect.top;
+    const prev = state.scale || 0.01;
+    const next = Math.min(8, Math.max(0.08, prev * factor));
+    state.x = px - ((px - state.x) / prev) * next;
+    state.y = py - ((py - state.y) / prev) * next;
+    state.scale = next;
+    apply();
+  };
+  lb._diagCtl = { zoomAt, fit, state, apply, stage, world, svg };
+  lb.querySelector('[data-act="in"]').onclick = (e) => { e.stopPropagation(); zoomAt(1.25); };
+  lb.querySelector('[data-act="out"]').onclick = (e) => { e.stopPropagation(); zoomAt(1 / 1.25); };
+  lb.querySelector('[data-act="fit"]').onclick = (e) => { e.stopPropagation(); fit(); };
+  let dragging = false, lx = 0, ly = 0;
+  stage.addEventListener("pointerdown", (e) => {
+    dragging = true; lx = e.clientX; ly = e.clientY;
+    stage.classList.add("is-panning");
+    stage.setPointerCapture?.(e.pointerId);
+    e.preventDefault();
+  });
+  stage.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    state.x += e.clientX - lx; state.y += e.clientY - ly;
+    lx = e.clientX; ly = e.clientY; apply();
+  });
+  stage.addEventListener("pointerup", () => { dragging = false; stage.classList.remove("is-panning"); });
+  requestAnimationFrame(fit);
 }
 
 function wireBlockDiagramHover() {
@@ -6139,11 +7039,15 @@ function renderEditorRail() {
     const active = d.template === ACTIVE_DOC;
     const tpl = esc(d.template).replace(/'/g, "\\'");
     const chip = st.label || (ok ? "✓ Klar for eksport" : `● ${gaps} mangler`);
-    return `<button type="button" class="doc-rail-item ${active ? "on" : ""} ${ok ? "ok" : ""}"
-      onclick="viewDoc('${esc(p.id || "")}','${tpl}')">
-      <span class="doc-rail-name">${esc(docLabel(p, d.template))}</span>
-      <span class="doc-rail-gap doc-status ${esc(st.class || "")}">${esc(chip)}</span>
-    </button>`;
+    return `<div class="doc-rail-row" style="display:flex;align-items:stretch;gap:2px">
+      <button type="button" class="doc-rail-item ${active ? "on" : ""} ${ok ? "ok" : ""}" style="flex:1;min-width:0"
+        onclick="viewDoc('${esc(p.id || "")}','${tpl}')">
+        <span class="doc-rail-name">${esc(docLabel(p, d.template))}</span>
+        <span class="doc-rail-gap doc-status ${esc(st.class || "")}">${esc(chip)}</span>
+      </button>
+      <button type="button" title="Fjern dokument" style="flex-shrink:0;padding:0 8px;background:none;border:1px solid var(--line);border-radius:6px;cursor:pointer;color:var(--steel);font-size:14px;line-height:1"
+        onclick="removeDocument('${esc(p.id || "")}','${tpl}')">×</button>
+    </div>`;
   }).join("") : `<div class="mono" style="font-size:12px;color:var(--steel);margin-bottom:10px">Ingen dokumenter ennå.</div>`;
   body.innerHTML = `
     ${rows}
@@ -6784,7 +7688,15 @@ function renderDocSources(namesInDoc) {
         onclick="event.stopPropagation();toggleSource('${nameEsc}', ${off})"><span class="knob"></span></button>` : ""}
     </div>`;
   }).join("") : `<div class="mono" style="font-size:11px;color:var(--steel)">Ingen filer.</div>`;
-  body.innerHTML = rows;
+  const heldBack = PROJECT?.held_back_personal || [];
+  const notice = PROJECT?.intake_notice || "";
+  const heldHtml = heldBack.length ? `
+    <div style="background:var(--warn-bg,#fff8e1);border:1px solid var(--warn,#f5c400);border-radius:6px;padding:8px 10px;margin-bottom:8px;font-size:11px">
+      <b>⚠ ${heldBack.length} personlig dokument${heldBack.length > 1 ? "er" : ""} holdt tilbake</b>
+      ${notice ? `<div style="margin-top:4px">${esc(notice)}</div>` : `
+      <ul style="margin:4px 0 0;padding-left:16px">${heldBack.map(f => `<li>${esc(String(f).split("/").pop())}</li>`).join("")}</ul>`}
+    </div>` : "";
+  body.innerHTML = heldHtml + rows;
 }
 
 async function toggleSource(name, turnOn) {
@@ -6836,8 +7748,46 @@ function updateAssistScope() {
 }
 
 function formatConvHtml(text) {
-  return esc(text || "").replace(/\n/g, "<br>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+  let html = esc(text || "").replace(/\n/g, "<br>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
     .replace(/`([^`]+)`/g, "<code>$1</code>");
+  // Deep-link from diagram tools → scroll/open the section in the draft
+  html = html.replace(/\[\[open_doc:([a-z0-9_]+)\]\]/gi, (_, sk) =>
+    `<button type="button" class="btn ghost" style="padding:4px 10px;font-size:12px;margin-left:6px"
+      onclick="openDocSection('${sk}')">${L("Vis i dokumentet", "Open in document")}</button>`);
+  html = html.replace(/\[Vis i dokumentet\]|\[Open in document\]/gi,
+    `<button type="button" class="btn ghost" style="padding:4px 10px;font-size:12px;margin-left:6px"
+      onclick="openDocSection(PROJECT?.diagram_section||'connection_diagram')">${L("Vis i dokumentet", "Open in document")}</button>`);
+  return html;
+}
+
+async function openDocSection(sectionKey) {
+  const sk = sectionKey || PROJECT?.diagram_section || "connection_diagram";
+  try {
+    scrollToDocPanel();
+    if (PROJECT?.id && ACTIVE_DOC) {
+      // Refresh PROJECT.doc from server so newly stored SVG is present
+      try {
+        const p = await api("/api/project?id=" + encodeURIComponent(PROJECT.id)
+          + (ACTIVE_DOC ? "&template=" + encodeURIComponent(ACTIVE_DOC) : ""));
+        if (p?.doc) PROJECT.doc = p.doc;
+        if (p?.diagram_section) PROJECT.diagram_section = p.diagram_section;
+      } catch (_) {}
+      await loadDraft(PROJECT.id, ACTIVE_DOC);
+    }
+    const el = document.querySelector(`.sec-wrap[data-section="${CSS.escape(sk)}"]`)
+      || document.querySelector(`[data-section="${CSS.escape(sk)}"]`)
+      || [...document.querySelectorAll(".sec-wrap")].find(n =>
+        (n.textContent || "").toLowerCase().includes("blokkskjema")
+        || (n.textContent || "").toLowerCase().includes("kobling")
+        || n.querySelector("svg"));
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (el) {
+      el.classList.add("gap-hot");
+      setTimeout(() => el.classList.remove("gap-hot"), 1600);
+    }
+  } catch (e) {
+    console.warn("openDocSection", e);
+  }
 }
 
 /* ── LEARNING_AND_BOUNDARIES §1 — chat attachments ───────────────── */
@@ -7169,9 +8119,143 @@ function assistBubble(who, html) {
   return div;
 }
 
+function thinkingHtml(label) {
+  const t = label || L("Tenker", "Thinking");
+  return `<span class="thinking-label">${esc(t)}</span><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>`;
+}
+
+function setAssistSending(on) {
+  const input = $("#assist-input");
+  const btn = $("#assist-send-btn");
+  const meter = $("#assist-meter");
+  CHAT_BUSY = !!on;
+  if (input) input.disabled = !!on;
+  if (btn) {
+    btn.disabled = !!on;
+    btn.classList.toggle("is-busy", !!on);
+    if (on) {
+      btn.dataset.label = btn.dataset.label || btn.textContent;
+      btn.textContent = L("Sender…", "Sending…");
+    } else {
+      btn.dataset.label = "";
+      try { updateAnnotChatBadge(); } catch (_) {
+        btn.textContent = "Send →";
+      }
+    }
+  }
+  if (meter) {
+    meter.classList.toggle("is-busy", !!on);
+    if (on) meter.textContent = L("Jobber… venter på svar", "Working… waiting for reply");
+    else updateAssistMeter();
+  }
+}
+
+async function chatSend() {
+  const input = $("#assist-input");
+  const text = (input?.value || "").trim();
+  if (!text || !PROJECT?.id || CHAT_BUSY) return;
+
+  // WORKORDER 0.56 §C5 — pending marks: message is the note; Enter executes
+  if ((ANNOT.marks || []).length) {
+    ANNOT.marks.forEach(m => { m.note = text; });
+    input.value = "";
+    resizeAssistInput();
+    setAssistSending(true);
+    assistBubble("user", esc(text));
+    const thinking = assistBubble("bot thinking", thinkingHtml(L("Utfører merker", "Running marks")));
+    try {
+      await executeAnnotMarks({ fromChat: true, note: text });
+      thinking?.remove();
+    } catch (e) {
+      thinking?.remove();
+      assistBubble("bot", esc(e.message || e));
+    } finally {
+      setAssistSending(false);
+      updateAnnotChatBadge();
+      input?.focus();
+    }
+    return;
+  }
+
+  input.value = "";
+  resizeAssistInput();
+  setAssistSending(true);
+  assistBubble("user", esc(text));
+  const thinking = assistBubble("bot thinking", thinkingHtml());
+  CHAT_TURNS++;
+  $("#assist-dock")?.classList.add("open");
+  try {
+    const r = await api("/api/doc/chat", { method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({
+        id: PROJECT.id,
+        template: ACTIVE_DOC,
+        message: text,
+        section: CHAT_SCOPE.section || null,
+        annotations: pendingAnnotPayload(),
+      }) });
+    thinking?.remove();
+    if (r.conversation) PROJECT.conversation = r.conversation;
+    if (r.gaps) PROJECT.gaps = r.gaps;
+    if (r.gap_summary) PROJECT.gap_summary = r.gap_summary;
+    PROJECT.chat_pending = r.chat_pending;
+    const actionsHtml = chatRenderActions(r.actions || r.tool?.actions, r.tool);
+    assistBubble("bot", formatConvHtml(r.reply || "") + actionsHtml);
+    const genJob = r.tool?.job_id || r.job_id;
+    if (genJob && (r.tool?.tool === "run_generate" || r.kind === "run_generate" || /generer|bygger|starter regenerering/i.test(r.reply || ""))) {
+      PENDING_STREAM_DONE = {
+        name: r.tool?.template || ACTIVE_DOC || "dokumentet",
+        file: r.tool?.template || ACTIVE_DOC,
+      };
+      pollJob(genJob, PROJECT.id, {
+        host: "#prog-generate",
+        surface: "editor",
+        name: PENDING_STREAM_DONE.name,
+      });
+      showToast("Bygger dokument…");
+    } else {
+      if (r.tool?.job_id) pollJob(r.tool.job_id, PROJECT.id, { surface: "editor" });
+      if (r.job_id) pollJob(r.job_id, PROJECT.id, { surface: "editor" });
+    }
+    if (r.tool?.gap_summary) renderGapPill(PROJECT);
+    if (r.tool?.tool === "resolve_mangler") {
+      try {
+        await loadDraft(PROJECT.id, ACTIVE_DOC);
+      } catch (_) {}
+      renderGapPill(PROJECT);
+    }
+    if (r.tool?.tool === "regenerate_section" && r.tool.needs_confirm && r.tool.section) {
+      await regenSection(PROJECT.id, ACTIVE_DOC, r.tool.section, r.tool.instruction || text);
+    }
+    if (r.tool?.tool === "add_bom_component" || r.tool?.tool === "scan_components_run") {
+      try { await loadDraft(PROJECT.id, ACTIVE_DOC); } catch (_) {}
+    }
+    if (r.tool?.tool === "create_diagram" || r.tool?.tool === "create_wiring_diagram"
+        || r.tool?.reload_draft) {
+      if (r.tool?.section) PROJECT.diagram_section = r.tool.section;
+      try {
+        const p = await api("/api/project?id=" + encodeURIComponent(PROJECT.id)
+          + (ACTIVE_DOC ? "&template=" + encodeURIComponent(ACTIVE_DOC) : ""));
+        if (p?.doc) PROJECT.doc = p.doc;
+        if (p?.diagram_section) PROJECT.diagram_section = p.diagram_section;
+      } catch (_) {}
+      try { await loadDraft(PROJECT.id, ACTIVE_DOC); } catch (_) {}
+      if (r.tool?.section) setTimeout(() => openDocSection(r.tool.section), 200);
+    }
+    if (r.tool?.tool === "list_gaps") updateAssistMeter("0 token");
+  } catch (e) {
+    thinking?.remove();
+    assistBubble("bot", esc(e.message || String(e)));
+  } finally {
+    setAssistSending(false);
+    input?.focus();
+  }
+}
+
 function updateAssistMeter(extra) {
   const el = $("#assist-meter");
-  if (el) el.textContent = extra
+  if (!el || CHAT_BUSY) return;
+  el.classList.remove("is-busy");
+  el.textContent = extra
     ? `Samme assistent · ${extra}`
     : "Samme assistent som i prosjektchatten · 0 token når svaret finnes i indeksen";
 }
@@ -7229,7 +8313,7 @@ async function chatHint(text) {
 function assistInputKey(event) {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
-    chatSend();
+    if (!CHAT_BUSY) chatSend();
   }
 }
 

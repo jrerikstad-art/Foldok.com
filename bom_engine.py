@@ -185,6 +185,23 @@ def merge_bom_markdown(element_md: str, components: list | None, lang="no") -> s
 # ── 3. COMPLETENESS SUGGESTIONS (pure code, zero tokens) ────────────
 SUGGESTION_RULES = [
     # (rule_id, strong signal terms in tags/captions, suggests[(name_no, template_key|None)], reason_no)
+    ("spec_library", [
+        "emc", "electromagnetic", "shielding", "cable_tray", "cable tray",
+        "cable_management", "earthing", "grounding", "mil std", "mil-std",
+        "ieee", "specification", "datasheet",
+    ],
+     [("Temabrief (sitert fagpakke)", "topic_brief"),
+      ("Spesifikasjonsgjennomgang (konflikter)", "spec_coherence_review")],
+     "Kildene ser ut som spesifikasjons-/EMC-bibliotek — ikke et labforsøk"),
+    ("research", [
+        "phd", "ph.d", "thesis", "avhandling", "preregistration", "qualitative_research",
+        "thematic_analysis", "systematic_review", "research_design", "research_protocol",
+        "selficon", "selficom", "survey", "intervju", "forsknings", "work_package",
+    ],
+     [("Forskningsprosjektrapport", "research_project_report"),
+      ("Prosjektplan", "project_plan"),
+      ("PhD materials draft", "phd_materials_draft")],
+     "Kildene ser ut som forskning (protokoll, survey, metode, WP)"),
     ("wetroom", ["bad", "våtrom", "dusj", "wc", "bathroom", "membran"],
      [("Våtromsdokumentasjon (membran/tetting)", None),
       ("Rørleggerdokumentasjon", None)],
@@ -208,7 +225,8 @@ SUGGESTION_RULES = [
      [("Prosjektplan", "project_plan")],
      "Byggesak/utførelse — en fasert prosjektplan kan hjelpe"),
     ("standards", ["__MULTI_STD__"],
-     [("Spesifikasjonsgjennomgang (konflikter)", "spec_coherence_review")],
+     [("Spesifikasjonsgjennomgang (konflikter)", "spec_coherence_review"),
+      ("Temabrief (sitert fagpakke)", "topic_brief")],
      "Flere standarder påberopt på tvers av dokumenter"),
 ]
 
@@ -220,8 +238,25 @@ def detect_suggestions(index, artifact, current_template_key=None, max_out=4):
     files; collapse to one card per RULE (top template + extras count)."""
     DRAWING_ROLES = {"drawing", "site_plan", "schematic", "sketch"}
     hay = " ".join(
-        (" ".join(e.get("content_tags", [])) + " " + (e.get("caption") or "")).lower()
+        (" ".join(e.get("content_tags", [])) + " " + (e.get("caption") or "")
+         + " " + (e.get("file") or "")).lower()
         for e in index or [])
+    art_blob = " ".join([
+        str((artifact or {}).get("name") or ""),
+        str((artifact or {}).get("purpose") or ""),
+        str((artifact or {}).get("artifact_type") or ""),
+    ]).lower()
+    hay_all = hay + " " + art_blob
+    researchish = any(t in hay_all for t in (
+        "phd", "thesis", "preregistration", "qualitative", "selficon", "selficom",
+        "research_project", "forsknings", "thematic_analysis", "avhandling",
+    )) and not any(t in hay_all for t in (
+        "emc", "cable tray", "shielding", "electromagnetic", "mil-std", "mil std",
+    ))
+    spec_library = any(t in hay_all for t in (
+        "emc", "cable tray", "shielding", "electromagnetic", "earthing", "grounding",
+        "mil-std", "mil std", "cable_management",
+    ))
     has_drawing_elements = any(
         f.get("fact_type") == "element"
         and set(e.get("doc_role_hints") or []) & DRAWING_ROLES
@@ -230,6 +265,12 @@ def detect_suggestions(index, artifact, current_template_key=None, max_out=4):
                 if f.get("fact_type") == "standard_ref"}
     out, seen_rules = [], set()
     for rule_id, terms, suggests, reason in SUGGESTION_RULES:
+        # Spec libraries: prefer topic_brief / coherence; suppress research + construction
+        if spec_library and rule_id in ("research", "structure", "wetroom", "floorheat", "plan", "lifting"):
+            continue
+        # Don't push construction templates onto research corpora
+        if researchish and rule_id in ("structure", "wetroom", "floorheat", "plan", "lifting", "standards", "spec_library"):
+            continue
         hit = None
         for t in terms:
             if t == "__ELEMENTS__":
@@ -237,7 +278,7 @@ def detect_suggestions(index, artifact, current_template_key=None, max_out=4):
                     hit = "elementer i tegninger"
             elif t == "__MULTI_STD__" and len(std_docs) >= 2:
                 hit = f"standarder i {len(std_docs)} dokumenter"
-            elif t not in ("__ELEMENTS__", "__MULTI_STD__") and t in hay:
+            elif t not in ("__ELEMENTS__", "__MULTI_STD__") and t in hay_all:
                 hit = t.strip()
             if hit:
                 break
