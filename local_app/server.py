@@ -874,6 +874,9 @@ def write_form_html_export(folder, template, state, display=None):
     import form_engine as fe
     folder_path = Path(folder)
     display = display or report_display_name(template)
+    # write_report_export may pass "Name.pdf" — stem for sibling HTML
+    if str(display).lower().endswith((".pdf", ".md", ".html", ".docx", ".pptx")):
+        display = Path(display).stem
     company = {}
     profile = (state or {}).get("company") or (state or {}).get("company_profile") or {}
     if isinstance(profile, dict) and profile.get("name"):
@@ -925,14 +928,20 @@ def report_display_name(template):
 
 
 def write_report_export(folder, template, content):
-    """Save a human-named copy under <project>/Rapporter/. Returns path + display name."""
+    """Save PDF (+ markdown sidecar) under <project>/Rapporter/. Returns path + filename."""
     folder_path = Path(folder)
     display = report_display_name(template)
     out_dir = reports_dir(folder_path)
     out_dir.mkdir(exist_ok=True)
-    out_path = out_dir / f"{safe_filename(display)}.md"
-    out_path.write_text(content, encoding="utf-8")
-    return out_path, display
+    path, name, _notices, _raw = expfmt.write_format_export(
+        folder_path,
+        {},
+        template,
+        fmt="pdf",
+        display_name=display,
+        md_content=content or "",
+    )
+    return path or (out_dir / name), name
 
 
 def drafts_dir(folder):
@@ -944,8 +953,15 @@ def _doc_export_meta(folder, tpl, t_meta):
     if not t_meta or not folder:
         return (report_display_name(t_meta) if t_meta else None), None
     display = report_display_name(t_meta)
-    out_path = reports_dir(folder) / f"{safe_filename(display)}.md"
-    return display, str(out_path) if out_path.exists() else None
+    safe = safe_filename(display)
+    out_dir = reports_dir(folder)
+    pdf_path = out_dir / f"{safe}.pdf"
+    md_path = out_dir / f"{safe}.md"
+    if pdf_path.exists():
+        return f"{display}.pdf", str(pdf_path)
+    if md_path.exists():
+        return display, str(md_path)
+    return f"{display}.pdf", None
 
 
 def _enrich_doc(folder, doc, by_file, state=None):
@@ -1815,6 +1831,23 @@ def run_generate(job_id, folders, template_file, lang):
         raise RuntimeError("Artefaktmodellen mangler — beskriv prosjektet i chatten først")
     if not state.get("confirmed"):
         raise RuntimeError("Artefaktmodellen må bekreftes før generering (checkpoint A)")
+    # Folders for focus-PDF page harvest / path resolve (install compile)
+    artifact = dict(artifact)
+    artifact["_folders"] = list(folders or [])
+    # Installation manual: require system_under_install before plan/map
+    tf_name_early = Path(template_file).name.lower()
+    tpl_key_early = str(template.get("template_key") or "").strip().lower()
+    if tpl_key_early == "installation_manual" or tf_name_early == "installation_manual.json":
+        from install_manual_compile import (
+            needs_system_under_install,
+            ask_system_under_install_reply,
+        )
+        if needs_system_under_install(artifact):
+            raise RuntimeError(
+                "system_under_install mangler — oppgi hva som skal installeres "
+                "(cable_tray|sensor|machine|enclosure|other) før generering. "
+                + ask_system_under_install_reply("no")
+            )
     # Use cached captions only — never live-index mid-generate (burns saldo / fails at €0).
     index = load_index(folders, lang, state.get("user_facts"),
                        project_name=Path(folder).name, cache_only=True)
@@ -1845,7 +1878,7 @@ def run_generate(job_id, folders, template_file, lang):
 
     job_update(job_id, step="Kartlegger seksjoner", detail="Checkpoint B")
     mappings, gaps, guard_report = fc.map_sections(template, index, artifact)
-    pre_gaps = fc.template_gaps(template, index, artifact)
+    pre_gaps = gaps  # already scoped (install allowlist + file_map); do not recompute bare
 
     job_update(job_id, step="Genererer seksjoner", total=len(mappings))
     sections_data, all_violations = [], []
@@ -1927,6 +1960,50 @@ def run_generate(job_id, folders, template_file, lang):
         print(f"[intake] review skipped: {e}", flush=True)
 
     state["doc"] = ds.build_doc_from_generation(template_file, sections_data)
+    # Installation manual: kilderegister = cited files only; offer unused PDFs
+    if "installation_manual" in Path(template_file).name.lower():
+        try:
+            from install_manual_compile import (
+                cited_files_from_sections,
+                compile_install_source_register,
+                expand_offer_reply,
+                high_value_unused_pdfs,
+                system_under_install,
+            )
+            cited = cited_files_from_sections(sections_data, index)
+            unused = high_value_unused_pdfs(
+                index, cited, system=system_under_install(artifact),
+            )
+            reg_md = compile_install_source_register(
+                cited, index, unused=unused, lang=lang,
+            )
+            sec = (state.get("doc") or {}).get("sections") or {}
+            if "source_register" in sec:
+                sec["source_register"]["md"] = reg_md
+                sec["source_register"]["files"] = cited[:12]
+            # Mirror into sections_data for assemble consistency
+            sections_data = [
+                (sk, reg_md if sk == "source_register" else text, cited_ids, viol, files)
+                for sk, text, cited_ids, viol, files in sections_data
+            ]
+            state["doc"] = ds.build_doc_from_generation(template_file, sections_data)
+            state["install_expand_offer"] = unused
+            if unused:
+                state["install_expand_note"] = expand_offer_reply(unused, lang=lang).strip()
+            else:
+                state.pop("install_expand_note", None)
+        except Exception as e:
+            print(f"[install source_register] skipped: {e}", flush=True)
+    # Persist Document Brain on topic_brief (and any ask-composed brief)
+    if "topic_brief" in Path(template_file).name.lower():
+        try:
+            from topic_brief_compile import blueprint_for
+            bp = blueprint_for(index, artifact, lang)
+            if bp:
+                state["doc"]["narrative_blueprint"] = bp
+                state["narrative_blueprint"] = bp
+        except Exception as e:
+            print(f"[blueprint] persist skipped: {e}", flush=True)
     # Prefer model {{fig:}} / structure fallbacks; fill remaining required_media gaps
     enrich_section_media(state, folders, template)
     ensure_figures_in_doc(state, folders, template)
@@ -1963,6 +2040,20 @@ def run_generate(job_id, folders, template_file, lang):
         state.pop("intake_notice", None)
     ds.add_version(state, "system", "doc", f"Genererte {export_name}", section=None)
     save_state(folder, state)
+    # WO 0.65 T3 — document sits at current foldok_index head
+    try:
+        import foldok_index_bridge as fib
+
+        fib.set_document_watermark(
+            folder, template_file=template_file,
+            note=f"generated {export_name}",
+            sync_folders=folders,
+        )
+    except Exception as e:
+        print(f"[foldok_index watermark] skipped: {e}", flush=True)
+    note = (state.get("install_expand_note") or "").strip()
+    if note:
+        job_update(job_id, detail=note[:240])
 
 
 def run_regenerate_section(job_id, folders, template_file, section_key, lang, instruction=None):
@@ -2278,7 +2369,38 @@ def ensure_figures_in_doc(state, folders, template):
     Prefer model {{fig:}} / {{figure:}} markers. For sections with
     required_media.min_photos > 0 and no markers, insert mapped photos.
     Do not strip figures from media-required sections.
+
+    Installation manuals: do not inject supplier PDF page copies.
     """
+    tpl_key = str((template or {}).get("template_key") or "").strip().lower()
+    tpl_file = str((template or {}).get("_file") or Path(str(
+        (state.get("doc") or {}).get("template") or ""
+    )).name).lower()
+    if tpl_key == "installation_manual" or tpl_file == "installation_manual.json":
+        # Strip OEM page rasters left from older generates; keep site photos only later
+        doc = state.get("doc") or {}
+        for sk, sec in (doc.get("sections") or {}).items():
+            md = sec.get("md") or ""
+            cleaned = re.sub(r"\{\{figure:[^}]+\}\}", "", md)
+            cleaned = re.sub(r"\{\{fig:[^}]+\}\}", "", cleaned)
+            # Drop materialized supplier PDF page images (caption names .pdf — side N)
+            cleaned = re.sub(
+                r"(?m)^!\[[^\]]*\.pdf\s*[—\-–]\s*side\s*\d+[^\]]*\]\([^)]+\)\s*\n?"
+                r"(?:\*Illustrasjon[^\n]*\n*)?",
+                "",
+                cleaned,
+                flags=re.I,
+            )
+            cleaned = re.sub(
+                r"(?m)^###\s*(Sider fra teknisk kilde|Pages from technical source|"
+                r"Illustrasjoner fra kilde|Source illustrations)\s*\n*",
+                "",
+                cleaned,
+            )
+            cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+            sec["md"] = cleaned.strip() + ("\n" if cleaned.strip() else "")
+        return state
+
     enrich_section_media(state, folders, template)
     cover = state.get("cover_image") or {}
     cover_sk = cover.get("section")
@@ -4157,7 +4279,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(404, {"error": "unknown project"})
             result = idxtools.diff_index(
                 p["folders"][0], p["folders"], fc, source_files,
-                since_version=body.get("since_version"))
+                since_version=body.get("since_version"),
+                template_file=body.get("template") or body.get("template_file"),
+                document_id=body.get("document_id"),
+            )
             return self._send(200, result)
 
         if path == "/api/doc/update-from-sources":
@@ -4748,6 +4873,33 @@ class Handler(BaseHTTPRequestHandler):
                             })
                 except Exception as e:
                     print(f"[artifact/assist] diagram route skipped: {e}", flush=True)
+                # Why files weren't indexed — foldok_scan report (zero tokens)
+                if edchat.is_index_coverage_ask(msg):
+                    thr = state.get("index_last_throughput")
+                    report = prescan.scan_folders(
+                        ctx["folders"],
+                        skip_dir_names=SKIP_DIR_NAMES,
+                        last_throughput=thr,
+                        check_cache=False,
+                    )
+                    prose = edchat.index_coverage_reply(report, lang=lang)
+                    prose = edchat.scrub_chat_voice(prose)
+                    edchat.append_turn(state, "user", msg, project_id=p.get("id"))
+                    edchat.append_turn(state, "bot", prose, project_id=p.get("id"))
+                    save_state(ctx["primary"], state)
+                    return self._send(200, {
+                        "reply": prose, "patch": None, "note": None, "cost_eur": 0,
+                        "project_id": p["id"], "folder": ctx["primary"],
+                        "conversation": isolated_conversation(state, p.get("id")),
+                        "kind": "index_coverage",
+                        "prescan": {
+                            "coverage": report.get("coverage"),
+                            "coverage_indexed": report.get("coverage_indexed"),
+                            "coverage_total": report.get("coverage_total"),
+                            "biggest_win": report.get("biggest_win"),
+                            "by_reason": report.get("by_reason"),
+                        },
+                    })
                 # Summary from sources: always free when anything is indexed
                 if edchat.is_source_summary_request(msg) and index_n > 0:
                     prose = edchat.source_summary_reply(
@@ -5394,16 +5546,20 @@ class Handler(BaseHTTPRequestHandler):
                 content = demo.stamp_demo_watermark(content)
                 if not folder:
                     import base64
+                    raw = expfmt.render_markdown_pdf(content, title="DEMO")
                     return self._send(200, {
                         "ok": True, "demo": True, "paid_blocked": True,
-                        "export_name": "DEMO.md",
-                        "download_base64": base64.b64encode(content.encode("utf-8")).decode("ascii"),
+                        "export_name": "DEMO.pdf",
+                        "download_base64": base64.b64encode(raw).decode("ascii"),
                         "reply": "Demosak — vannmerke. Ingen mappe koblet.",
                     })
                 out_path, display = write_report_export(folder, template or {"name_no": "DEMO"}, content)
+                import base64
+                raw = Path(out_path).read_bytes() if out_path and Path(out_path).is_file() else b""
                 return self._send(200, {
                     "ok": True, "demo": True, "paid_blocked": True,
                     "export_name": display, "export_path": str(out_path),
+                    "download_base64": base64.b64encode(raw).decode("ascii") if raw else None,
                     "reply": ("Dette er en demosak — eksportert med DEMO-vannmerke. "
                               "Betalt eksport er ikke tilgjengelig for syntetisk materiale."),
                 })
@@ -5437,29 +5593,21 @@ class Handler(BaseHTTPRequestHandler):
                 import base64
                 extra = extra or {}
                 display = display_hint or report_display_name(template or {"name_no": "Dokument"})
-                if fmt in ("html", "pptx", "docx"):
-                    path, name, notices, raw = expfmt.write_format_export(
-                        folder, state, template, fmt=fmt, display_name=display, md_content=content_md)
-                    out = {
-                        "ok": True, "output_format": fmt, "export_name": name,
-                        "notices": notices, "recharged": False, **extra,
-                    }
-                    if path:
-                        out["export_path"] = str(path)
-                    if raw is not None:
-                        out["download_base64"] = base64.b64encode(raw).decode("ascii")
-                    return out
-                if not folder:
-                    return {
-                        "ok": True, "output_format": "pdf", "export_name": f"{display}.md",
-                        "download_base64": base64.b64encode((content_md or "").encode("utf-8")).decode("ascii"),
-                        "notices": [], "recharged": False, **extra,
-                    }
-                out_path, display = write_report_export(folder, template, content_md)
-                return {
-                    "ok": True, "output_format": "pdf", "export_name": display,
-                    "export_path": str(out_path), "notices": [], "recharged": False, **extra,
+                path, name, notices, raw = expfmt.write_format_export(
+                    folder, state or {}, template, fmt=fmt,
+                    display_name=display, md_content=content_md)
+                out = {
+                    "ok": True, "output_format": fmt, "export_name": name,
+                    "notices": notices, "recharged": False, **extra,
                 }
+                if path:
+                    out["export_path"] = str(path)
+                if raw is not None:
+                    out["download_base64"] = base64.b64encode(raw).decode("ascii")
+                elif path and Path(path).is_file():
+                    out["download_base64"] = base64.b64encode(
+                        Path(path).read_bytes()).decode("ascii")
+                return out
 
             # WORKORDER 0.60 — charge export against balance (Path B)
             caps = hub.load_capabilities()
@@ -6318,7 +6466,10 @@ class Handler(BaseHTTPRequestHandler):
                 lang = hub.detect_lang(msg)
                 diff = idxtools.diff_index(
                     primary, folders, fc, source_files,
-                    since_version=execute.get("since_version"))
+                    since_version=execute.get("since_version"),
+                    template_file=tf or state.get("active_template") or state.get("template"),
+                    document_id=execute.get("document_id"),
+                )
                 reply = idxtools.format_diff_reply(diff, lang=lang)
                 if diff.get("live_unindexed"):
                     reply += (
@@ -6777,7 +6928,12 @@ class Handler(BaseHTTPRequestHandler):
                 # WORKORDER_0.25 B — «ja» / imperative dispatches generate in this turn
                 lang = hub.detect_lang(msg)
                 tkey = execute.get("template_key")
-                gen_tf = execute.get("template") or template_file_for_key(tkey) or tf
+                gen_tf = (
+                    execute.get("template")
+                    or template_file_for_key(tkey)
+                    or edchat.open_document_template(state)
+                    or tf
+                )
                 pending_name = (
                     (load_template(gen_tf, primary) or {}).get("name_no")
                     or (load_template(gen_tf, primary) or {}).get("name")
@@ -7207,6 +7363,88 @@ class Handler(BaseHTTPRequestHandler):
                         "actions": acts,
                     }
 
+            elif execute and execute.get("tool") == "set_system_under_install":
+                import template_lifecycle as tl
+                import install_manual_compile as imc
+                lang = hub.detect_lang(msg)
+                caps = hub.load_capabilities()
+                chosen = (execute.get("system_under_install") or "").strip().lower()
+                if chosen not in imc.SYSTEM_VALUES:
+                    chosen = imc.parse_system_under_install(msg) or ""
+                if chosen not in imc.SYSTEM_VALUES:
+                    reply = imc.ask_system_under_install_reply(lang)
+                    tool_result = {"tool": "set_system_under_install", "ok": False}
+                else:
+                    art = imc.lock_system_on_artifact(state.get("artifact"), chosen)
+                    state["artifact"] = art
+                    gen_tf = execute.get("template") or template_file_for_key(
+                        execute.get("template_key") or "installation_manual")
+                    tpl_obj = load_template(gen_tf, primary) if gen_tf else None
+                    tier = tl.tier_eur_for_template(tpl_obj or {}, caps) if tpl_obj else None
+                    reply = (
+                        f"System under installasjon: **{chosen}** (låst). "
+                        + (tl.document_created_reply(tpl_obj, lang=lang, tier_eur=tier)
+                           if tpl_obj else "Si ja for å generere.")
+                    )
+                    state["chat_pending"] = {
+                        "action": "run_generate",
+                        "template_key": execute.get("template_key") or "installation_manual",
+                        "template": gen_tf,
+                    }
+                    save_state(primary, state)
+                    if gen_tf:
+                        tf = gen_tf
+                        template = tpl_obj
+                    tool_result = {
+                        "tool": "set_system_under_install", "ok": True,
+                        "system_under_install": chosen,
+                        "install_system_locked": True,
+                        "actions": [{"id": "confirm_generate", "label": "Ja — generer"}],
+                    }
+
+            elif execute and execute.get("tool") == "set_install_focus":
+                import install_manual_compile as imc
+                lang = hub.detect_lang(msg)
+                needles = execute.get("focus_sources") or imc.parse_focus_sources(msg)
+                if not needles:
+                    reply = (
+                        "Navngi kilden fra indeksen: «bruk …» eller «utvid med filnavn.pdf»."
+                        if lang != "en" else
+                        "Name a source from the index: «bruk …» or «expand with filename.pdf»."
+                    )
+                    tool_result = {"tool": "set_install_focus", "ok": False}
+                else:
+                    index = load_index(folders, lang, state.get("user_facts"),
+                                       project_name=p.get("name"), cache_only=True)
+                    art = imc.merge_focus_sources(state.get("artifact"), needles)
+                    state["artifact"] = art
+                    hits = imc.match_focus_files(index or [], needles)
+                    hit_txt = ", ".join(f"`{Path(h).name}`" for h in hits[:6]) or "(ingen treff i indeks ennå)"
+                    reply = (
+                        f"Fokus låst til: **{', '.join(needles)}**. "
+                        f"Treff: {hit_txt}. Si ja for å regenerere installasjonsmanualen."
+                        if lang != "en" else
+                        f"Focus locked to: **{', '.join(needles)}**. "
+                        f"Hits: {hit_txt}. Say yes to regenerate the installation manual."
+                    )
+                    gen_tf = (
+                        execute.get("template")
+                        or state.get("active_template")
+                        or template_file_for_key("installation_manual")
+                    )
+                    state["chat_pending"] = {
+                        "action": "run_generate",
+                        "template_key": "installation_manual",
+                        "template": gen_tf,
+                    }
+                    save_state(primary, state)
+                    tool_result = {
+                        "tool": "set_install_focus", "ok": True,
+                        "focus_sources": needles,
+                        "matched_files": hits[:12],
+                        "actions": [{"id": "confirm_generate", "label": "Ja — regenerer"}],
+                    }
+
             elif execute and execute.get("tool") == "create_document":
                 import template_lifecycle as tl
                 import form_model as fm
@@ -7245,22 +7483,66 @@ class Handler(BaseHTTPRequestHandler):
                         "model_calls": 0,
                     }
                 else:
+                    import install_manual_compile as imc
                     tl.create_document_shell(state, gen_tf, tpl_obj)
                     tier = tl.tier_eur_for_template(tpl_obj, caps)
-                    reply = tl.document_created_reply(tpl_obj, lang=lang, tier_eur=tier)
-                    state["chat_pending"] = {
-                        "action": "run_generate",
-                        "template_key": tkey,
-                        "template": gen_tf,
-                    }
-                    save_state(primary, state)
-                    tf = gen_tf
-                    template = tpl_obj
-                    tool_result = {
-                        "tool": "create_document", "ok": True,
-                        "template": gen_tf, "template_key": tkey,
-                        "actions": [{"id": "confirm_generate", "label": "Ja — generer"}],
-                    }
+                    # Also accept focus sources named in the same ask
+                    focus = imc.parse_focus_sources(msg)
+                    if focus:
+                        state["artifact"] = imc.merge_focus_sources(state.get("artifact"), focus)
+                    ask_system = (
+                        tkey == "installation_manual"
+                        and imc.needs_system_under_install(state.get("artifact"))
+                    )
+                    if ask_system:
+                        inferred = imc.parse_system_under_install(msg)
+                        if inferred:
+                            state["artifact"] = imc.lock_system_on_artifact(
+                                state.get("artifact"), inferred)
+                            ask_system = False
+                    if ask_system:
+                        reply = imc.ask_system_under_install_reply(lang)
+                        state["chat_pending"] = {
+                            "action": "set_system_under_install",
+                            "template_key": tkey,
+                            "template": gen_tf,
+                        }
+                        save_state(primary, state)
+                        tf = gen_tf
+                        template = tpl_obj
+                        tool_result = {
+                            "tool": "create_document", "ok": True,
+                            "template": gen_tf, "template_key": tkey,
+                            "needs_system_under_install": True,
+                            "actions": [
+                                {"id": "system_cable_tray", "label": "Kabelrenne / tray"},
+                                {"id": "system_sensor", "label": "Sensor"},
+                                {"id": "system_machine", "label": "Maskin"},
+                                {"id": "system_enclosure", "label": "Skap"},
+                                {"id": "system_other", "label": "Annet"},
+                            ],
+                        }
+                    else:
+                        reply = tl.document_created_reply(tpl_obj, lang=lang, tier_eur=tier)
+                        if focus:
+                            reply += (
+                                f" Fokus: {', '.join(focus)}."
+                                if lang != "en" else
+                                f" Focus: {', '.join(focus)}."
+                            )
+                        state["chat_pending"] = {
+                            "action": "run_generate",
+                            "template_key": tkey,
+                            "template": gen_tf,
+                        }
+                        save_state(primary, state)
+                        tf = gen_tf
+                        template = tpl_obj
+                        tool_result = {
+                            "tool": "create_document", "ok": True,
+                            "template": gen_tf, "template_key": tkey,
+                            "actions": [{"id": "confirm_generate", "label": "Ja — generer"}],
+                        }
 
             elif execute and execute.get("tool") == "draft_template_rung3":
                 import template_lifecycle as tl
@@ -7600,7 +7882,21 @@ class Handler(BaseHTTPRequestHandler):
                         f"caption={last.get('caption') or '(none)'} — "
                         f"quote only this; never invent visual details.\n"
                     )
-                if extras["open_ended"] and (ctx_pack["file_count"] or 0) > 0:
+                if edchat.is_index_coverage_ask(msg):
+                    report = prescan.scan_folders(
+                        folders,
+                        skip_dir_names=SKIP_DIR_NAMES,
+                        last_throughput=state.get("index_last_throughput"),
+                        check_cache=False,
+                    )
+                    reply = edchat.index_coverage_reply(report, lang=lang)
+                    reply = edchat.scrub_chat_voice(reply)
+                    tool_result = {
+                        "tool": "index_coverage",
+                        "coverage": report.get("coverage"),
+                        "biggest_win": report.get("biggest_win"),
+                    }
+                elif extras["open_ended"] and (ctx_pack["file_count"] or 0) > 0:
                     reply = edchat.open_ended_grounded_reply(
                         project_name=p.get("name") or "",
                         brief=extras["corpus_brief"],
@@ -7666,13 +7962,21 @@ class Handler(BaseHTTPRequestHandler):
                     and not annotations  # C5: never invent create-pending while marks wait
                     and re.search(r"\bskal\s+jeg\b|\bshall\s+i\b|\bwant\s+me\s+to\b",
                                   reply or "", re.I)):
-                # Form / mal proposals must never land as .txt checklist
+                # Form / mal proposals must never land as .txt checklist —
+                # but only when *this* reply offers a form, and never after a
+                # regenerate-document ask (that must stay on the open draft).
                 recent = " ".join(
                     (t.get("text") or "") for t in (state.get("conversation") or [])[-8:])
-                formish = bool(re.search(
-                    r"skjema|form|multipoint|mal\b|template|inspeksjon",
-                    recent + " " + (reply or ""), re.I))
-                if formish or re.search(r"skjema|form|mal|multipoint", reply or "", re.I):
+                recent_user = edchat.recent_user_blob(state)
+                regen_intent = (
+                    edchat.is_regenerate_document_ask(msg)
+                    or edchat.is_regenerate_document_ask(recent_user)
+                )
+                form_offer = edchat.reply_offers_form_create(reply or "")
+                formish = form_offer or bool(re.search(
+                    r"\b(skjema|multipoint|inspeksjonssjekkliste|inspection\s+checklist)\b",
+                    reply or "", re.I))
+                if formish and not regen_intent:
                     src = (
                         "sample_multipoint"
                         if re.search(r"\bsample[_\s-]?multipoint\b", recent + " " + (reply or ""), re.I)
@@ -7702,6 +8006,18 @@ class Handler(BaseHTTPRequestHandler):
                             "tool": "propose_generate", "ok": True,
                             "actions": [{"id": "confirm_generate", "label": "Ja — kjør"}],
                         }
+                elif regen_intent and edchat.open_document_template(state):
+                    # Model offered a follow-up after regenerate intent — pin open doc
+                    open_tf = edchat.open_document_template(state)
+                    state["chat_pending"] = {
+                        "action": "run_generate",
+                        "template": open_tf,
+                        "template_key": (open_tf or "").replace(".json", ""),
+                    }
+                    tool_result = tool_result or {
+                        "tool": "propose_generate", "ok": True,
+                        "actions": [{"id": "confirm_generate", "label": "Ja — regenerer"}],
+                    }
             if route.get("kind") == "propose_generate":
                 fp = "run_generate:" + str(
                     (route.get("set_pending") or {}).get("template_key") or "contract_review")

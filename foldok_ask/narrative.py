@@ -1,8 +1,8 @@
-"""Narrative layer — decide WHAT story to tell before Author writes HOW.
+"""Narrative layer — Document Brain before Author writes.
 
-Not a new product engine brand: elevates DocumentPlanner to thesis + arc +
-section purposes. Knowledge answers "what do we know?"; Narrative answers
-"what story explains this best?"; Author writes; Validator binds evidence.
+Knowledge answers "what do we know?"; NarrativeBlueprint answers
+"what story explains this best and why each section exists?";
+Author writes with continuity bridges; Validator binds evidence.
 """
 from __future__ import annotations
 
@@ -14,9 +14,22 @@ from .plan import CorpusSketch, OutlineSection, SectionKind, corpus_sketch
 
 AuthorIntent = Literal["explain", "argue", "specify", "recommend", "frame", "conclude", "list"]
 ArcBeat = Literal[
-    "problem", "context", "concepts", "evidence", "rules",
-    "standards", "open", "conclusion", "appendix",
+    "frame", "problem", "context", "concepts", "evidence", "rules",
+    "standards", "open", "conclusion", "close", "appendix",
 ]
+
+_BEAT_TO_ARC_ID = {
+    "frame": "frame",
+    "problem": "frame",
+    "context": "concepts",
+    "concepts": "concepts",
+    "evidence": "evidence",
+    "rules": "rules",
+    "standards": "standards",
+    "open": "open",
+    "conclusion": "close",
+    "close": "close",
+}
 
 
 @dataclass
@@ -27,6 +40,7 @@ class DocumentIntent:
     main_question: str = ""
     main_argument: str = ""
     desired_outcome: str = ""
+    reader_should_leave_with: str = ""
     tone: str = "technical_report"
     thesis_provisional: bool = False
 
@@ -37,9 +51,51 @@ class DocumentIntent:
             "main_question": self.main_question,
             "main_argument": self.main_argument,
             "desired_outcome": self.desired_outcome,
+            "reader_should_leave_with": self.reader_should_leave_with,
             "tone": self.tone,
             "thesis_provisional": self.thesis_provisional,
         }
+
+    @classmethod
+    def from_dict(cls, d: dict | None) -> "DocumentIntent":
+        d = d or {}
+        return cls(
+            purpose=d.get("purpose") or "topic_brief",
+            audience=d.get("audience") or "engineer",
+            main_question=d.get("main_question") or "",
+            main_argument=d.get("main_argument") or "",
+            desired_outcome=d.get("desired_outcome") or "",
+            reader_should_leave_with=d.get("reader_should_leave_with") or "",
+            tone=d.get("tone") or "technical_report",
+            thesis_provisional=bool(d.get("thesis_provisional")),
+        )
+
+
+@dataclass
+class ArcStep:
+    """One beat in the document argument — why this section exists."""
+    id: str
+    purpose: str
+    heading: str = ""
+    role_in_argument: str = ""
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "purpose": self.purpose,
+            "heading": self.heading,
+            "role_in_argument": self.role_in_argument,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict | None) -> "ArcStep":
+        d = d or {}
+        return cls(
+            id=d.get("id") or "",
+            purpose=d.get("purpose") or "",
+            heading=d.get("heading") or "",
+            role_in_argument=d.get("role_in_argument") or "",
+        )
 
 
 @dataclass
@@ -52,6 +108,10 @@ class NarrativeSection:
     arc_beat: ArcBeat
     kind: SectionKind
     optional: bool = True
+    arc_id: str = ""
+
+    def resolved_arc_id(self) -> str:
+        return self.arc_id or _BEAT_TO_ARC_ID.get(self.arc_beat, self.arc_beat)
 
     def to_outline(self) -> OutlineSection:
         return OutlineSection(
@@ -70,23 +130,146 @@ class NarrativeSection:
             "retrieve_query": self.retrieve_query,
             "author_intent": self.author_intent,
             "arc_beat": self.arc_beat,
+            "arc_id": self.resolved_arc_id(),
             "kind": self.kind,
             "optional": self.optional,
         }
 
+    @classmethod
+    def from_dict(cls, d: dict | None) -> "NarrativeSection":
+        d = d or {}
+        return cls(
+            heading=d.get("heading") or "",
+            purpose=d.get("purpose") or "",
+            role_in_argument=d.get("role_in_argument") or "",
+            retrieve_query=d.get("retrieve_query") or "",
+            author_intent=d.get("author_intent") or "explain",  # type: ignore[arg-type]
+            arc_beat=d.get("arc_beat") or "concepts",  # type: ignore[arg-type]
+            kind=d.get("kind") or "teach",  # type: ignore[arg-type]
+            optional=bool(d.get("optional", True)),
+            arc_id=d.get("arc_id") or "",
+        )
+
+
+@dataclass
+class NarrativeBlueprint:
+    """Document Brain — the whole generate path must obey this."""
+    title: str
+    reader: str
+    main_question: str
+    main_argument: str
+    reader_should_leave_with: str
+    thesis: str
+    arc: list[ArcStep] = field(default_factory=list)
+    sections: list[NarrativeSection] = field(default_factory=list)
+    provisional: bool = False
+    purpose: str = "topic_brief"
+    sketch: CorpusSketch | None = None
+
+    def to_dict(self) -> dict:
+        return {
+            "title": self.title,
+            "reader": self.reader,
+            "main_question": self.main_question,
+            "main_argument": self.main_argument,
+            "reader_should_leave_with": self.reader_should_leave_with,
+            "thesis": self.thesis,
+            "arc": [a.to_dict() for a in self.arc],
+            "sections": [s.to_dict() for s in self.sections],
+            "provisional": self.provisional,
+            "purpose": self.purpose,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict | None) -> "NarrativeBlueprint":
+        d = d or {}
+        return cls(
+            title=d.get("title") or "",
+            reader=d.get("reader") or "engineer",
+            main_question=d.get("main_question") or "",
+            main_argument=d.get("main_argument") or "",
+            reader_should_leave_with=d.get("reader_should_leave_with") or "",
+            thesis=d.get("thesis") or "",
+            arc=[ArcStep.from_dict(a) for a in (d.get("arc") or [])],
+            sections=[NarrativeSection.from_dict(s) for s in (d.get("sections") or [])],
+            provisional=bool(d.get("provisional")),
+            purpose=d.get("purpose") or "topic_brief",
+        )
+
+    def to_plan(self) -> "NarrativePlan":
+        intent = DocumentIntent(
+            purpose=self.purpose,
+            audience=self.reader,
+            main_question=self.main_question,
+            main_argument=self.main_argument,
+            desired_outcome=self.reader_should_leave_with,
+            reader_should_leave_with=self.reader_should_leave_with,
+            thesis_provisional=self.provisional,
+        )
+        return NarrativePlan(
+            title=self.title,
+            intent=intent,
+            thesis=self.thesis,
+            arc=[a.id for a in self.arc],
+            sections=list(self.sections),
+            sketch=self.sketch,
+            blueprint=self,
+        )
+
 
 @dataclass
 class NarrativePlan:
-    """The story: thesis + arc + section purposes. Not paragraphs."""
+    """Planner output; serialises to NarrativeBlueprint for persistence."""
     title: str
     intent: DocumentIntent
     thesis: str
     arc: list[str] = field(default_factory=list)
     sections: list[NarrativeSection] = field(default_factory=list)
     sketch: CorpusSketch | None = None
+    blueprint: NarrativeBlueprint | None = None
 
     def to_outline(self) -> list[OutlineSection]:
         return [s.to_outline() for s in self.sections]
+
+    def as_blueprint(self) -> NarrativeBlueprint:
+        if self.blueprint is not None:
+            return self.blueprint
+        leave = (
+            self.intent.reader_should_leave_with
+            or self.intent.desired_outcome
+            or self.thesis
+        )
+        steps: list[ArcStep] = []
+        seen_ids: set[str] = set()
+        for s in self.sections:
+            if s.kind == "appendix" or s.arc_beat == "appendix":
+                continue
+            aid = s.resolved_arc_id()
+            if aid in seen_ids and aid not in ("concepts", "evidence"):
+                continue
+            if aid not in seen_ids:
+                seen_ids.add(aid)
+            steps.append(ArcStep(
+                id=aid,
+                purpose=s.purpose,
+                heading=s.heading,
+                role_in_argument=s.role_in_argument,
+            ))
+        bp = NarrativeBlueprint(
+            title=self.title,
+            reader=self.intent.audience,
+            main_question=self.intent.main_question,
+            main_argument=self.intent.main_argument or self.thesis,
+            reader_should_leave_with=leave,
+            thesis=self.thesis,
+            arc=steps,
+            sections=list(self.sections),
+            provisional=self.intent.thesis_provisional,
+            purpose=self.intent.purpose,
+            sketch=self.sketch,
+        )
+        self.blueprint = bp
+        return bp
 
     def to_dict(self) -> dict:
         return {
@@ -95,6 +278,7 @@ class NarrativePlan:
             "thesis": self.thesis,
             "arc": list(self.arc),
             "sections": [s.to_dict() for s in self.sections],
+            "blueprint": self.as_blueprint().to_dict(),
         }
 
 
@@ -108,11 +292,7 @@ def plan_narrative(
     lang: str = "no",
     intent_override: DocumentIntent | None = None,
 ) -> NarrativePlan:
-    """Build DocumentIntent + thesis + arc from corpus coverage.
-
-    Guardrails: thesis supportable by overview themes/captions, else provisional.
-    Empty-support arc beats are still planned; Author omits if retrieve empty.
-    """
+    """Build DocumentIntent + thesis + arc from corpus coverage."""
     sketch = corpus_sketch(index, artifact=artifact)
     no = (lang or "no").lower().startswith("no")
     dtype = (document_type or "topic_brief").strip().lower()
@@ -122,16 +302,23 @@ def plan_narrative(
     thesis, provisional = _ground_thesis(sketch, intent, no)
     intent.thesis_provisional = provisional
     intent.main_argument = intent.main_argument or thesis
+    if not intent.reader_should_leave_with:
+        intent.reader_should_leave_with = _leave_with(intent, no)
 
     sections = _arc_sections(sketch, intent, user_questions, no)
+    for s in sections:
+        if not s.arc_id:
+            s.arc_id = _BEAT_TO_ARC_ID.get(s.arc_beat, s.arc_beat)
+
     arc_labels = []
     seen = set()
     for s in sections:
-        if s.arc_beat not in seen and s.arc_beat not in ("appendix",):
-            arc_labels.append(s.arc_beat)
-            seen.add(s.arc_beat)
+        aid = s.resolved_arc_id()
+        if aid not in seen and s.arc_beat not in ("appendix",):
+            arc_labels.append(aid)
+            seen.add(aid)
 
-    return NarrativePlan(
+    plan = NarrativePlan(
         title=title,
         intent=intent,
         thesis=thesis,
@@ -139,6 +326,69 @@ def plan_narrative(
         sections=sections,
         sketch=sketch,
     )
+    plan.as_blueprint()
+    return plan
+
+
+def plan_blueprint(document_type: str = "topic_brief", index=None, **kwargs) -> NarrativeBlueprint:
+    """NarrativeBlueprint the generate path must obey."""
+    return plan_narrative(document_type, index, **kwargs).as_blueprint()
+
+
+def propose_arc_expansion(
+    blueprint: NarrativeBlueprint,
+    chip: str,
+    *,
+    lang: str = "no",
+) -> ArcStep | None:
+    """Expand-chip to a proposed new arc step (user-confirmed; not auto-written)."""
+    no = (lang or "no").startswith("no")
+    c = (chip or "").strip().lower()
+    if not c:
+        return None
+    if any(x in c for x in ("class", "klasse", "matrix", "matrise")):
+        return ArcStep(
+            id="concepts",
+            purpose=(
+                "Legg inn en kabelklasse-matrise som del av begrepssteget."
+                if no else
+                "Add a cable-class matrix as part of the concepts beat."
+            ),
+            heading="Kabelklassematris" if no else "Cable class matrix",
+            role_in_argument="Makes segregation rules concrete for the reader.",
+        )
+    if any(x in c for x in ("standard", "50174", "iec")):
+        return ArcStep(
+            id="standards",
+            purpose=(
+                "Utvid standardsteget med navngitt rolle i hovedargumentet."
+                if no else
+                "Expand the standards beat with a named role in the main argument."
+            ),
+            heading=chip[:80],
+            role_in_argument="Anchors the argument in a specific reference.",
+        )
+    return ArcStep(
+        id="evidence",
+        purpose=(
+            f"Utvid fortellingen med: {chip[:120]}"
+            if no else
+            f"Expand the narrative with: {chip[:120]}"
+        ),
+        heading=chip[:80],
+        role_in_argument="User-confirmed expansion inside the existing argument.",
+    )
+
+
+def _leave_with(intent: DocumentIntent, no: bool) -> str:
+    arg = (intent.main_argument or "").strip()
+    if no:
+        if "EMC" in arg or "installasjons" in arg.lower() or "elektromagnet" in arg.lower():
+            return "Behandle EMC som en systemdesignbegrensning, ikke et katalogvalg."
+        return intent.desired_outcome or "Sitte igjen med én klar teknisk tråd — ikke en filliste."
+    if "installation" in arg.lower() or "EMC" in arg or "shield" in arg.lower():
+        return "Treat EMC as a system design constraint, not a catalog option."
+    return intent.desired_outcome or "Leave with one clear technical thread — not a file list."
 
 
 def _suggest_intent(
@@ -155,14 +405,14 @@ def _suggest_intent(
     if no:
         main_q = uq or f"Hvilke prinsipper og begrensninger gjelder for {theme_txt}?"
         outcome = "Felles forståelse av designprinsipper og åpne spørsmål"
+        leave = "Sitte igjen med én klar teknisk tråd — ikke en filliste."
         if "emc" in sketch.theme_blob or "shield" in sketch.theme_blob:
-            main_q = uq or (
-                "Hvilke EMC-begrensninger styrer kabelhåndtering og skjerming i dette korpuset?"
-            )
+            main_q = uq or "Hva styrer EMC-ytelse i tray-baserte kabelsystemer?"
             argument = (
                 "Installasjonsmetode, soner og klassevalg er like viktige som materialvalg "
                 "for å begrense elektromagnetisk påvirkning."
             )
+            leave = "Behandle EMC som en systemdesignbegrensning, ikke et katalogvalg."
         elif "weld" in sketch.theme_blob or "sveis" in sketch.theme_blob:
             argument = (
                 f"Krav og praksis for {theme_txt} må leses sammen — ikke som isolerte fakta."
@@ -175,14 +425,14 @@ def _suggest_intent(
     else:
         main_q = uq or f"What principles and constraints govern {theme_txt}?"
         outcome = "Shared design principles and clear open questions"
+        leave = "Leave with one clear technical thread — not a file list."
         if "emc" in sketch.theme_blob or "shield" in sketch.theme_blob:
-            main_q = uq or (
-                "What EMC constraints drive cable management and shielding in this corpus?"
-            )
+            main_q = uq or "What drives EMC performance in tray-based cable systems?"
             argument = (
                 "Installation method, zoning, and class selection matter as much as "
                 "tray material for controlling electromagnetic interference."
             )
+            leave = "Treat EMC as a system design constraint, not a catalog option."
         else:
             argument = (
                 f"The corpus centres on {theme_txt}; these themes should be told as one "
@@ -198,9 +448,9 @@ def _suggest_intent(
         main_question=main_q,
         main_argument=argument,
         desired_outcome=outcome,
+        reader_should_leave_with=leave,
         tone="technical_report",
     )
-
 
 def _ground_thesis(
     sketch: CorpusSketch,
@@ -274,14 +524,19 @@ def _arc_sections(
     out.append(NarrativeSection(
         heading="Innledning" if no else "Introduction",
         purpose=(
-            "Åpne med tesen og hvorfor leseren skal bry seg — ikke filtelling."
+            "Lead Generator: orientér leseren i ½–1 side — korpusets karakter, "
+            "arbeidstese, veikart og grenser. Ikke filtelling som historie."
             if no else
-            "Open with the thesis and why the reader should care — not a file count."
+            "Lead Generator: orient the reader in ½–1 page — corpus character, "
+            "working thesis, roadmap and limits. Not a file-count story."
         ),
         role_in_argument="States the central claim the rest of the document supports.",
-        retrieve_query=f"{sketch.title} {theme_q} overview purpose why problem",
+        retrieve_query=(
+            f"{sketch.title} {theme_q} overview purpose scope introduction "
+            f"abstract executive EMC requirements why problem"
+        ),
         author_intent="frame",
-        arc_beat="problem",
+        arc_beat="frame",
         kind="framing",
         optional=False,
     ))

@@ -1,7 +1,7 @@
 # PRODUCT_VISION.md
 
 **Foldok** · Product Vision  
-Status: active · v1.3 · 2026-07-27
+Status: active · v1.5 · 2026-07-29
 
 ---
 
@@ -136,7 +136,7 @@ Derived from role × matrix × project state—not a separate task system.
 | **Documents** | Primary workspace — edit structured engineering documentation |
 | **Workspace** | Project context, health, navigation |
 | **Compiler** | Generate / refresh packages from knowledge + templates |
-| **Compliance** | Requirements, evidence links, gaps |
+| **Compliance** | Requirement profiles ↔ evidence coverage → gaps (not legal determination) |
 | **Diagrams** | Engineering diagrams bound to project data |
 | **Deliver** | Version, package, export, distribute |
 | **Assets** | Templates, symbols, tables, themes, industry packs |
@@ -214,7 +214,7 @@ Rules:
 2. **Knowledge before empty prose** — extract and structure; then edit.  
 3. **Requirements and evidence** — items point to sources or an explicit gap.  
 4. **User confirmation** — formal claims, numbers, and approval stay human.  
-5. **No false compliance** — structural profiles and gaps, not “certified to ….”  
+5. **No false compliance** — requirement profiles + evidence coverage, not “certified to ….” See `COMPLIANCE_POLICY.md`.  
 6. **Customer-owned sources** — files and licensed standards remain with the customer.  
 7. **Deterministic publishing** — layout and diagrams from engines; models assist content and structure.  
 8. **Lifecycle** — Maintain re-enters knowledge → gaps → edit → review → deliver.  
@@ -222,6 +222,71 @@ Rules:
 10. **Engines are implementation** — UI speaks documentation and workflow.  
 11. **Everything is inspectable** — why it appeared, which source, which asset.  
 12. **Role-agnostic** — optional Responsibility layer; no mandatory persona scripts.  
+13. **Extract like an auditor. Write like a technical author. Publish only when the facts still hold.** — bold prose, tight leash; never invent to fill.
+
+---
+
+## Authoring Engine (boundary)
+
+Truth/coverage and readable synthesis are **different jobs**. A customer-facing manual needs both — without becoming a chat writer that invents structure and fills gaps from vibe.
+
+### Pipeline (preferred)
+
+```text
+Facts (cited, stable)
+    ↓
+Authoring pass (prose, flow, no repetition) — from known facts only
+    ↓
+Verification (every claim still maps to a fact or is marked)
+    ↓
+Publish (LayoutTree / package)
+```
+
+**Not this:** Intent → free narrative → verify later. That is NotebookLM’s shape: write boldly and sometimes fill. Foldok’s edge is the opposite — missing pieces stay visible.
+
+Prefer: **knowledge + outline + required slots → Authoring Engine → fact check → publishing.**
+
+### What the Authoring Engine does
+
+| Does | Does not |
+|------|----------|
+| Group related facts into paragraphs | Invent ratings, part numbers, procedures |
+| Introductions, transitions, consistent terms | Ignore open gaps |
+| Avoid repeating the same finding three ways | Replace tables/procedures with vague prose |
+| Match **intent** (`describe_component`, `explain_process`, `safety_warning`) | Free-write a whole manual from a folder dump |
+
+**Intent > rigid section shells** is allowed for voice — as long as compliance profiles still force *required evidence slots* (photo, measurement, signature), not only essay structure.
+
+### Templates: rigid vs robotic
+
+- **Keep** required structure for compliance documents (Installation, Safety, evidence tables).  
+- **Loosen** voice inside slots once facts exist (how the intro paragraph is written).  
+- User manuals should feel authored; inspection checklists stay tighter. One authoring policy for every document type makes either manuals boring or forms sloppy.
+
+### Where Foldok still beats NotebookLM
+
+NotebookLM stops at a good draft from sources. Foldok’s path with authoring done well:
+
+1. Structured knowledge + gaps  
+2. Real narrative from facts  
+3. Figures, diagrams, tables placed by engines  
+4. Traceability and package status  
+5. Field capture closing evidence gaps  
+6. Publish with receipt  
+
+That’s a **package**, not a chat export. Do not chase “sounds like NotebookLM”; chase **“I’d hand this to the customer.”**
+
+### Next cycle (document quality — not a new domain engine)
+
+1. Raise the bar on `generate_section_prose` (prompts + post-checks).  
+2. Ban “findings list” voice when enough facts support a topic.  
+3. Section intros + transitions; dedupe repeated headings.  
+4. After write: verification — unsourced sentence → gap or rewrite.  
+5. Keep composition/typography (print-first) investment.
+
+**Shipped:** `foldok_author` **0.86** — fact-shaped intents compose (and verify) from facts; procedural intents (`instruct_procedure`, `warn_hazard`, `troubleshoot`, `explain_process`) are **refused by name** and authored via `Procedure` instead of invented. `write_section_prose` uses compose/verify and falls back to the fact ledger for refused intents.
+
+Success test: open a generated manual and ask only — *Would I give this to a customer?* If no, fix authoring — not another extraction feature.
 
 ---
 
@@ -234,6 +299,26 @@ Rules:
 - A full FEA or statutory certification engine  
 - A library of copyrighted standard text  
 - An automatic CE / samsvar / ISO approval service  
+- A legal oracle that “knows” NEK / IEC / ISO the way a lawyer does  
+
+---
+
+## How compliance works (product model)
+
+```text
+Requirement profile          Evidence in the project
+(what should exist)    ↔     (what you actually have)
+        ↓
+    Gap engine
+        ↓
+  missing / present / cited
+```
+
+**Compliance in Foldok** = coverage of required evidence against a profile — not “this installation is legal.”
+
+Profiles come from industry packs, local learn/shred citations (clause id + evidence kind — never full standard text), templates, and you. The engine checks artifact presence, link, and confirmation — not whether a measurement was done correctly or the installation meets the law.
+
+“Ready” means ready *for this pack*. The competent person still owns legal meaning. Full claim boundary: `COMPLIANCE_POLICY.md`.
 
 ---
 
@@ -331,6 +416,7 @@ No forced sequence: edit first or clear gaps first; the system tracks state eith
 | Affected docs after source change | Maintain works |
 | Responsibilities enabled only when teams need them | Flexibility works |
 | Described as documentation system—not “AI chat” or “PM tool” | Positioning |
+| Generated manual passes “hand to customer?” without inventing facts | Authoring Engine |
 
 ---
 
@@ -376,7 +462,8 @@ No forced sequence: edit first or clear gaps first; the system tracks state eith
 Foldok is where you build and maintain the package—with sources, evidence, requirements, and diagrams attached.
 
 **Against generic AI doc tools**  
-They help you draft. Foldok helps you **complete, bind evidence, deliver, and update** documentation as a system.
+They help you draft. Foldok helps you **complete, bind evidence, deliver, and update** documentation as a system.  
+Readable synthesis without a fact leash is their shape. Foldok’s is **bold prose, tight leash** — then a versioned package.
 
 **Against PM tools**  
 They track tasks. Foldok produces **documentation outcomes**. Optional Responsibilities clarify ownership—they do not replace Jira.
@@ -403,4 +490,4 @@ They own geometry and enterprise records. Foldok owns the **documentation worksp
 
 ---
 
-*End of PRODUCT_VISION.md · v1.3*
+*End of PRODUCT_VISION.md · v1.4*

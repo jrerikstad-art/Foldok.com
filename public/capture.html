@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Foldok Capture — install on your phone</title>
+  <meta name="description" content="Photograph straight into the project folder. Pictures land in the folder you already use — nothing is uploaded to Foldok." />
+  <meta property="og:title" content="Foldok Capture" />
+  <meta property="og:description" content="Photograph straight into the project folder. Nothing is uploaded to us." />
+  <meta property="og:image" content="/apple-touch-icon.png?v=6" />
+  <link rel="icon" href="/favicon-32.png?v=7" type="image/png" sizes="32x32" />
+  <link rel="icon" href="/favicon.ico?v=7" sizes="any" />
+  <link rel="icon" href="/favicon.svg?v=7" type="image/svg+xml" />
+  <style>
+    :root { --ink:#16181D; --paper:#FAF9F5; --signal:#F2B705; --line:#DAD7CC; --steel:#8A8577; }
+    * { box-sizing:border-box; }
+    body {
+      margin:0; font-family:Archivo,system-ui,sans-serif;
+      background:var(--paper); color:var(--ink);
+      min-height:100vh; display:flex; flex-direction:column; align-items:center;
+      padding:32px 20px 48px;
+    }
+    .mark { font-family:"IBM Plex Mono",monospace; color:var(--signal); font-size:22px; font-weight:700; }
+    h1 { font-size:clamp(1.4rem,4vw,2rem); font-weight:900; letter-spacing:-0.03em; margin:12px 0 10px; text-align:center; }
+    p { max-width:28em; line-height:1.55; color:var(--steel); text-align:center; margin:0 0 20px; }
+    .cta {
+      display:inline-block; text-decoration:none; font-weight:700; font-size:15px;
+      padding:14px 22px; border-radius:10px; background:var(--signal); color:var(--ink);
+    }
+    .cta:hover { filter:brightness(1.05); }
+    .hint { font-size:13px; margin-top:16px; }
+    .back { margin-top:32px; font-size:13px; color:var(--steel); }
+    .back a { color:inherit; }
+    .panel { display:none; width:100%; max-width:360px; text-align:center; }
+    .panel.on { display:block; }
+  </style>
+</head>
+<body>
+  <div class="mark" aria-hidden="true">[…]</div>
+  <h1 id="title">Foldok Capture</h1>
+  <p id="blurb">Photograph straight into the project folder. Pictures land in the folder you already use — nothing is uploaded to us.</p>
+
+  <div id="android" class="panel">
+    <a class="cta" id="install" href="/capture.apk">Install on Android</a>
+    <p class="hint">Sideload APK · folder binding via your own sync (OneDrive, Drive, local)</p>
+  </div>
+  <div id="ios" class="panel">
+    <p class="hint"><strong>iOS is not available yet.</strong> Capture is Android-first; an iOS build is planned.</p>
+  </div>
+  <div id="desktop" class="panel">
+    <p class="hint">Open this page on your phone — scan the QR on the Foldok site, or share this link to your device.</p>
+    <a class="cta" href="https://foldok.com">Back to Foldok</a>
+  </div>
+
+  <p class="back"><a href="https://foldok.com">foldok.com</a></p>
+
+  <script>
+  (function () {
+    var ua = navigator.userAgent || "";
+    var android = /Android/i.test(ua);
+    var ios = /iPad|iPhone|iPod/.test(ua) ||
+              (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (android) {
+      document.getElementById("android").classList.add("on");
+      document.getElementById("title").textContent = "Install Foldok Capture";
+      document.getElementById("blurb").textContent =
+        "Tap install, then open the APK. Bind a project folder — photos sync through the tool you already use.";
+    } else if (ios) {
+      document.getElementById("ios").classList.add("on");
+      document.getElementById("title").textContent = "Foldok Capture";
+    } else {
+      document.getElementById("desktop").classList.add("on");
+    }
+  })();
+  </script>
+</body>
+</html>

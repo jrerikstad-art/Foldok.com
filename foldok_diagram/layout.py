@@ -275,7 +275,10 @@ def layout(
     # 8 --------------------------------------------------------------- labels
     index = RectIndex()
     for p in placed:
-        index.add(p.rect())
+        # A symbol that prints its labels inside cannot also reserve its body as
+        # occupied, or every one of its own labels collides with it.
+        if not symbol_pack.get(p.symbol_id).labels_inside:
+            index.add(p.rect())
     texts: list[TextBox] = []
     texts += _component_labels(placed, pins, profile, style, index, warnings)
     if profile.show_port_labels and style.show_port_labels:
@@ -343,6 +346,13 @@ def _assign_columns(
         forced = pins.value(target_component(c.id), "column", profile.id, None)
         if isinstance(forced, int):
             col[c.id] = max(0, forced)
+
+    # Reference strips (marks with no wires) — spread across columns, not a
+    # single tall stack that later scales to a huge figure height.
+    if not conns and len(ids) > 1 and all(col[i] == 0 for i in ids):
+        for i, cid in enumerate(sorted(ids)):
+            col[cid] = i
+
     return col
 
 
@@ -727,12 +737,20 @@ def _port_labels(
             dy = float(offset.get("dy", 0.0)) if isinstance(offset, dict) else 0.0
 
             nx, ny = anchor.normal
-            base_x = anchor.x + nx * (style.stub * 0.45)
-            base_y = anchor.y + ny * (style.stub * 0.45)
+            sym = symbol_pack.get(p.symbol_id)
+            # Inside the body for modules, out in the channel for marks.
+            reach = -6.0 if sym.labels_inside else (style.stub * 0.45)
+            base_x = anchor.x + nx * reach
+            base_y = anchor.y + ny * reach
+            inside = sym.labels_inside
             if anchor.side == "right":
-                cands = [(base_x + 2, base_y - 2, "start"), (base_x + 2, base_y + style.port_label_size + 2, "start")]
+                align = "end" if inside else "start"
+                cands = [(base_x + (-2 if inside else 2), base_y + style.port_label_size / 3, align),
+                         (base_x + (-2 if inside else 2), base_y + style.port_label_size + 2, align)]
             elif anchor.side == "left":
-                cands = [(base_x - 2, base_y - 2, "end"), (base_x - 2, base_y + style.port_label_size + 2, "end")]
+                align = "start" if inside else "end"
+                cands = [(base_x + (2 if inside else -2), base_y + style.port_label_size / 3, align),
+                         (base_x + (2 if inside else -2), base_y + style.port_label_size + 2, align)]
             elif anchor.side == "top":
                 cands = [(base_x, base_y - 2, "middle"), (base_x + 4, base_y - 2, "start")]
             else:

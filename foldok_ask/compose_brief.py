@@ -49,7 +49,14 @@ def compose_topic_brief(
     drafts, cites = author_document(
         narrative=narrative, index=index, artifact=artifact, lang=lang,
     )
-    critic = review_document(drafts, thesis=narrative.thesis, lang=lang)
+    blueprint = narrative.as_blueprint()
+    critic = review_document(
+        drafts,
+        thesis=narrative.thesis,
+        lang=lang,
+        main_argument=blueprint.main_argument,
+        blueprint=blueprint,
+    )
 
     overview = ""
     body_parts = []
@@ -86,6 +93,7 @@ def compose_topic_brief(
         ),
         "source_register": sources or "\n".join(cites.appendix_lines(lang=lang)),
         "_narrative": narrative.to_dict(),
+        "_blueprint": blueprint.to_dict(),
         "_outline": [s.to_dict() for s in narrative.sections],
         "_drafts": drafts,
         "_cites": cites,

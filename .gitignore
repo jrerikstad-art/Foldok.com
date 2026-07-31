@@ -16,12 +16,16 @@ local_app/attach_staging/
 local_app/account_session.json
 local_app/guest_allowance.json
 local_app/project_states/
+local_app/_emc_narrative_preview.md
 proxy/data/
 .vercel
 .DS_Store
 .pytest_cache/
 .tmp_*/
+_tmp*
+_import_*/
 releases/*.zip
+*.apk
 .feltdok_cache/
 .feltdok_drafts/
 .feltdok_ref_cache/

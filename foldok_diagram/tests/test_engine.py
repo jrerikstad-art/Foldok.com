@@ -400,3 +400,62 @@ def test_v1_geometry_becomes_pins_and_survives():
     s.reset_to_auto()
     placed = {p.component.id: p for p in s.layout().placed}
     assert (placed["A"].x, placed["A"].y) != (120, 40)
+
+
+def test_expanded_symbol_pack_is_known_and_renders():
+    from foldok_diagram.symbols import known, SYMBOLS
+    from foldok_diagram.model import Component, Connection, Endpoint, Graph, Port, Provenance, Segment
+    from foldok_diagram import figure
+    from foldok_diagram import profile as profiles
+
+    needed = (
+        "mains_filter", "transformer", "power_supply", "sensor", "cable_shielded",
+        "rcd", "fuse", "contactor", "lamp", "terminal_strip",
+        "protection_class_i", "protection_class_ii", "protection_class_iii",
+        "bond_strap", "bond_braid_lug", "bond_braid_ring",
+        "cable_tray_deep", "cable_tray_shallow", "cable_tray_deep_ok",
+        "cable_tray_shallow_bad", "cable_multicore",
+        "valve_prv", "strainer", "expansion_vessel", "radiator", "boiler",
+        "cross_equal", "air_vent", "water_meter", "bearing",
+    )
+    for sid in needed:
+        assert known(sid), sid
+    assert len(SYMBOLS) >= 40
+
+    g = Graph(
+        id="symbol_smoke",
+        title="Symbol pack smoke",
+        subtitle="new marks",
+        domain="electrical",
+        jurisdiction="ELV_DC",
+        components=[
+            Component(
+                id="Z1", type="mains_filter", label="Filter", tag="-Z1",
+                ports=[
+                    Port("a", "LINE", "left", "electrical", 0),
+                    Port("b", "LOAD", "right", "electrical", 1),
+                ],
+                provenance=Provenance(source="user"),
+            ),
+            Component(
+                id="B1", type="sensor", label="Sensor", tag="-B1",
+                ports=[Port("p", "PWR", "left", "electrical", 0)],
+                provenance=Provenance(source="user"),
+            ),
+        ],
+        connections=[
+            Connection(
+                id="w1",
+                source=Endpoint("Z1", "b"),
+                target=Endpoint("B1", "p"),
+                medium="wire",
+                designation="24V",
+                segments=[Segment(size="0.5 mm2")],
+                provenance=Provenance(source="user"),
+            ),
+        ],
+    )
+    svg = figure(g, profiles.WIRING).svg
+    assert 'data-type="mains_filter"' in svg
+    assert 'data-type="sensor"' in svg
+    assert "module::" not in svg

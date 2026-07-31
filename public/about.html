@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>About Foldok — Mission &amp; Vision</title>
+  <meta name="description" content="Foldok helps you handle the documents you have, build the ones you’re missing, and fix the ones you already started. Mission: make incomplete engineering documentation hard to ignore." />
+  <meta property="og:title" content="About Foldok — Mission &amp; Vision" />
+  <meta property="og:description" content="The operating system for engineering documentation — from field evidence to delivered package." />
+  <meta property="og:image" content="/apple-touch-icon.png?v=6" />
+  <link rel="icon" href="/favicon-32.png?v=7" type="image/png" sizes="32x32" />
+  <link rel="icon" href="/favicon.ico?v=7" sizes="any" />
+  <link rel="icon" href="/favicon.svg?v=7" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink:#16181D; --paper:#FAF9F5; --sheet:#fff; --signal:#F2B705;
+      --line:#DAD7CC; --steel:#8A8577;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0; font-family:Archivo,sans-serif; background:var(--paper); color:var(--ink);
+      min-height:100vh;
+    }
+    header {
+      display:flex; align-items:center; gap:12px; min-height:52px; padding:8px 18px;
+      background:var(--ink); color:#fff; position:sticky; top:0; z-index:20;
+    }
+    header a.brand {
+      display:inline-flex; align-items:center; gap:12px;
+      color:inherit; text-decoration:none;
+    }
+    header .logo {
+      font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:22px;
+      letter-spacing:-0.06em; color:var(--signal); line-height:1;
+    }
+    header b { font-size:14px; letter-spacing:.06em; font-weight:800; }
+    header nav { margin-left:auto; display:flex; gap:14px; align-items:center; }
+    header nav a {
+      color:rgba(255,255,255,.78); text-decoration:none; font-size:13px; font-weight:600;
+    }
+    header nav a:hover { color:var(--signal); }
+    main { max-width:720px; margin:0 auto; padding:36px 20px 72px; }
+    .kicker {
+      font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.08em;
+      text-transform:uppercase; color:var(--steel); margin:0 0 12px;
+    }
+    h1 {
+      font-size:clamp(1.7rem,4vw,2.35rem); font-weight:900; letter-spacing:-0.03em;
+      line-height:1.15; margin:0 0 28px;
+    }
+    h2 {
+      font-size:1.15rem; font-weight:800; margin:36px 0 12px;
+      letter-spacing:-0.02em;
+    }
+    p { font-size:16px; line-height:1.6; margin:0 0 14px; max-width:40em; }
+    p.lead { font-size:17.5px; }
+    ul { margin:0 0 16px; padding-left:1.2rem; line-height:1.65; max-width:40em; }
+    li { margin-bottom:6px; }
+    .mv {
+      display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:28px 0;
+    }
+    @media (max-width:640px) { .mv { grid-template-columns:1fr; } }
+    .mv article {
+      border-top:3px solid var(--signal); padding-top:14px;
+    }
+    .mv h2 { margin:0 0 10px; font-size:1rem; text-transform:uppercase;
+      letter-spacing:.06em; font-family:"IBM Plex Mono",monospace; font-weight:700; }
+    .mv p { font-size:15px; margin:0; }
+    .principles { list-style:none; padding:0; margin:8px 0 0; max-width:42em; }
+    .principles li {
+      padding:12px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45;
+    }
+    .principles li:last-child { border-bottom:none; }
+    .principles strong { display:block; margin-bottom:2px; }
+    .short {
+      margin-top:40px; padding:18px 0 0; border-top:1px solid var(--line);
+      font-size:13.5px; color:var(--steel); line-height:1.55;
+    }
+    .short dt {
+      font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.08em;
+      text-transform:uppercase; color:var(--ink); margin:12px 0 4px; font-weight:700;
+    }
+    .short dd { margin:0; max-width:40em; }
+    footer {
+      max-width:720px; margin:0 auto; padding:0 20px 48px;
+      font-size:13px; color:var(--steel);
+    }
+    footer a { color:inherit; }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="/">
+      <span class="logo" aria-hidden="true">[…]</span><b>FOLDOK</b>
+    </a>
+    <nav>
+      <a href="/capture">Capture</a>
+      <a href="/">Home</a>
+    </nav>
+  </header>
+
+  <main>
+    <p class="kicker">Foldok · About</p>
+    <h1>About, Mission &amp; Vision</h1>
+
+    <h2>About us</h2>
+    <p class="lead">Foldok builds tools for people who must produce engineering documentation — manuals, compliance packages, as-builts, inspection records — from real project material.</p>
+    <p>We started from a simple observation: the work on site and in the folder is already done; the package is still assembled late, by hand, across photos, PDFs, drawings, and memory. Gaps show up at handover. Traceability is weak. Generic AI tools help you draft; they do not hold the project together.</p>
+    <p>Foldok is local-first. Your files stay in your folders. The product helps you see what is missing, close it with evidence, and deliver a package you can stand behind. AI is used only where it helps — gated, inspectable, never a substitute for your judgment.</p>
+    <p>We are building an <strong>engineering documentation operating system</strong>: capture in the field, knowledge and gaps on the laptop, structured documents out — so finishing the package is easier than leaving it incomplete.</p>
+
+    <div class="mv">
+      <article>
+        <h2>Mission</h2>
+        <p><strong>Make incomplete engineering documentation hard to ignore — and complete packages the path of least resistance.</strong></p>
+      </article>
+      <article>
+        <h2>Vision</h2>
+        <p><strong>Foldok becomes the place engineering documentation lives</strong> — from first site photo to delivered package and later updates.</p>
+      </article>
+    </div>
+
+    <p>We help engineers and teams:</p>
+    <ul>
+      <li>work from the documents and evidence they already have</li>
+      <li>surface what is missing before handover</li>
+      <li>build, edit, and close gaps with traceable sources</li>
+      <li>deliver packages with clarity, not hope</li>
+    </ul>
+    <p>We do not exist to help anyone “get away with” thin paperwork. We exist so the missing pieces are visible, and fixing them is the natural next step.</p>
+
+    <h2>In that future</h2>
+    <ul>
+      <li>The <strong>project folder</strong> is the source of truth; Foldok organises, links, and completes around it</li>
+      <li><strong>Field capture</strong> feeds the same project the office compiles</li>
+      <li><strong>Requirements and evidence</strong> stay bound to sections and deliverables</li>
+      <li><strong>AI stays infrastructure</strong> — countable, masked when needed, never the author of record</li>
+      <li>Teams of one or of many use the same lifecycle; responsibilities stay optional, not forced process theatre</li>
+    </ul>
+    <p>We aim for documentation that behaves more like engineered work: structured, traceable, reproducible under change — so when the job moves on, the package does not fall apart.</p>
+
+    <h2>How we work</h2>
+    <ol class="principles">
+      <li><strong>Documentation is the workspace</strong> Projects give context; the package is the job.</li>
+      <li><strong>Truth before polish</strong> Gaps and sources first; layout second.</li>
+      <li><strong>Local-first</strong> Your files, your standards licences, your machine.</li>
+      <li><strong>Fix over ignore</strong> Every feature should make closing a gap easier than skipping it.</li>
+      <li><strong>You remain responsible</strong> The tool assists; you sign and ship.</li>
+    </ol>
+
+    <h2>What “compliance” means here</h2>
+    <p>Foldok does not know the law the way a lawyer or a standards body does. It knows <strong>what a requirement profile said must exist</strong>, then checks <strong>whether evidence is present</strong> — artifact linked, provenance confirmed. “Ready” means ready relative to <em>this pack</em>, not “legally compliant” or “certified to NEK 400.” You (or your competent person) still own the meaning.</p>
+
+    <dl class="short">
+      <dt>Mission (short)</dt>
+      <dd>Incomplete docs shouldn’t slip through. Completing them should be the easy path.</dd>
+      <dt>Vision (short)</dt>
+      <dd>The operating system for engineering documentation — from field evidence to delivered package.</dd>
+      <dt>About (one line)</dt>
+      <dd>Foldok helps you handle the documents you have, build the ones you’re missing, and fix the ones you already started.</dd>
+    </dl>
+  </main>
+
+  <footer>
+    <a href="/">← Foldok home</a>
+    · <a href="/capture">Capture app</a>
+    · <a href="https://github.com/jrerikstad-art/Foldok.com">GitHub</a>
+  </footer>
+</body>
+</html>

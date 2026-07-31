@@ -920,9 +920,19 @@ def template_gaps(template, index, artifact, section_files=None):
         sk = s["section_key"]
         files = (section_files or {}).get(sk, [])
         minp = s.get("required_media", {}).get("min_photos", 0)
-        if minp and len(files) < minp:
-            gaps.append({"section": sk, "type": "missing_media",
-                         "key": "photos", "label": f"min {minp} photo(s)", "severity": "warning"})
+        if minp:
+            # Prefer mapped section files; if map missing, don't pretend supplier must
+            # invent photos when the index already has overview/drawing media.
+            if section_files is not None:
+                have = _section_media_count(files, index)
+            else:
+                have = _section_media_count(
+                    [e.get("file") for e in (index or []) if e.get("file")],
+                    index,
+                )
+            if have < minp:
+                gaps.append({"section": sk, "type": "missing_media",
+                             "key": "photos", "label": f"min {minp} photo(s)", "severity": "warning"})
     return gaps
 
 
@@ -972,6 +982,10 @@ def map_sections(template, index, artifact):
         tpl_key == "topic_brief"
         or Path(str(template.get("_file") or "")).name.lower() == "topic_brief.json"
     )
+    is_install_manual = (
+        tpl_key == "installation_manual"
+        or Path(str(template.get("_file") or "")).name.lower() == "installation_manual.json"
+    )
     if is_research_report or is_topic_brief:
         # Deterministic map — compilers own bodies; no Haiku file-routing cost/sludge.
         all_files = [e.get("file") for e in safe_index if e.get("file")]
@@ -985,10 +999,7 @@ def map_sections(template, index, artifact):
         if is_topic_brief:
             file_map = {
                 "overview": all_files[:6],
-                "emc_zones": fig_files[:6] or all_files[:6],
-                "cable_classes": all_files[:8],
-                "earthing": all_files[:8],
-                "standards_register": all_files[:12],
+                "answers": all_files[:12],
                 "gaps": [],
                 "source_register": all_files,
             }
@@ -1004,6 +1015,12 @@ def map_sections(template, index, artifact):
                 "source_register": all_files,
                 "signature": [],
             }
+    elif is_install_manual:
+        from install_manual_compile import map_install_files, corpus_shape, allowed_install_files
+        file_map = map_install_files(safe_index, template, artifact)
+        allowed = allowed_install_files(safe_index, artifact)
+        shape = corpus_shape(safe_index, artifact)
+        print(f"  · installation_manual: shape={shape} allowlist={len(allowed)} files")
     else:
         file_map = ask_json("section_mapping", HAIKU, [{"role": "user", "content":
             f"Map project files to document sections. Reply ONLY JSON: "
@@ -1012,7 +1029,7 @@ def map_sections(template, index, artifact):
 
     # ── relevance gate: computed score (foldok_intake) then role overlap ────────
     dropped: dict[str, list[str]] = {}
-    if not (is_research_report or is_topic_brief):
+    if not (is_research_report or is_topic_brief or is_install_manual):
         if intake_gate is not None:
             gate_report = intake_gate(file_map, safe_index, secs)
             file_map = dict(gate_report.kept)
@@ -1025,15 +1042,28 @@ def map_sections(template, index, artifact):
             dropped.setdefault(sk, []).extend(files)
             print(f"  ⚠ Role gate dropped from [{sk}]: {', '.join(files)}")
     else:
-        label = "topic_brief" if is_topic_brief else "research_project_report"
+        if is_install_manual:
+            label = "installation_manual"
+        elif is_topic_brief:
+            label = "topic_brief"
+        else:
+            label = "research_project_report"
         print(f"  · {label}: skipping relevance gate (deterministic compilers)")
 
     gaps = template_gaps(template, safe_index, artifact, file_map)
     all_facts = {}
-    for e in safe_index:
+    # Install manuals: never harvest required-key facts from the whole loud corpus.
+    fact_index = safe_index
+    if is_install_manual:
+        from install_manual_compile import filter_index_for_install
+        fact_index = filter_index_for_install(safe_index, artifact)
+        # Gaps must use the same allowlist — otherwise supplier_manual_gaps lists
+        # exact-key misses that soft-match on allowlisted technical PDFs.
+        gaps = template_gaps(template, fact_index or safe_index, artifact, file_map)
+    for e in fact_index:
         for f in e.get("facts", []):
             all_facts.setdefault(f["key"], []).append(f)
-    _augment_synthetic_facts(safe_index, all_facts, artifact)
+    _augment_synthetic_facts(fact_index if is_install_manual else safe_index, all_facts, artifact)
     mappings = {}
     for s in template["sections"]:
         cond = s.get("condition")
@@ -1397,8 +1427,8 @@ def expand_figures_to_markdown_images(md, media_url_fn):
 FACT_ALIASES = {
     "scope_statement": ["floor_area", "gross_area", "new_building_area", "new_area",
                         "new_area_total", "terrace_area", "building_area"],
-    "floor_area": ["gross_area", "new_building_area", "new_area", "new_area_total", "terrace_area"],
-    "gross_area": ["floor_area", "new_building_area", "new_area", "new_area_total", "terrace_area"],
+    "floor_area": ["gross_area", "new_building_area", "new_area", "new_area_total", "terrace_area", "building_area"],
+    "gross_area": ["floor_area", "new_building_area", "new_area", "new_area_total", "terrace_area", "building_area"],
     "dimensions": ["floor_area", "gross_area", "new_building_area", "width", "length"],
     "project_title": ["drawing_title", "property_address", "thesis_title", "product_name", "project_name"],
     "project_name": ["project_title", "drawing_title", "product_name", "thesis_title"],
@@ -1411,8 +1441,40 @@ FACT_ALIASES = {
     "issuer": ["architect_name", "prepared_by", "author_name", "project_manager", "reviewer_or_approver", "issuer_name"],
     "spec_ref": ["document_number", "drawing_no", "revision"],
     "property_address": ["address", "site_address", "project_location", "eiendomsadresse"],
-    "floor_area": ["gross_area", "new_building_area", "new_area", "building_area", "terrace_area"],
-    "gross_area": ["floor_area", "new_building_area", "new_area", "building_area"],
+    # Installation manual — extractor keys rarely match template required_facts verbatim
+    "system_type": [
+        "applicable_products", "product_type", "equipment_type", "device_type",
+        "type_designation", "anleggstype", "system_under_install",
+    ],
+    "hazard": [
+        "warning", "danger", "risk", "fare", "safety_warning",
+        "safety_device_fault_response", "fault_response",
+    ],
+    "requirement": [
+        "krav", "shall_requirement", "mandatory_requirement",
+        "installation_requirement", "emc_requirement",
+    ],
+    "criterion": [
+        "acceptance_criterion", "acceptance_criteria", "akseptkriterium",
+        "threshold", "limit", "cable_shield_coverage",
+    ],
+    "manufacturer": ["supplier", "leverandør", "vendor", "producer"],
+}
+
+# Soft key match when exact + alias miss (vocabulary drift in extracted keys)
+SOFT_KEY_RX = {
+    "system_type": re.compile(
+        r"(?i)^(system_type|applicable_products|product_type|equipment_type|"
+        r"device_type|type_designation|anleggstype)$"
+    ),
+    "hazard": re.compile(
+        r"(?i)(hazard|fare|danger|warning|fault_response|safety_device|risk)"
+    ),
+    "requirement": re.compile(r"(?i)(requirement|krav)"),
+    "criterion": re.compile(
+        r"(?i)(criterion|acceptance|aksept|threshold|_limit$|limit$|_coverage$)"
+    ),
+    "manufacturer": re.compile(r"(?i)^(manufacturer|supplier|leverand|vendor|producer)"),
 }
 
 
@@ -2068,6 +2130,15 @@ def _facts_for_key(key, all_facts, artifact=None):
     out = list(all_facts.get(key, []))
     for alias in FACT_ALIASES.get(key, []):
         out.extend(all_facts.get(alias, []))
+    # Soft match: keys like safety_device_fault_response close ``hazard``
+    if not out:
+        rx = SOFT_KEY_RX.get(key)
+        if rx:
+            for fk, facts in (all_facts or {}).items():
+                if fk == key:
+                    continue
+                if rx.search(str(fk or "")):
+                    out.extend(facts)
     out = [f for f in out if f.get("provenance") != "reference"]
     if out or not artifact:
         return out
@@ -2083,12 +2154,39 @@ def _facts_for_key(key, all_facts, artifact=None):
         if author:
             return [{"id": "artifact-author", "key": "author_name", "value": author, "unit": None,
                      "source_location": "artefaktmodell (sjekkpunkt A)"}]
+    if key == "system_type":
+        locked = str(artifact.get("system_under_install") or "").strip()
+        if locked:
+            return [{"id": "artifact-system", "key": "system_type", "value": locked, "unit": None,
+                     "source_location": "artefaktmodell (system_under_install)"}]
     if key in ("floor_area", "gross_area", "new_building_area"):
         m = re.search(r"(\d+)\s*m\s*[²2]", artifact.get("purpose") or "")
         if m:
             return [{"id": "artifact-area", "key": key, "value": m.group(1), "unit": "m²",
                      "source_location": "artefaktmodell (sjekkpunkt A)"}]
     return out
+
+
+def _section_media_count(files, index) -> int:
+    """How many mapped files can satisfy a min_photos / overview media need."""
+    by = {e.get("file"): e for e in (index or []) if e.get("file")}
+    n = 0
+    for fn in files or []:
+        e = by.get(fn) or {}
+        ext = Path(str(fn)).suffix.lower()
+        roles = set(e.get("doc_role_hints") or [])
+        kind = e.get("kind") or ""
+        if ext in PHOTO_EXT or kind in ("image", "slide", "drawing"):
+            n += 1
+        elif ext in (".pdf", ".pptx") and roles & {
+            "drawing", "schematic", "site_plan", "overview",
+            "technical_data", "manual", "datasheet",
+        }:
+            n += 1
+        elif ext in (".pdf", ".pptx", ".png", ".jpg", ".jpeg"):
+            # Mapped visual/source page — counts for overview media
+            n += 1
+    return n
 
 
 def pick_best_area_fact(index, artifact=None):
@@ -2279,7 +2377,11 @@ def build_section_fact_context(mapping, index, artifact, cap=120, exclude_ids=No
         "contact_person", "contact_name", "website", "url", "linkedin",
         "instagram", "facebook", "slogan", "tagline", "marketing_text",
         "promo_text", "token_count", "word_count",
+        "persona", "personas", "hypothesis", "hypotese", "market_size",
+        "market_segment", "buyer_persona", "competitive", "swot",
+        "investor", "opportunity", "board", "ceo", "cfo",
     }
+    install_mode = str(mapping.get("template_key") or "").strip().lower() == "installation_manual"
     for fid in list(by_id.keys()):
         f = by_id.get(fid) or {}
         key = str(f.get("key") or "").strip().lower()
@@ -2292,8 +2394,16 @@ def build_section_fact_context(mapping, index, artifact, cap=120, exclude_ids=No
             continue
         if re.search(r"\b(follow|subscribe|call now|limited offer)\b", val, re.I):
             by_id.pop(fid, None)
+            continue
+        if install_mode and re.search(
+            r"(?i)\b(persona|hypotese|hypothesis|markedspotensial|"
+            r"market\s*size|konkurrent|investor|styre)\b",
+            f"{key} {val}",
+        ):
+            by_id.pop(fid, None)
 
     # Keep project title/scope only in true overview/identity homes.
+    # Install manuals: title only — not purpose/author (BoD sludge magnets).
     allow_project_meta = sec_key in {
         "identification", "system_overview", "summary", "executive_summary",
         "scope", "spec_overview", "doc_control",
@@ -2305,7 +2415,7 @@ def build_section_fact_context(mapping, index, artifact, cap=120, exclude_ids=No
             "confidence": 1.0,
             "source_location": "artefaktmodell (sjekkpunkt A)",
         }
-    if allow_project_meta and artifact.get("purpose"):
+    if allow_project_meta and artifact.get("purpose") and not install_mode:
         by_id["artifact-purpose"] = {
             "id": "artifact-purpose", "key": "scope_statement",
             "value": artifact["purpose"], "unit": None,
@@ -2313,15 +2423,23 @@ def build_section_fact_context(mapping, index, artifact, cap=120, exclude_ids=No
             "source_location": "artefaktmodell (sjekkpunkt A)",
         }
     author = _author_from_artifact(artifact)
-    if allow_project_meta and author:
+    if allow_project_meta and author and not install_mode:
         by_id["artifact-author"] = {
             "id": "artifact-author", "key": "author_name",
             "value": author, "unit": None, "confidence": 1.0,
             "source_location": "artefaktmodell (sjekkpunkt A)",
         }
+    if install_mode:
+        system_val = str(artifact.get("system_under_install") or "").strip()
+        if system_val:
+            by_id["artifact-system"] = {
+                "id": "artifact-system", "key": "system_under_install",
+                "value": system_val, "unit": None, "confidence": 1.0,
+                "source_location": "artefaktmodell (system_under_install)",
+            }
 
     primary_ids = [fid for fid in (mapping.get("fact_ids") or []) if fid in by_id]
-    for synth in ("artifact-name", "artifact-purpose", "artifact-author"):
+    for synth in ("artifact-name", "artifact-purpose", "artifact-author", "artifact-system"):
         if synth in by_id and synth not in primary_ids:
             primary_ids.append(synth)
 
@@ -2338,14 +2456,53 @@ def build_section_fact_context(mapping, index, artifact, cap=120, exclude_ids=No
     scored = []  # (priority, -confidence, fid, fact)
     seen = set()
 
+    # Install manuals: hard allowlist — never Tier-A from the whole project.
+    install_allowed = None
+    if install_mode:
+        from install_manual_compile import (
+            allowed_install_files,
+            should_stay_thin,
+            filter_identity_fact_ids,
+        )
+        install_allowed = allowed_install_files(index, artifact)
+        mapped_files = {f for f in mapped_files if f in install_allowed}
+        # Stay thin: only synth system (+ project name) — no loud fact harvest
+        if should_stay_thin(index, artifact):
+            primary_ids = [fid for fid in primary_ids if fid.startswith("artifact-")]
+            for synth in ("artifact-system", "artifact-name"):
+                if synth in by_id and synth not in primary_ids:
+                    primary_ids.append(synth)
+            available = []
+            for fid in primary_ids:
+                if fid in by_id and fid not in exclude_ids:
+                    f = by_id[fid]
+                    available.append({"id": fid, **{k: v for k, v in f.items() if k != "id"}})
+            available_ids = {a["id"] for a in available}
+            return {
+                "by_id": by_id,
+                "primary_ids": primary_ids,
+                "available": available,
+                "available_ids": available_ids,
+                "primary_txt": "\n".join(
+                    _format_fact_line(fid, by_id[fid]) for fid in primary_ids if fid in by_id
+                ) or "(thin — no install sources)",
+                "available_txt": "(thin — no install sources)",
+                "required_keys": required_keys,
+                "install_stay_thin": True,
+                "install_allowed_files": sorted(install_allowed),
+            }
+
     def _add(fid, f, priority):
         if not fid or fid in seen or fid not in by_id or fid in exclude_ids:
             return
         seen.add(fid)
         scored.append((priority, -_fact_confidence(f), fid, f))
 
-    # Tier A: required-key matches anywhere in index
+    # Tier A: required-key matches — install: only from allowlisted files
     for e in index or []:
+        fn = e.get("file") or ""
+        if install_allowed is not None and fn not in install_allowed:
+            continue
         for f in e.get("facts") or []:
             if f.get("provenance") == "reference":
                 continue
@@ -2363,12 +2520,15 @@ def build_section_fact_context(mapping, index, artifact, cap=120, exclude_ids=No
 
     # Tier C: synth / primary leftovers
     for fid in primary_ids:
-        _add(fid, by_id[fid], 2)
+        if fid in by_id:
+            _add(fid, by_id[fid], 2)
 
     scored.sort()
     available = []
     # Section-specific cap (keeps prose from becoming fact sludge)
-    if sec_key in ("technical_data", "spec_overview", "bom"):
+    if install_mode:
+        section_cap = min(cap, 12 if sec_key == "identification" else 16)
+    elif sec_key in ("technical_data", "spec_overview", "bom"):
         section_cap = min(cap, 80)
     elif sec_key in ("method", "results", "discussion", "conclusion"):
         section_cap = min(cap, 28)
@@ -2379,6 +2539,13 @@ def build_section_fact_context(mapping, index, artifact, cap=120, exclude_ids=No
             break
         available.append({"id": fid, **{k: v for k, v in f.items() if k != "id"}})
 
+    if install_mode and sec_key == "identification":
+        available = [
+            a for a in available
+            if a["id"] in filter_identity_fact_ids([a["id"]], by_id)
+            or str(a["id"]).startswith("artifact-")
+        ]
+
     available_ids = {a["id"] for a in available}
     primary_txt = "\n".join(
         _format_fact_line(fid, by_id[fid]) for fid in primary_ids
@@ -2388,7 +2555,7 @@ def build_section_fact_context(mapping, index, artifact, cap=120, exclude_ids=No
         if a["id"] in by_id
     ) or "(no available facts)"
 
-    return {
+    out = {
         "by_id": by_id,
         "primary_ids": primary_ids,
         "available": available,
@@ -2397,6 +2564,10 @@ def build_section_fact_context(mapping, index, artifact, cap=120, exclude_ids=No
         "available_txt": available_txt,
         "required_keys": required_keys,
     }
+    if install_mode:
+        out["install_allowed_files"] = sorted(install_allowed or [])
+        out["install_stay_thin"] = False
+    return out
 
 
 # Structures that must produce narrative / list text — never a bare fact dump.
@@ -2458,6 +2629,10 @@ def build_generic_fact_table(mapping, index, artifact, lang="no", ctx=None, fact
 
     # Research data table allowlist by theme + contact denylist
     sk = (sec_key or "").strip().lower()
+    tpl_key = str(mapping.get("template_key") or "").strip().lower()
+    if sk == "identification" and tpl_key == "installation_manual":
+        from install_manual_compile import filter_identity_fact_ids
+        ids = filter_identity_fact_ids(ids, by_id)[:16]
     if sk == "data_collected":
         allow_prefix = ("attenuation", "measurement", "test_", "standard", "frequency", "shield", "emc")
         allow_exact = {"manufacturer", "product_name", "part_number", "sample_size", "data_location"}
@@ -2622,7 +2797,11 @@ def ensure_min_figures(text, mapping, index, max_n=4):
     Default-on: any section with usable visuals gets ≥1 figure unless opted
     out. Pool = mapped files + every other visual in the index, ranked by
     caption relevance to the section (fixes mapper-starved boat-photo bug).
+
+    Installation manuals: never auto-insert supplier PDF page rasters (copyright).
     """
+    if str(mapping.get("template_key") or "").strip().lower() == "installation_manual":
+        return text
     section = mapping.get("section") or {}
     media = section.get("required_media") or {}
     if _section_opts_out_of_figures(mapping):
@@ -2754,6 +2933,41 @@ CONTACT_NOISE_RX = re.compile(
     r"\+?\d[\d\s().-]{7,}\d|"
     r"\b(address|adresse|phone|telefon|mobile|fax|website|url|linkedin)\b)"
 )
+
+
+def _strip_contact_noise_preserving_svg(text: str) -> str:
+    """Drop contact/URL noise lines without destroying engine SVG diagrams.
+
+    SVG opening tags include ``xmlns=\"http://www.w3.org/2000/svg\"`` which
+    would otherwise match CONTACT_NOISE_RX and strip the whole ``<svg>`` line.
+    """
+    if not text:
+        return text
+    parts = re.split(r"(?is)(<svg\b[^>]*>.*?</svg>)", text)
+    out = []
+    for i, part in enumerate(parts):
+        if i % 2 == 1:
+            out.append(part)
+            continue
+        kept = []
+        for ln in part.splitlines():
+            # Keep orphaned svg openers / markup even if URL-like attrs appear
+            s = (ln or "").lstrip()
+            if s.startswith("<svg") or s.startswith("</svg") or s.startswith("<"):
+                # Still drop pure contact lines that happen to start with <
+                if s.startswith("<svg") or s.startswith("</svg"):
+                    kept.append(ln)
+                    continue
+                # Inner SVG children (<rect>, <text>, …) — keep
+                if re.match(r"^</?(?:svg|g|rect|text|path|line|circle|ellipse|"
+                            r"polyline|polygon|defs|use|title|desc|tspan)\b", s, re.I):
+                    kept.append(ln)
+                    continue
+            if CONTACT_NOISE_RX.search(ln or ""):
+                continue
+            kept.append(ln)
+        out.append("\n".join(kept))
+    return "\n".join(out)
 
 
 def _is_contact_section(sec_key: str) -> bool:
@@ -2889,6 +3103,10 @@ def _is_research_report_mapping(mapping: dict) -> bool:
 
 def _is_topic_brief_mapping(mapping: dict) -> bool:
     return str(mapping.get("template_key") or "").strip().lower() == "topic_brief"
+
+
+def _is_install_manual_mapping(mapping: dict) -> bool:
+    return str(mapping.get("template_key") or "").strip().lower() == "installation_manual"
 
 
 def _index_usable(index):
@@ -3421,6 +3639,20 @@ def write_section_prose(sec_key, mapping, index, artifact, lang, fact_ids, ctx,
 
     # 0.86: procedural intents are authored, not generated
     if intent in AUTHORED_NOT_GENERATED:
+        # Install manuals: never pad with hollow phase shells / banner walls.
+        if _is_install_manual_mapping(mapping):
+            bits = []
+            if facts:
+                bits.append(
+                    ("**Siterte forutsetninger / farer (ikke en ferdig prosedyre):**"
+                     if lang == "no" else
+                     "**Cited constraints / hazards (not a finished procedure):**")
+                )
+                for f in facts[:12]:
+                    cite = f"{{{{fact:{f.id}}}}}" if getattr(f, "id", None) else ""
+                    bits.append(f"- {f.key}: {f.value}{(' ' + f.unit) if f.unit else ''} {cite}".rstrip())
+            bits.append(fallback_safe())
+            return "\n".join(bits)
         text = fallback_safe()
         if content_hints and "[AUTHOR:" not in text:
             text = text + "\n\n" + "\n".join(content_hints[:2])
@@ -3608,6 +3840,104 @@ def generate_section_with_structure(
                 return normalise_markdown(compiled)
             return _ret(compiled)
 
+    # Installation manual — thin corpus + procedure evidence + deferred register
+    if _is_install_manual_mapping(mapping):
+        from install_manual_compile import (
+            PROCEDURE_SECTION_KEYS,
+            append_install_figures,
+            candidate_install_filenames,
+            compile_install_identity_md,
+            compile_install_overview_md,
+            compile_install_section_from_plan,
+            dedupe_index_by_file,
+            focus_needles,
+            get_install_claim_plan,
+            has_procedure_evidence,
+            procedure_gap_md,
+            should_stay_thin,
+            system_under_install,
+            thin_identity_md,
+            thin_overview_md,
+        )
+        index = dedupe_index_by_file(index)
+        # Fresh claim plan per generate section batch (shared via artifact cache)
+        if isinstance(artifact, dict) and "_install_claim_plan" not in artifact:
+            pass  # built lazily on first section
+        sk_l = (sec_key or "").strip().lower()
+        stay_thin = should_stay_thin(index, artifact)
+        candidates = candidate_install_filenames(index, artifact)
+        if sk_l == "source_register":
+            return normalise_markdown(
+                "*(Kilderegister fylles etter generering fra siterte filer.)*"
+                if lang == "no" else
+                "*(Source register filled after generate from cited files.)*"
+            )
+        if sk_l == "identification":
+            if stay_thin:
+                text = thin_identity_md(artifact, lang, candidates=candidates)
+            else:
+                text = compile_install_identity_md(index, artifact, lang=lang)
+                text = append_install_figures(
+                    text, index, artifact, section_key=sk_l, limit=2, lang=lang,
+                )
+            return normalise_markdown(text)
+        if sk_l == "system_overview":
+            if stay_thin:
+                return normalise_markdown(
+                    thin_overview_md(artifact, lang, candidates=candidates)
+                )
+            # Diagrams live only here (claim plan + overview)
+            if isinstance(artifact, dict):
+                artifact.pop("_install_claim_plan", None)
+            return normalise_markdown(
+                compile_install_overview_md(index, artifact, lang=lang)
+            )
+        if sk_l in PROCEDURE_SECTION_KEYS:
+            mapped = mapping.get("files") or []
+            if stay_thin or not has_procedure_evidence(index, mapped, artifact=artifact):
+                if sk_l == "sequence":
+                    return normalise_markdown(procedure_gap_md(
+                        lang,
+                        system=system_under_install(artifact),
+                        section_key=sk_l,
+                        stay_thin=stay_thin,
+                        focus=focus_needles(artifact),
+                        candidates=candidates,
+                    ))
+                return normalise_markdown(
+                    "[MANGLER: installasjonsprosedyre] — se seksjonen Installasjonssekvens "
+                    "(ingen monteringskilder i tillatt sett; holdes tynn)."
+                    if lang == "no" else
+                    "[GAP: installation procedure] — see Installation Sequence "
+                    "(no mounting sources in allowlist; staying thin)."
+                )
+            # Shared partitioned claim plan — one assignment across sections
+            get_install_claim_plan(index, artifact, mapped_files=mapped)
+            text = compile_install_section_from_plan(
+                sk_l, index, artifact, mapped_files=mapped, lang=lang,
+                include_diagrams=False,  # diagrams only in overview
+                include_appendix=(sk_l == "sequence"),
+            )
+            if text:
+                text = append_install_figures(
+                    text, index, artifact, section_key=sk_l, limit=4, lang=lang,
+                )
+                return normalise_markdown(text)
+            if sk_l == "sequence":
+                return normalise_markdown(procedure_gap_md(
+                    lang,
+                    system=system_under_install(artifact),
+                    section_key=sk_l,
+                    stay_thin=False,
+                    focus=focus_needles(artifact),
+                    candidates=candidates,
+                ))
+            return normalise_markdown(
+                "[MANGLER: installasjonsprosedyre] — se seksjonen Installasjonssekvens."
+                if lang == "no" else
+                "[GAP: installation procedure] — see Installation Sequence."
+            )
+
     # Research project report — deterministic section contracts (no fact walls)
     if _is_research_report_mapping(mapping):
         compiled = compile_research_section(sec_key, mapping, index, artifact, lang=lang)
@@ -3732,7 +4062,17 @@ def postprocess(sec_key, text, index, artifact=None, excluded_fact_ids=None, kno
     WORKORDER 0.48: resolve {{fig:filename}} markers."""
     text = strip_duplicate_heading(text)
     text = resolve_fig_markers(text, index)
-    by_id = {f["id"]: f for e in index for f in e.get("facts", [])}
+    try:
+        from install_manual_compile import dedupe_index_by_file
+        index = dedupe_index_by_file(index)
+    except Exception:
+        pass
+    by_id = {}
+    for e in index or []:
+        for f in e.get("facts", []):
+            fid = f.get("id")
+            if fid and fid not in by_id:
+                by_id[fid] = f
     excluded_fact_ids = set(excluded_fact_ids or [])
     known = set(known_keys or [])
     for e in index or []:
@@ -3759,11 +4099,13 @@ def postprocess(sec_key, text, index, artifact=None, excluded_fact_ids=None, kno
             return "⟦DROP_UNKNOWN_CITE⟧"
         cited.append(f["id"])
         unit = f" {f['unit']}" if f.get("unit") else ""
+        # Tables break if resolved values contain pipe characters
+        val = str(f.get("value") or "").replace("|", "/")
         if f.get("provenance") == "reference":
-            return f"**{f['value']}{unit} ~**"
+            return f"**{val}{unit} ~**"
         if str(f.get("id", "")).startswith("user-"):
-            return f"**{f['value']}{unit} ✓**"
-        return f"**{f['value']}{unit}**"
+            return f"**{val}{unit} ✓**"
+        return f"**{val}{unit}**"
 
     text = re.sub(r"\{\{fact:([\w-]+)\}\}", sub_fact, text)
     text = re.sub(r"\{\{missing:([\w_]+)\}\}", r"`[MANGLER: \1]`", text)
@@ -3776,11 +4118,9 @@ def postprocess(sec_key, text, index, artifact=None, excluded_fact_ids=None, kno
         text = re.sub(r"(?i)\b(author name|forfatter)\b[^.\n]{0,140}[.\n]?", "", text)
 
     # Contact/publishing noise never belongs outside explicit contact sections.
+    # Preserve engine-generated <svg>…</svg> (xmlns URLs are not contact spam).
     if not _is_contact_section(sec_key):
-        text = "\n".join(
-            ln for ln in (text or "").splitlines()
-            if not CONTACT_NOISE_RX.search(ln or "")
-        )
+        text = _strip_contact_noise_preserving_svg(text or "")
 
     def _drop_marked_chunks(blob, marker):
         """Drop prose sentences with marker; for tables, drop lines only."""

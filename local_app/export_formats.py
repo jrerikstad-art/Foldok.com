@@ -2,12 +2,17 @@
 
 Render target only — never regenerates AI content. pptx/docx split large
 tables deterministically with an explicit notice (never silent truncate).
+
+PDF uses PyMuPDF Story (always available with the engine's pymupdf dep).
+Dev / unpaid local export downloads the PDF in the browser without a paywall
+when FOLDOK_EXPORT_PRICE is unset.
 """
 from __future__ import annotations
 
 import html as html_lib
 import io
 import re
+import tempfile
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -15,6 +20,209 @@ from typing import Any
 
 def notices_for_format(fmt: str) -> list[str]:
     return []
+
+
+_SVG_BLOCK = re.compile(r"(?is)<svg\b[^>]*>.*?</svg>")
+_IMG_MD = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
+_LINK_MD = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+_BOLD = re.compile(r"\*\*([^*]+)\*\*")
+_ITALIC = re.compile(r"(?<!\*)\*([^*]+)\*(?!\*)")
+_HEADING = re.compile(r"^(#{1,6})\s+(.*)$")
+_HR = re.compile(r"^---+\s*$")
+_UL = re.compile(r"^[-*]\s+(.*)$")
+_OL = re.compile(r"^(\d+)[.)]\s+(.*)$")
+_TABLE_ROW = re.compile(r"^\|(.+)\|\s*$")
+
+
+def _inline_md(text: str) -> str:
+    """Escape then apply light inline markdown (images/links/bold/italic)."""
+    # Protect images/links before escape by placeholders
+    holders: list[str] = []
+
+    def hold(html_frag: str) -> str:
+        holders.append(html_frag)
+        return f"\x00H{len(holders) - 1}\x00"
+
+    def img_sub(m: re.Match) -> str:
+        alt = html_lib.escape(m.group(1) or "")
+        src = html_lib.escape(m.group(2).strip(), quote=True)
+        return hold(f'<img src="{src}" alt="{alt}" style="max-width:100%;height:auto"/>')
+
+    def link_sub(m: re.Match) -> str:
+        label = html_lib.escape(m.group(1) or "")
+        href = html_lib.escape(m.group(2).strip(), quote=True)
+        return hold(f'<a href="{href}">{label}</a>')
+
+    text = _IMG_MD.sub(img_sub, text)
+    text = _LINK_MD.sub(link_sub, text)
+    text = html_lib.escape(text)
+    text = _BOLD.sub(r"<strong>\1</strong>", text)
+    text = _ITALIC.sub(r"<em>\1</em>", text)
+    for i, frag in enumerate(holders):
+        text = text.replace(f"\x00H{i}\x00", frag)
+    return text
+
+
+def markdown_to_export_html(md: str, *, title: str = "Dokument") -> str:
+    """Best-effort MD → HTML for PDF (tables, lists, headings, inline SVG)."""
+    text = md or ""
+    svgs: list[str] = []
+
+    def park_svg(m: re.Match) -> str:
+        svgs.append(m.group(0))
+        return f"\n\n@@SVG{len(svgs) - 1}@@\n\n"
+
+    text = _SVG_BLOCK.sub(park_svg, text)
+    # Drop wrapper divs around wiring diagrams — keep parked SVG markers
+    text = re.sub(r'(?is)<div\b[^>]*class="[^"]*fd-wiring[^"]*"[^>]*>\s*', "\n\n", text)
+    text = re.sub(r"(?is)</div>", "\n", text)
+
+    lines = text.replace("\r\n", "\n").split("\n")
+    body: list[str] = []
+    i = 0
+    while i < len(lines):
+        ln = lines[i]
+        stripped = ln.strip()
+        if not stripped:
+            i += 1
+            continue
+        m_svg = re.fullmatch(r"@@SVG(\d+)@@", stripped)
+        if m_svg:
+            body.append(
+                f'<div class="fig">{svgs[int(m_svg.group(1))]}</div>'
+            )
+            i += 1
+            continue
+        hm = _HEADING.match(stripped)
+        if hm:
+            level = min(len(hm.group(1)), 4)
+            body.append(f"<h{level}>{_inline_md(hm.group(2))}</h{level}>")
+            i += 1
+            continue
+        if _HR.match(stripped):
+            body.append("<hr/>")
+            i += 1
+            continue
+        if _TABLE_ROW.match(stripped):
+            rows: list[str] = []
+            while i < len(lines) and _TABLE_ROW.match(lines[i].strip()):
+                rows.append(lines[i].strip())
+                i += 1
+            if len(rows) >= 2 and re.match(r"^\|[\s\-:|]+\|\s*$", rows[1]):
+                header, sep, *data = rows[0], rows[1], *rows[2:]
+            else:
+                header, data = rows[0], rows[1:]
+                sep = None
+            def cells(row: str) -> list[str]:
+                return [c.strip() for c in row.strip("|").split("|")]
+            body.append('<table>')
+            body.append("<thead><tr>" + "".join(
+                f"<th>{_inline_md(c)}</th>" for c in cells(header)
+            ) + "</tr></thead>")
+            if data:
+                body.append("<tbody>")
+                for r in data:
+                    if sep is not None and re.match(r"^\|[\s\-:|]+\|\s*$", r):
+                        continue
+                    body.append("<tr>" + "".join(
+                        f"<td>{_inline_md(c)}</td>" for c in cells(r)
+                    ) + "</tr>")
+                body.append("</tbody>")
+            body.append("</table>")
+            continue
+        if _UL.match(stripped) or _OL.match(stripped):
+            ordered = bool(_OL.match(stripped))
+            tag = "ol" if ordered else "ul"
+            body.append(f"<{tag}>")
+            while i < len(lines):
+                s = lines[i].strip()
+                um = _UL.match(s)
+                om = _OL.match(s)
+                if ordered and om:
+                    body.append(f"<li>{_inline_md(om.group(2))}</li>")
+                elif not ordered and um:
+                    body.append(f"<li>{_inline_md(um.group(1))}</li>")
+                else:
+                    break
+                i += 1
+            body.append(f"</{tag}>")
+            continue
+        # paragraph: gather until blank
+        paras = [stripped]
+        i += 1
+        while i < len(lines) and lines[i].strip() and not _HEADING.match(lines[i].strip()) \
+                and not _TABLE_ROW.match(lines[i].strip()) \
+                and not _UL.match(lines[i].strip()) \
+                and not _OL.match(lines[i].strip()) \
+                and not _HR.match(lines[i].strip()) \
+                and not re.fullmatch(r"@@SVG\d+@@", lines[i].strip()):
+            paras.append(lines[i].strip())
+            i += 1
+        body.append("<p>" + "<br/>".join(_inline_md(p) for p in paras) + "</p>")
+
+    css = """
+    body{font-family:Georgia,'Times New Roman',serif;font-size:11pt;line-height:1.45;color:#1a1a1a}
+    h1{font-size:18pt;margin:0 0 12pt} h2{font-size:14pt;margin:18pt 0 8pt}
+    h3{font-size:12pt;margin:14pt 0 6pt} h4{font-size:11pt;margin:12pt 0 4pt}
+    p{margin:0 0 8pt} table{border-collapse:collapse;width:100%;margin:8pt 0;font-size:10pt}
+    th,td{border:1px solid #bbb;padding:4pt 6pt;vertical-align:top;text-align:left}
+    th{background:#f0f0f0} ul,ol{margin:0 0 8pt;padding-left:18pt}
+    li{margin:2pt 0} hr{border:none;border-top:1px solid #ccc;margin:12pt 0}
+    .fig{margin:10pt 0;text-align:center} .fig svg{max-width:100%;height:auto}
+    img{max-width:100%;height:auto}
+    """
+    return (
+        "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+        f"<title>{html_lib.escape(title)}</title>"
+        f"<style>{css}</style></head><body>"
+        f"<h1>{html_lib.escape(title)}</h1>"
+        + "\n".join(body)
+        + "</body></html>"
+    )
+
+
+def render_markdown_pdf(
+    md: str,
+    *,
+    title: str = "Dokument",
+    base_dir: Path | str | None = None,
+) -> bytes:
+    """Render markdown (with inline SVG / relative images) to PDF bytes via PyMuPDF."""
+    import fitz
+
+    html = markdown_to_export_html(md, title=title)
+    archive = None
+    if base_dir is not None:
+        base = Path(base_dir)
+        if base.is_dir():
+            archive = fitz.Archive(str(base))
+    mediabox = fitz.paper_rect("a4")
+    where = mediabox + (48, 48, -48, -48)
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+    try:
+        writer = fitz.DocumentWriter(str(tmp_path))
+        story = fitz.Story(html=html, archive=archive)
+        more = True
+        pages = 0
+        while more:
+            device = writer.begin_page(mediabox)
+            more, _ = story.place(where)
+            story.draw(device)
+            writer.end_page()
+            pages += 1
+            if pages > 400:
+                break
+        writer.close()
+        data = tmp_path.read_bytes()
+        if len(data) < 64:
+            raise RuntimeError("PDF export produced an empty file")
+        return data
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def sections_from_state(state: dict, template: dict | None = None) -> list[dict]:
@@ -145,10 +353,17 @@ def write_format_export(
     display_name: str,
     md_content: str | None = None,
 ) -> tuple[Path | None, str, list[str], bytes | None]:
-    """Returns (path_or_none, display, notices, raw_bytes_if_no_folder)."""
+    """Returns (path_or_none, filename, notices, raw_bytes).
+
+    Always returns raw_bytes so the workbench can trigger a browser download.
+    """
     fmt = (fmt or "pdf").lower()
     notices: list[str] = []
     safe = re.sub(r'[\\/:*?"<>|]', "-", display_name)[:100] or "export"
+    out_dir: Path | None = None
+    if folder and Path(folder).is_dir():
+        out_dir = Path(folder) / "Rapporter"
+        out_dir.mkdir(exist_ok=True)
 
     if fmt == "html":
         raw = render_html_export(state, template, title=display_name).encode("utf-8")
@@ -160,18 +375,17 @@ def write_format_export(
         raw = render_docx_export(state, template, title=display_name)
         name = f"{safe}.docx"
     else:
-        # pdf target → markdown/html preview path (existing md writer used by caller)
+        # Real PDF (PyMuPDF Story). Sidecar .md kept for re-open / archive.
         text = md_content or ""
-        raw = text.encode("utf-8")
-        name = f"{safe}.md"
-        fmt = "pdf"
+        raw = render_markdown_pdf(text, title=display_name, base_dir=out_dir)
+        name = f"{safe}.pdf"
+        if out_dir is not None:
+            (out_dir / f"{safe}.md").write_text(text, encoding="utf-8")
 
-    if folder and Path(folder).is_dir():
-        out_dir = Path(folder) / "Rapporter"
-        out_dir.mkdir(exist_ok=True)
+    if out_dir is not None:
         path = out_dir / name
         path.write_bytes(raw)
-        return path, name, notices, None
+        return path, name, notices, raw
     return None, name, notices, raw
 
 

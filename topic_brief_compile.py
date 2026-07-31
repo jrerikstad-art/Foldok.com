@@ -47,3 +47,9 @@ def compile_topic_brief_section(sec_key, mapping, index, artifact, lang="no"):
     if sk in ("overview", "answers", "gaps", "source_register"):
         return parts.get(sk) or ""
     return None
+
+
+def blueprint_for(index, artifact, lang="no") -> dict | None:
+    """NarrativeBlueprint dict for persistence on the document."""
+    parts = _parts_for(index, artifact, lang)
+    return parts.get("_blueprint")

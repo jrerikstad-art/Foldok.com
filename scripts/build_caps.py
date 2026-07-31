@@ -11,6 +11,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 TEMPLATES = ROOT / "templates"
 OUT = ROOT / "capabilities.json"
 VERSION_FILE = ROOT / "VERSION"
@@ -58,6 +60,7 @@ CANNOT = [
     "lese native CAD (DWG/STEP)",
     "signere for deg",
     "finne på verdier som ikke finnes i kilder",
+    # Broad CAD disclaimer — merge_into moves this into diagrams.limits when that engine ships.
     "tegne eller modellere i 3D",
 ]
 
@@ -277,10 +280,32 @@ def _group(key: str, t: dict) -> str:
     return "Teknisk dokumentasjon"
 
 
+def _merge_engine_capabilities(data: dict) -> dict:
+    """Reconcile shipped engines into the manifest (foldok_capabilities 0.83)."""
+    try:
+        from foldok_capabilities import discover, merge_into, reconcile
+    except ImportError:
+        return data
+    found = discover(ROOT)
+    merged = merge_into(data, found)
+    rec = reconcile(ROOT, manifest=merged, capabilities=found)
+    blocking = [d for d in rec.drift if d.severity == "fail"]
+    if blocking:
+        print("WARNING: capability drift (blocking):", file=sys.stderr)
+        print(rec.report(), file=sys.stderr)
+    elif rec.drift:
+        print(rec.report(), file=sys.stderr)
+    return merged
+
+
 def main():
-    data = build()
+    data = _merge_engine_capabilities(build())
     OUT.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"Wrote {OUT.relative_to(ROOT)} — {len(data['templates'])} templates, v{data['version']}")
+    n_caps = len(data.get("capabilities") or [])
+    print(
+        f"Wrote {OUT.relative_to(ROOT)} — {len(data['templates'])} templates, "
+        f"{n_caps} engine capabilities, v{data['version']}"
+    )
     return 0
 
 

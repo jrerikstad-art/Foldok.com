@@ -136,8 +136,22 @@ def names_only(diff: dict) -> dict:
     }
 
 
-def diff_index(primary_folder, folders, fc, source_files_fn, since_version: str | None = None) -> dict:
-    """Read-only: live inventory vs stored manifest (or empty if no baseline)."""
+def diff_index(
+    primary_folder,
+    folders,
+    fc,
+    source_files_fn,
+    since_version: str | None = None,
+    *,
+    template_file: str | None = None,
+    document_id: str | None = None,
+) -> dict:
+    """Read-only: live inventory vs stored manifest (or empty if no baseline).
+
+    Also attaches foldok_index recency (``context_for_update``) when a document
+    watermark key can be resolved — that channel answers "what arrived since
+    this document was written" without a semantic search.
+    """
     manifest = load_manifest(primary_folder)
     live = build_live_inventory(folders, fc, source_files_fn)
     # since_version: if given and does not match current, still compare to stored
@@ -147,13 +161,39 @@ def diff_index(primary_folder, folders, fc, source_files_fn, since_version: str 
         # Soft note: we only keep the latest baseline; still return live vs latest
         pass
     diff = diff_inventories(baseline, live)
-    return {
+    out = {
         **diff,
         "index_version": str(manifest.get("index_version") or "0"),
         "since_version": since_version,
         "total_files": len(live),
         "live_unindexed": sum(1 for m in live.values() if not m.get("indexed")),
     }
+    try:
+        import foldok_index_bridge as fib
+
+        key_tf = template_file
+        if not key_tf and not document_id:
+            # Project-level peek: last written document stem if any in state later;
+            # without a key, still sync and expose head via a synthetic probe.
+            key_tf = "project"
+        ctx = fib.context_for_document_update(
+            primary_folder, folders,
+            template_file=key_tf, document_id=document_id, sync=True,
+        )
+        if ctx:
+            out["recency"] = {
+                "watermark": ctx.get("watermark_key") or ctx.get("watermark"),
+                "since_seq": ctx.get("since_seq"),
+                "head_seq": ctx.get("head_seq"),
+                "first_time": ctx.get("first_time"),
+                "new_document_count": ctx.get("new_document_count"),
+                "new_rels": ctx.get("new_rels") or [],
+                "problems": ctx.get("problems") or [],
+                "note": ctx.get("note"),
+            }
+    except Exception as exc:
+        out["recency_error"] = str(exc)[:200]
+    return out
 
 
 def reindex_plan(primary_folder, folders, fc, source_files_fn, confirm: bool = False) -> dict:
@@ -190,11 +230,19 @@ def commit_manifest_after_index(primary_folder, folders, fc, source_files_fn, li
         "last_diff": names_only(diff),
     }
     save_manifest(primary_folder, manifest)
+    foldok_sync = None
+    try:
+        import foldok_index_bridge as fib
+
+        foldok_sync = fib.sync_project_index(primary_folder, folders)
+    except Exception as exc:
+        foldok_sync = {"ok": False, "error": str(exc)[:200]}
     return {
         **names_only(diff),
         "total_files": len(live),
         "index_version": version,
         "updated_at": manifest["updated_at"],
+        "foldok_index": foldok_sync,
     }
 
 
@@ -242,7 +290,69 @@ def update_document_from_sources(
     primary = folders[0]
     manifest = load_manifest(primary)
     live = build_live_inventory(folders, fc, persist_helpers["source_files"])
-    targets = resolve_source_ids(source_ids, manifest.get("last_diff"), live)
+
+    # WO 0.65 T3 — recency is a watermark lookup, not a search.
+    foldok_ctx = None
+    try:
+        import foldok_index_bridge as fib
+
+        foldok_ctx = fib.context_for_document_update(
+            primary, folders, template_file=template_file, sync=True,
+        )
+    except Exception:
+        foldok_ctx = None
+
+    # Prefer files that arrived after this document's watermark.
+    effective_source_ids = source_ids
+    nothing_new = False
+    if (
+        effective_source_ids is None
+        and foldok_ctx is not None
+        and not foldok_ctx.get("first_time")
+    ):
+        if (foldok_ctx.get("new_document_count") or 0) == 0:
+            nothing_new = True
+        elif foldok_ctx.get("new_rels"):
+            effective_source_ids = list(foldok_ctx["new_rels"])
+
+    if nothing_new:
+        problems = foldok_ctx.get("problems") or []
+        note = foldok_ctx.get("note") or "Ingen nye kilder siden siste skriving."
+        if problems:
+            bad = ", ".join(
+                f"{p.get('path') or '?'} ({p.get('status')})" for p in problems[:8]
+            )
+            note = f"{note} Uleste: {bad}."
+        mark = None
+        try:
+            import foldok_index_bridge as fib
+
+            mark = fib.set_document_watermark(
+                primary, template_file=template_file,
+                note="checked; nothing new",
+            )
+        except Exception:
+            mark = None
+        return {
+            "updated_sections": [],
+            "added_blocks": 0,
+            "remaining_gaps": [
+                {"key": g.get("key"), "reason": g.get("label") or g.get("severity") or "open"}
+                for g in (state.get("gaps") or []) if g.get("key")
+            ],
+            "change_summary": note,
+            "applied": [],
+            "source_ids_used": [],
+            "mode": mode,
+            "gaps_before": len(state.get("gaps") or []),
+            "gaps_after": len(state.get("gaps") or []),
+            "gap_summary": None,
+            "foldok_update": foldok_ctx,
+            "foldok_watermark": mark,
+            "nothing_new": True,
+        }
+
+    targets = resolve_source_ids(effective_source_ids, manifest.get("last_diff"), live)
     target_set = set(targets)
 
     index = load_index_fn(
@@ -250,7 +360,7 @@ def update_document_from_sources(
         project_name=persist_helpers.get("project_name"),
     )
     # Narrow facts for gap-fill when specific sources requested
-    if source_ids is not None or (manifest.get("last_diff") and targets):
+    if effective_source_ids is not None or (manifest.get("last_diff") and targets):
         narrowed = []
         for e in index:
             f = e.get("file") or ""
@@ -299,6 +409,10 @@ def update_document_from_sources(
     ]
 
     summary_parts = []
+    if foldok_ctx and foldok_ctx.get("new_document_count"):
+        summary_parts.append(
+            f"{foldok_ctx['new_document_count']} nye kilder siden siste watermark"
+        )
     if applied:
         summary_parts.append(f"Fylte {len(applied)} MANGLER fra kilder")
     if updated_sections:
@@ -307,12 +421,27 @@ def update_document_from_sources(
         summary_parts.append("Ingen nye fakta å flette inn — dokumentet uendret")
     if mode == "replace_sections":
         summary_parts.append("(modus: replace_sections — kun motor-eide tabeller)")
+    if foldok_ctx and foldok_ctx.get("problems"):
+        summary_parts.append(
+            f"{len(foldok_ctx['problems'])} filer kunne ikke leses"
+        )
     change_summary = ". ".join(summary_parts) + "."
 
     ds.add_version(
         state, "engine", "update_from_sources",
         change_summary[:200],
     )
+
+    mark = None
+    try:
+        import foldok_index_bridge as fib
+
+        mark = fib.set_document_watermark(
+            primary, template_file=template_file,
+            note="update_document_from_sources",
+        )
+    except Exception:
+        mark = None
 
     return {
         "updated_sections": updated_sections,
@@ -325,6 +454,9 @@ def update_document_from_sources(
         "gaps_before": len(before_gaps),
         "gaps_after": len(gaps),
         "gap_summary": ds.gaps_summary(gaps) if hasattr(ds, "gaps_summary") else None,
+        "foldok_update": foldok_ctx,
+        "foldok_watermark": mark,
+        "nothing_new": False,
     }
 
 
@@ -332,24 +464,45 @@ def format_diff_reply(diff: dict, lang: str = "no") -> str:
     added = diff.get("added") or []
     changed = diff.get("changed") or []
     removed = diff.get("removed") or []
+    recency = diff.get("recency") or {}
     if lang == "en":
         if not (added or changed or removed):
-            return "Index is up to date — no added, changed, or removed files."
+            base = "Index is up to date — no added, changed, or removed files."
+        else:
+            parts = []
+            if added:
+                parts.append("**Added:** " + ", ".join((s.get("path") or s) for s in added[:12]))
+            if changed:
+                parts.append("**Changed:** " + ", ".join((s.get("path") or s) for s in changed[:12]))
+            if removed:
+                parts.append("**Removed:** " + ", ".join((s.get("path") or s) for s in removed[:12]))
+            base = "\n".join(parts)
+        if recency.get("note"):
+            base += f"\n\n_{recency['note']}_"
+            if recency.get("problems"):
+                bad = ", ".join(
+                    f"{p.get('path') or '?'} ({p.get('status')})"
+                    for p in recency["problems"][:6]
+                )
+                base += f"\nUnreadable: {bad}"
+        return base
+    if not (added or changed or removed):
+        base = "Indeksen er ajour — ingen nye, endrede eller fjernede filer."
+    else:
         parts = []
         if added:
-            parts.append("**Added:** " + ", ".join((s.get("path") or s) for s in added[:12]))
+            parts.append("**Nye:** " + ", ".join((s.get("path") or s) for s in added[:12]))
         if changed:
-            parts.append("**Changed:** " + ", ".join((s.get("path") or s) for s in changed[:12]))
+            parts.append("**Endret:** " + ", ".join((s.get("path") or s) for s in changed[:12]))
         if removed:
-            parts.append("**Removed:** " + ", ".join((s.get("path") or s) for s in removed[:12]))
-        return "\n".join(parts)
-    if not (added or changed or removed):
-        return "Indeksen er ajour — ingen nye, endrede eller fjernede filer."
-    parts = []
-    if added:
-        parts.append("**Nye:** " + ", ".join((s.get("path") or s) for s in added[:12]))
-    if changed:
-        parts.append("**Endret:** " + ", ".join((s.get("path") or s) for s in changed[:12]))
-    if removed:
-        parts.append("**Fjernet:** " + ", ".join((s.get("path") or s) for s in removed[:12]))
-    return "\n".join(parts)
+            parts.append("**Fjernet:** " + ", ".join((s.get("path") or s) for s in removed[:12]))
+        base = "\n".join(parts)
+    if recency.get("note"):
+        base += f"\n\n_{recency['note']}_"
+        if recency.get("problems"):
+            bad = ", ".join(
+                f"{p.get('path') or '?'} ({p.get('status')})"
+                for p in recency["problems"][:6]
+            )
+            base += f"\nUleste: {bad}"
+    return base

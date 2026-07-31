@@ -337,8 +337,10 @@ def is_documentation_domain(q: str) -> bool:
 def match_cannot(q: str, caps: dict):
     q = _fold(q)
     checks = [
-        (("3d", "tegne hus", "modellere", "dwg", "step", "solidworks", "native cad",
-          "draw my house", "3d model"),
+        # Narrow CAD refusal (foldok_route 0.85): bare "3d" / "modellere" were
+        # catching wiring-diagram asks. Keep real CAD refusals only.
+        (("dwg", "step", "solidworks", "native cad", "3d model", "3d-modell",
+          "tegne hus", "draw my house"),
          "tegne eller modellere i 3D",
          "lese native CAD (DWG/STEP)"),
         (("beregn", "verifiser beregn", "regn ut", "statikk", "verify calculations"),
@@ -364,17 +366,59 @@ def match_cannot(q: str, caps: dict):
                 return primary
             if secondary and secondary in cannot:
                 return secondary
-            return primary
+    return None
+
+
+def try_diagram_route(message: str, lang: str = "no", *,
+                      spec=None, components=()) -> dict | None:
+    """foldok_route 0.85 — keyword branch before match_cannot (no model)."""
+    try:
+        from foldok_route import diagram_route
+    except ImportError:
+        return None
+    if not diagram_route.is_diagram_request(message):
+        return None
+    routed = diagram_route.handle(
+        message, spec=spec, components=components or (), lang=lang)
+    if not routed.handled:
+        return None
+    out = {
+        "reply": routed.reply,
+        "kind": "diagram_route",
+        "lang": lang,
+        "actions": [],
+        "model_called": False,
+    }
+    if routed.svg:
+        out["svg"] = routed.svg
+    if routed.spec_needed:
+        out["spec_needed"] = True
+        out["missing"] = list(routed.missing or ())
+    if routed.warnings:
+        out["warnings"] = list(routed.warnings)
+    return out
+
+
+def _shipped_capability(caps: dict, cap_id: str) -> dict | None:
+    for c in caps.get("capabilities") or []:
+        if isinstance(c, dict) and c.get("id") == cap_id:
+            return c
     return None
 
 
 def nearest_capability(cannot_hit: str, caps: dict, lang: str = "no") -> str:
     h = cannot_hit or ""
+    diagrams = _shipped_capability(caps, "diagrams")
     if lang == "en":
         if "beregn" in h or "calculat" in h:
             return ("I can still gather every input value with sources, ready for your "
                     "engineer to check — e.g. in a technical documentation pack.")
         if "cad" in h or "3d" in h or "tegne" in h or "modellere" in h:
+            if diagrams and diagrams.get("summary"):
+                return (
+                    f"I can {diagrams['summary'].lower().rstrip('.')}. "
+                    "Native DWG/STEP and 3D modelling are out of scope."
+                )
             return ("I can build documentation around drawing PDFs and photos you have — "
                     "design basis, structural report, or a technical pack.")
         if "juridisk" in h or "legal" in h or "utforme" in h or "bevis" in h or "custody" in h:
@@ -387,6 +431,12 @@ def nearest_capability(cannot_hit: str, caps: dict, lang: str = "no") -> str:
         return ("Men jeg kan samle alle inputverdier med kilder, klare til kontroll — "
                 "f.eks. i en teknisk dokumentasjonspakke eller konstruksjonsrapport.")
     if "cad" in h or "3d" in h or "tegne" in h or "modellere" in h:
+        if diagrams and diagrams.get("summary"):
+            summary = diagrams["summary"].rstrip(".")
+            return (
+                f"Men jeg kan {summary[0].lower()}{summary[1:]}. "
+                "Native DWG/STEP og 3D-modellering er utenfor scope."
+            )
         return ("Men jeg kan bygge dokumentasjon rundt tegnings-PDF-er og bilder du har — "
                 "designgrunnlag, konstruksjonsrapport eller teknisk dokumentasjonspakke.")
     if "juridisk" in h or "utforme" in h or "bevis" in h or "custody" in h:
@@ -869,11 +919,38 @@ def build_cold_start_context(caps: dict, history: list | None = None) -> str:
         f"file_types: {json.dumps(caps.get('file_types') or {}, ensure_ascii=False)}",
         f"privacy_no: {json.dumps(caps.get('privacy') or [], ensure_ascii=False)}",
         f"privacy_en: {json.dumps(caps.get('privacy_en') or [], ensure_ascii=False)}",
+    ]
+    moved = caps.get("cannot_moved_to_limits") or []
+    if moved:
+        lines.append(
+            f"cannot_moved_to_limits: {json.dumps(moved, ensure_ascii=False)} "
+            "(scoped inside engine capabilities — do not treat as global denials)"
+        )
+    shipped = caps.get("capabilities") or []
+    if shipped:
+        lines.extend([
+            "",
+            "SHIPPED CAPABILITIES (engine-owned — you MAY claim these when the user asks):",
+        ])
+        for c in shipped:
+            if not isinstance(c, dict):
+                continue
+            lines.append(
+                f"- id={c.get('id')} | summary: {c.get('summary') or c.get('object') or ''}"
+            )
+            if c.get("produces"):
+                lines.append(f"  produces: {', '.join(c['produces'])}")
+            if c.get("anchors"):
+                lines.append(f"  anchors: {', '.join(c['anchors'][:8])}")
+            for lim in c.get("limits") or []:
+                if isinstance(lim, dict) and lim.get("text"):
+                    lines.append(f"  not: {lim['text']}")
+    lines.extend([
         "",
         hses.format_events_for_prompt(session),
         "",
         "TEMPLATES (full catalog — match user intent to these):",
-    ]
+    ])
     for t in list_capabilities(caps):
         lines.append(
             f"- key={t.get('key')} | NO: {t.get('name_no')} | EN: {t.get('name')}"
@@ -1236,10 +1313,15 @@ def hub_chat_offline(message: str, caps: dict | None = None,
             "actions": [],
         }
 
+    # foldok_route 0.85 — before CAD cannot, or wiring asks get the wrong refusal
+    routed = try_diagram_route(msg, lang)
+    if routed:
+        return routed
+
     cannot_hit = match_cannot(msg, caps)
     hard_oos = cannot_hit and any(w in _fold(msg) for w in (
-        "3d", "tegne hus", "modellere", "dwg", "step", "solidworks",
-        "draw my house", "3d model", "verify calculations", "beregn for meg",
+        "tegne hus", "dwg", "step", "solidworks", "native cad",
+        "draw my house", "3d model", "3d-modell", "verify calculations", "beregn for meg",
         "legal advice", "signer for meg", "sign for me",
         "draft a contract", "write a contract", "utform", "skriv en kontrakt",
         "chain of custody", "beviskjede",
@@ -1464,11 +1546,16 @@ def hub_chat(message: str, caps: dict | None = None, history: list | None = None
         out["model_called"] = False
         return out
 
+    # foldok_route 0.85 — before CAD cannot
+    routed = try_diagram_route(msg, lang)
+    if routed:
+        return apply_manifest_validators(routed, caps, lang)
+
     # Zero-token lookup: unambiguous cannot-list boundary
     cannot_hit = match_cannot(msg, caps)
     hard_oos = cannot_hit and any(w in _fold(msg) for w in (
-        "3d", "tegne hus", "modellere", "dwg", "step", "solidworks",
-        "draw my house", "3d model", "verify calculations", "beregn for meg",
+        "tegne hus", "dwg", "step", "solidworks", "native cad",
+        "draw my house", "3d model", "3d-modell", "verify calculations", "beregn for meg",
         "legal advice", "signer for meg", "sign for me",
         "draft a contract", "write a contract", "skriv en kontrakt",
         "chain of custody", "beviskjede",

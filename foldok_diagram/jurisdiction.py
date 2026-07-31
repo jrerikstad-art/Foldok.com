@@ -92,6 +92,25 @@ JURISDICTIONS: dict[str, Jurisdiction] = {
     ),
 }
 
+ELV_DC = Jurisdiction(
+    id="ELV_DC",
+    title="Extra-low voltage DC — control electronics",
+    system="ELV DC",
+    phase_names=("V+", "VCC", "VIN", "5V", "3V3", "12V", "24V"),
+    neutral_name=None,
+    pe_name="GND",
+    conductor_unit="AWG",
+    size_pattern="e.g. 20 AWG or 0.5 mm2",
+    nominal_voltages=(3, 5, 7, 12, 24, 48),
+    breaker_style="trip",
+    notes=(
+        "Board-level and control wiring below 50 V DC. Fixed-installation rules "
+        "(NEK 400, conductor colour codes, curve ratings) do not apply, and AWG is "
+        "the ordinary unit — assuming otherwise refuses a correct diagram.",
+    ),
+)
+JURISDICTIONS["ELV_DC"] = ELV_DC
+
 DEFAULT_JURISDICTION = "NO_IT_230"
 
 
@@ -106,6 +125,9 @@ def get(jid: str) -> Jurisdiction:
 
 def size_unit_matches(size: str, juris: Jurisdiction) -> bool:
     s = size.lower().replace(" ", "")
+    if juris.id == "ELV_DC":
+        # Datasheets in this space quote both, often on the same page.
+        return any(u in s for u in ("awg", "mm2", "mm²")) or s.startswith("ffc")
     if juris.conductor_unit == "mm2":
         return ("mm2" in s) or ("mm²" in s) or s.startswith("dn") or s.startswith("g")
     return "awg" in s or s.endswith("kcmil")

@@ -7,6 +7,169 @@ Versioning rules (semver, honestly applied):
   Templates carry their own `version` field (already in schema).
   The zip filename always carries the version: foldok-engine-vX.Y.Z.zip.
 
+## 0.105.1 — Free PDF download on Export (dev)
+- Export PDF is a real PDF (PyMuPDF Story), not a renamed `.md`
+- Clicking **Eksporter** always returns `download_base64` → browser download
+- Local/dev remains free when `FOLDOK_EXPORT_PRICE` is unset (no paywall)
+- Sidecar `.md` still written under `Rapporter/` for archive/re-open
+
+## 0.105.0 — Install claim partitioning (single assignment)
+- Extract claim set once from locked/focus sources (+ page spans)
+- Assign each claim_id to exactly one bucket: identity | overview |
+  prerequisites | safety | checks | sequence | supplier_only
+- Sequence → ordered numbered steps (mount/connect/route/verify…);
+  if fewer than 3 actionable steps → one clear gap
+- Never re-emit the same claim in two body sections
+- Diagrams once (overview); «Tillegg fra sider» at most once (sequence appendix)
+- Prerequisites = short prose + compact table; safety = hazards/limits;
+  verification = checklist
+
+## 0.104.4 — Compact install illustration marks
+- Shrink cable-tray, bonding-connector, and protection-class symbols to sit
+  with breaker/earth scale (reference strips no longer dominate the page)
+
+## 0.104.3 — Cable-tray shielding cross-section symbols
+- Marks: ``cable_tray_deep``, ``cable_tray_shallow``, ``cable_tray_deep_ok``,
+  ``cable_tray_shallow_bad``, ``cable_multicore``
+- Install reference strip when cable-tray / tray-shielding facts are cited
+  (deep U preferred; cables below top edge)
+
+## 0.104.2 — Equipotential bonding connector symbols
+- Marks: ``bond_strap`` (solid), ``bond_braid_lug`` (square lugs),
+  ``bond_braid_ring`` (ring terminals) — large-area bonding connectors
+- Install reference strip when ground-strap / equipotential facts are cited
+
+## 0.104.1 — IEC protection-class marks (I / II / III)
+- Symbols: ``protection_class_i`` (earth in circle), ``protection_class_ii``
+  (double square), ``protection_class_iii`` (SELV diamond)
+- SELV install recipe tags class III; optional I/II/III reference strip when
+  protection-class facts are cited
+
+## 0.104.0 — Expanded foldok_diagram symbol pack
+- New electrical marks: mains_filter, transformer, power_supply, sensor,
+  cable_shielded, rcd, fuse, contactor, switch, lamp, terminal_strip,
+  ferrite, capacitor
+- New piping marks: valve_gate, valve_mixing, valve_prv, strainer,
+  water_meter, expansion_vessel, air_vent, radiator, boiler, cross_equal
+- New mechanical: bearing, shaft
+- Install recipes use pack symbols (sensor / filter / PSU / shielded cable)
+  instead of anonymous module boxes
+
+## 0.103.0 — Install manuals use foldok.diagram.v1 wiring quality
+- Install recipes render via ``foldok_diagram_tool`` (same engine as water-heater
+  interconnection SVGs: IEC symbols, wire colours, designations, jumps)
+- Drop card-style ``render_block_diagram`` for install illustrations
+- Specs use ports + L1/N/PE or ELV designations; modules for filter/sensor/PSU
+
+## 0.102.1 — Preserve SVG openers through contact-noise postprocess
+- ``xmlns="http://…"`` no longer strips ``<svg>`` lines outside contact sections
+
+## 0.102.0 — Install manuals: Foldok-generated block diagrams
+- From cited install facts, auto-build connection_spec recipes (shield/earth,
+  mains filter at cabinet entry, SELV/PELV) — no vendor hardcoding
+- Render original SVG via ``connection_diagram`` / ``diagram_engine`` into
+  overview, safety, and sequence
+- Still never rasterize OEM PDF pages; diagrams are Foldok drawings
+
+## 0.101.0 — Install manuals must not copy OEM PDF pages
+- Hard rule: no rasterized supplier PDF pages in installasjonsmanual body
+  (copyright / “just a copy of the original”)
+- Overview is authored from cited facts; ``append_install_figures`` strips page copies
+- ``ensure_min_figures`` / ``ensure_figures_in_doc`` skip install manuals
+- Declaration states Foldok-generated cited extracts ≠ supplier original
+
+## 0.100.0 — Install: use focus PDF depth (pages + figures + unfacted text)
+- System overview from focus source caption/detail + up to 8 page figures
+- Procedure sections attach page illustrations from the focused technical PDF
+- Focus mode pulls all engineering facts (not a 14-tip cap)
+- Harvest install sentences from PDF pages that were never fact-indexed
+- Pass project folders into generate so page text can be read from disk
+
+## 0.99.1 — Fix stale-server miss + duplicate-index cite scramble
+- Dedupe index by file path before install compile/postprocess (same PDF under
+  project + Documents/ was reusing fact ids with different values)
+- Install identity compiled from allowlisted sources + locked system
+- Tip table header uses ``Nr`` (``#`` broke Markdown as H1)
+
+## 0.99.0 — Install gaps: catch folder facts under real extractor keys
+- Soft-match + aliases: ``hazard`` ← ``safety_device_fault_response`` / warnings;
+  ``system_type`` ← ``applicable_products`` / locked system; ``requirement`` /
+  ``criterion`` ← ``*_requirement`` / ``*_limit`` / coverage keys
+- Install ``template_gaps`` runs on the allowlist (not the whole loud corpus)
+- Generate uses map_sections gaps (with file_map) — photos no longer always MANGLER
+- Overview media: mapped technical PDFs count toward min_photos
+- Weak allowlist scores need procedure signal or engineering role
+
+## 0.98.0 — Install tips from technical-info PDFs (not filename-only)
+- Lexicon/score: ``technical information``, background knowledge, shielding,
+  cable routing, laser/scanner/camera — so tips docs score without ``install``
+  in the filename
+- Strict ``system_under_install`` lock: foreign-system catalogues stay out even
+  when they score high on generic install words
+- Procedure sections compile cited tip tables from allowlisted facts (no empty
+  shells when tips exist)
+- Gap/thin messages list real candidate filenames from *this* index
+- Still no project/vendor hardcoding
+
+## 0.97.0 — Install manual: locked system, stay thin, named focus
+- Hard allowlist: facts no longer Tier-A from the whole project corpus
+- ``install_system_locked`` + system-shaped file filter
+- Strategy/standards corpora stay thin (identity + one procedure gap)
+- «bruk …» / «utvid med fil.pdf» → ``install_focus_sources`` (any user-named
+  needle from *that* index — no vendor hardcoding)
+- Focus allowlist is exclusive (no strategy/BoD fallback when a name is locked)
+
+## 0.96.0 — Installation manual: system gate + install lexicon
+- Require ``system_under_install`` (tray/sensor/machine/enclosure/other) before plan
+- Deterministic install file map; downrank BoD/market/persona sources
+- Identity table allowlist: engineering fields only
+- No procedure chunks → one explicit MANGLER on sequence (no hollow shells)
+- Kilderegister = cited files only; unused high-value PDFs offered to expand
+- ``sequence`` intent = ``instruct_procedure`` (was mis-resolved to describe)
+
+## 0.95.0 — Wire foldok_index watermarks (WO 0.65 T3)
+- **Bug:** `context_for_update` / `new_since` / `set_watermark` existed in
+  `foldok_index` but nothing outside that package called them — “update with
+  new files” stayed a silent semantic miss
+- Bridge `foldok_index_bridge`: sync `.foldok_index/index.db` on reindex
+- `diff_index` + `update_document_from_sources` call `context_for_update`
+- Generate + update set document watermarks (`doc:{template_stem}`)
+- Honest “nothing new” (and unreadable files) from the manifest, not a search
+
+## 0.94.0 — foldok_scan 0.91 (explain silent index drops)
+- Vendored **foldok_scan 0.91**: `scan()`, depth/reason report, `biggest_win`,
+  `widened_doc_ext()` (advisory — not auto-applied)
+- Prescan attaches coverage: `coverage`, `by_reason`, `by_depth`, `coverage_text`
+- Decision card + Hurtigscan UI show why `.doc`/`.xls`/`.msg` etc. were dropped
+- Chat: “hvorfor er ikke filene indeksert?” → zero-token coverage reply
+- Does **not** widen `DOC_EXT`; product must opt in to legacy formats
+
+## 0.93.0 — NarrativeBlueprint (Document Brain)
+- **NarrativeBlueprint** persisted on the document: thesis, main_argument,
+  reader_should_leave_with, arc steps with purposes
+- Author receives `previous_summary` + bridge openings between sections
+- Critic: section-serves-main_argument + citation repetition (≥4×)
+- Expand-chip helper `propose_arc_expansion` (user-confirmed arc step)
+- Lead remains arc step `frame` via Lead Generator
+- Regression: blueprint on compose; continuity bridges in body
+
+## 0.92.0 — Lead Generator (Innledning)
+- Dedicated **Lead Generator** (`foldok_ask/lead.py`): sketch → overview retrieve →
+  rerank → ground → write → verify for the document opening
+- ~½ page framing: corpus character, working thesis, roadmap, honest limits
+- File count is a footnote only; ban abstract-paste and SKU noise in the lead
+- Controls: `lead_depth` short/standard/rich, `max_claims`, `prefer_paraphrase`
+- Critic warns on thin leads (<100 words) and abstract paste
+- Regression: lead ≥120 words with kildebibliotek / thesis / limits signals
+
+## 0.91.0 — foldok_claims 0.88 (claims in retrieve)
+- Vendored **foldok_claims 0.88** with `integrate.py`: claims_from_index, as_chunks,
+  standards_register, coherence_section, ranking patch
+- Retrieve injects ``kind=claim`` chunks; claims outrank captions
+- Standards register from *rule* claims (not character windows around names)
+- Cable-class sections can name Klasse 1A/1B — not Marco abstracts
+- Regression: claim chunks present; kabelklasser names a class
+
 ## 0.90.0 — Engineering story (Narrative → Author → Evidence)
 - **Narrative layer** (`narrative.py`): DocumentIntent + thesis + arc + section purposes
 - Author writes **to purpose**; consumes **short claims**, paraphrases (NO) — not PDF abstracts

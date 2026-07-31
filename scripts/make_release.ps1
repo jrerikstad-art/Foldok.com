@@ -18,8 +18,8 @@ if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
 New-Item -ItemType Directory -Path $staging | Out-Null
 
 robocopy $root $staging /E `
-  /XD releases __pycache__ .git .pytest_cache .tmp_* temp-foldok-* `
-  /XF *.pyc *.zip .env local_app\projects.json local_app\projects.json.bak formlayout-*.json RENAME_FOLDOK.md `
+  /XD releases __pycache__ .git .pytest_cache .tmp_* temp-foldok-* _import_foldok12 _import_foldok13 _import_foldok14 _import_foldok_author86 `
+  /XF *.pyc *.zip .env local_app\projects.json local_app\projects.json.bak formlayout-*.json RENAME_FOLDOK.md _tmp_svg.pdf *.apk `
   /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit $LASTEXITCODE" }
 
@@ -57,7 +57,11 @@ $grepRoots = @(
   (Join-Path $staging "foldok_assets"),
   (Join-Path $staging "foldok_private"),
   (Join-Path $staging "foldok_signals"),
-  (Join-Path $staging "foldok_capture")
+  (Join-Path $staging "foldok_capture"),
+  (Join-Path $staging "foldok_getapp"),
+  (Join-Path $staging "foldok_learn"),
+  (Join-Path $staging "foldok_console"),
+  (Join-Path $staging "foldok_shred")
 )
 $grepFiles = @()
 foreach ($dir in $grepRoots) {

@@ -4,7 +4,8 @@ markitdown[pdf]>=0.1
 pillow>=10
 pandas>=2.0
 openpyxl>=3.1
-# Optional HybridKnowledgeEngine semantic search:
+# Optional build-time QR generation (foldok_getapp):
+# segno>=1.6
 # lancedb>=0.4
 # sentence-transformers>=2.0
 # Optional Artifact Engine PDF backends (install one):

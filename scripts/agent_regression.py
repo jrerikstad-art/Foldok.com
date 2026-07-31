@@ -1079,6 +1079,49 @@ Dealer copy / Kundekopi
             "recreate this sample multipoint form", self.state0, [])
         self.assertEqual(route3.get("execute", {}).get("source"), "sample_multipoint")
 
+    def test_42b_regenarate_typo_pins_open_temabrief(self):
+        """Typo 'regenarate' must regenerate the open topic_brief — never invent inspection."""
+        state = {
+            **self.state0,
+            "active_template": "topic_brief.json",
+            "template": "topic_brief.json",
+            "doc": {"template_file": "topic_brief.json", "sections": {"overview": {}}},
+            "conversation": [
+                {"role": "user", "text": "regenarate this document"},
+            ],
+        }
+        for utter in (
+            "regenarate this document",
+            "re genarate this document",
+            "regenerate this document",
+            "improve the temabrief",
+        ):
+            route = self.edchat.route_editor_message(utter, state, [])
+            self.assertEqual(route.get("execute", {}).get("tool"), "run_generate", utter)
+            self.assertIn("topic_brief", (route.get("execute") or {}).get("template") or "", utter)
+
+        # Mis-routed form pending + ja after regenerate ask → open draft, not inspection
+        state2 = {
+            **state,
+            "chat_pending": {
+                "action": "recreate_form", "source": "inspection_checklist",
+                "redirect_form": True,
+            },
+            "conversation": [
+                {"role": "user", "text": "regenarate this document"},
+                {"role": "bot", "text": "want me to create a template?"},
+            ],
+        }
+        route_ja = self.edchat.route_editor_message("ja", state2, [])
+        self.assertEqual(route_ja.get("execute", {}).get("tool"), "run_generate")
+        self.assertIn("topic_brief", route_ja.get("execute", {}).get("template") or "")
+        self.assertNotEqual(route_ja.get("execute", {}).get("tool"), "recreate_form")
+
+        self.assertTrue(self.edchat.reply_offers_form_create(
+            "Skal jeg opprette et skjema som mal?"))
+        self.assertFalse(self.edchat.reply_offers_form_create(
+            "Do you want me to fill the three blocking gaps from indexed sources?"))
+
     def test_43_wo023_drifting_price_rejected(self):
         """0.23 §A2 — €0.18 / €0.24 not in manifest → reject."""
         import manifest_claims as mc

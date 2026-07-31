@@ -186,7 +186,7 @@ def scan_folders(
         est_min_lo = max(1, int(secs / 60 * 0.75)) if indexable > 20 else max(1, int(secs / 60) or 1)
         est_min_hi = max(est_min_lo, int(secs / 60 * 1.5) or est_min_lo)
 
-    return {
+    report = {
         "total_files": total_files,
         "total_bytes": total_bytes,
         "total_gb": round(total_bytes / (1024 ** 3), 2),
@@ -204,6 +204,14 @@ def scan_folders(
         "prescan_ms": int((time.time() - t0) * 1000),
         "pending_kinds": {"photo": pending_photo, "doc": pending_doc},
     }
+    return attach_coverage_scan(
+        report,
+        [str(r) for r in roots if r.is_dir()],
+        doc_ext=DOC_EXT,
+        photo_ext=PHOTO_EXT,
+        cad_ext=CAD_EXT,
+        skip_dir_names=skip_dirs,
+    )
 
 
 def filter_pending(
@@ -320,10 +328,93 @@ def format_decision_card_no(report: dict) -> str:
     gb = report.get("total_gb") or round((report.get("total_bytes") or 0) / (1024 ** 3), 2)
     lo, hi = report.get("est_cost_eur") or [0, 0]
     mlo, mhi = report.get("est_minutes") or [0, 0]
-    return (
-        f"Mappen inneholder {report.get('total_files', 0)} filer ({gb} GB).\n"
+    lines = [
+        f"Mappen inneholder {report.get('total_files', 0)} filer ({gb} GB).",
         f"Indekserbare: {report.get('indexable', 0)} · "
         f"hoppes over: {report.get('skipped', 0)} · "
-        f"allerede indeksert: {report.get('already_cached', 0)}\n"
-        f"Estimat: €{lo:.0f}–{hi:.0f} · {mlo}–{mhi} min"
-    )
+        f"allerede indeksert: {report.get('already_cached', 0)}",
+        f"Estimat: €{lo:.0f}–{hi:.0f} · {mlo}–{mhi} min",
+    ]
+    # foldok_scan: explain silent drops (legacy .doc/.xls/.msg etc.)
+    cov = report.get("coverage")
+    if cov is not None and cov < 0.95 and report.get("coverage_text"):
+        text = str(report["coverage_text"]).strip()
+        if len(text) > 1800:
+            text = text[:1800].rstrip() + "\n…"
+        lines.append("")
+        lines.append(text)
+    elif report.get("biggest_win"):
+        win = report["biggest_win"]
+        lines.append(
+            f"\nStørste enkeltgevinst: støtt {win.get('ext')} og få "
+            f"{win.get('count')} filer til"
+            + (f" ({win.get('why')})." if win.get("why") else ".")
+        )
+    return "\n".join(lines)
+
+
+def attach_coverage_scan(
+    report: dict,
+    folders: list[str] | list[Path],
+    *,
+    lang: str = "no",
+    doc_ext: Iterable[str] | None = None,
+    photo_ext: Iterable[str] | None = None,
+    cad_ext: Iterable[str] | None = None,
+    skip_dir_names: Iterable[str] | None = None,
+) -> dict:
+    """Enrich a pre-scan dict with foldok_scan explanations (zero tokens)."""
+    try:
+        from foldok_scan import scan as foldok_scan_fn
+    except ImportError:
+        return report
+
+    texts = []
+    merged_reasons: dict[str, int] = {}
+    merged_depth: dict[str, list] = {}
+    biggest = None
+    total_e = indexed_e = 0
+
+    for folder in folders:
+        root = Path(folder)
+        if not root.is_dir():
+            continue
+        kwargs = {}
+        if doc_ext is not None:
+            kwargs["doc_ext"] = doc_ext
+        if photo_ext is not None:
+            kwargs["photo_ext"] = photo_ext
+        if cad_ext is not None:
+            kwargs["cad_ext"] = cad_ext
+        if skip_dir_names is not None:
+            kwargs["skip_dirs"] = set(skip_dir_names) | {
+                "capture", "foldok-engine", "feltdok-engine", "node_modules",
+                "__pycache__", "releases", ".git", ".cursor",
+            }
+        sr = foldok_scan_fn(root, **kwargs)
+        total_e += len(sr.entries)
+        indexed_e += len(sr.indexed)
+        texts.append(sr.report(lang=lang))
+        for reason, n in sr.by_reason().items():
+            merged_reasons[reason] = merged_reasons.get(reason, 0) + n
+        for depth, pair in sr.by_depth().items():
+            key = str(depth)
+            slot = merged_depth.setdefault(key, [0, 0])
+            slot[0] += pair[0]
+            slot[1] += pair[1]
+        win = sr.biggest_win()
+        if win and (biggest is None or win[1] > biggest[1]):
+            biggest = win
+
+    if total_e:
+        report["coverage"] = round(indexed_e / total_e, 3)
+        report["coverage_indexed"] = indexed_e
+        report["coverage_total"] = total_e
+        report["by_reason"] = dict(sorted(merged_reasons.items(), key=lambda kv: -kv[1]))
+        report["by_depth"] = merged_depth
+        report["coverage_text"] = "\n\n".join(t for t in texts if t)
+        if biggest:
+            report["biggest_win"] = {
+                "ext": biggest[0], "count": biggest[1], "why": biggest[2],
+            }
+    return report

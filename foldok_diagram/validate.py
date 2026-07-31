@@ -189,6 +189,10 @@ def _electrical(graph: Graph, rep: Report) -> None:
     known = set(juris.phase_names) | {juris.pe_name}
     if juris.neutral_name:
         known.add(juris.neutral_name)
+    if juris.id == "ELV_DC":
+        # Control wiring carries signal pairs and buses alongside the rails;
+        # they are conductor classes here, not unknown designations.
+        known |= {"signal", "SIG", "I2C", "SPI", "UART", "CAN", "PWM", "DATA", "CLK"}
 
     has_pe = False
     for conn in wires:

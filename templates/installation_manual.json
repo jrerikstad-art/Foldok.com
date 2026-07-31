@@ -132,8 +132,8 @@
       "required_media": {},
       "required_content": [],
       "writing_rules": { "structure": "boilerplate" },
-      "boilerplate": "Values, requirements and criteria in this manual are traceable to the sources listed in the Source Register. Procedure sequences are AI-proposed suggestions based on the project's documented conditions — they are not the manufacturer's instructions and do not replace them. Responsibility for the installation, its sequence and its verification rests with the qualified installer.",
-      "boilerplate_no": "Verdier, krav og kriterier i denne manualen er sporbare til kildene i kilderegisteret. Prosedyresekvenser er AI-foreslåtte forslag basert på prosjektets dokumenterte forutsetninger — de er ikke leverandørens anvisning og erstatter den ikke. Ansvaret for installasjonen, rekkefølgen og kontrollen ligger hos kvalifisert utførende.",
+      "boilerplate_no": "Verdier, krav og kriterier i denne manualen er sporbare til kildene i kilderegisteret. Prosedyresekvenser og råd er Foldok-genererte utdrag basert på siterte fakta — de er ikke en kopi av leverandørens originaldokument og erstatter ikke leverandørens anvisning. Ansvaret for installasjonen, rekkefølgen og kontrollen ligger hos kvalifisert utførende.",
+      "boilerplate": "Values, requirements and criteria in this manual are traceable to the sources in the Source Register. Procedure sequences and tips are Foldok-generated extracts from cited facts — they are not a copy of the supplier's original document and do not replace the manufacturer's instructions. Responsibility for the installation, its sequence and its verification rests with the qualified installer.",
       "notes": "Fixed text, zero AI. States the prescriptive/descriptive split in the document itself."
     }
   ]

@@ -167,6 +167,21 @@ def assemble_draft(state, template, artifact=None, full_index=None):
         if files:
             body_parts.append("*Kilder: " + ", ".join(files) + "*\n")
     body = "".join(body_parts)
+    # Orphan diagram sections (not in template) — still show if they hold SVG
+    seen = {s["section_key"] for s in section_defs if s.get("section_key")}
+    for sk, sec in sections.items():
+        if sk in seen:
+            continue
+        if sk == "connection_diagram" and sec.get("mirror_of"):
+            continue  # already written into the mirrored template section
+        has_diagram = bool(sec.get("svg")) or (sec.get("block_type") in (
+            "connection_spec", "wiring_diagram", "block_diagram"))
+        if not has_diagram and "<svg" not in (sec.get("md") or "").lower():
+            continue
+        stitle = {
+            "connection_diagram": "Koblingsskjema / blokkskjema",
+        }.get(sk, sk.replace("_", " ").title())
+        body += f"\n## {stitle}\n\n{sec.get('md') or ''}\n"
     cover = (state.get("cover_image") or {}).get("file")
     index = full_index if full_index is not None else (state.get("index_cache") or [])
     return ed.apply_editorial_furniture(

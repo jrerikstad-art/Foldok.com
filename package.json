@@ -9,6 +9,7 @@
     "test:registry": "python scripts/test_document_type_registry.py",
     "test:compliance": "python scripts/test_compliance_phase1.py",
     "test:calculations": "python scripts/test_calculation_engine.py",
-    "test:materials": "python scripts/test_materials_engine.py"
+    "test:materials": "python scripts/test_materials_engine.py",
+    "test:author": "python -m pytest foldok_author/tests -q"
   }
 }

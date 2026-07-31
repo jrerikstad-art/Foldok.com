@@ -1,7 +1,8 @@
 """WORKORDER_0.24 — Connection spec + deterministic block-diagram SVG.
 
-Lane 2 (DIAGRAM_SPEC) minimally: AI/code proposes the CONNECTION GRAPH;
-user confirms; CODE renders SVG. Never circuit schematics.
+Lane 2 (DIAGRAM_SPEC): AI/code proposes the CONNECTION GRAPH;
+user confirms; CODE renders SVG.
+Interconnection / wiring / block: yes. Full KiCad/IEC circuit schematic: no.
 """
 from __future__ import annotations
 
@@ -97,12 +98,16 @@ CIRCUIT_ASK = re.compile(
 )
 
 BLOCK_ASK = re.compile(
-    r"\b(schematic|blokkskjema|block\s*diagram|tilkobling|"
+    r"\b(schematic|blokkskjema|block\s*diagram|tilkobling|koblingsskjema|"
     r"funksjonsdiagram|prosess(?:flyt|diagram)|flow\s*diagram|"
     r"how\s+these\s+components\s+should\s+be\s+connected|"
     r"how\s+(?:the\s+)?components?\s+(?:are|should\s+be)\s+connected|"
+    r"how\s+do\s+i\s+connect|"
+    r"how\s+to\s+connect|"
+    r"how\s+are\s+they\s+connected|"
+    r"connect\s+the\s+components|"
     r"connection\s+(?:spec|diagram|drawing)|wiring\s+diagram|"
-    r"lag\s+(?:et\s+)?(?:tilkobling|funksjonsdiagram|blokkskjema))\b",
+    r"lag\s+(?:et\s+)?(?:tilkobling|funksjonsdiagram|blokkskjema|koblingsskjema))\b",
     re.I,
 )
 
@@ -124,13 +129,16 @@ def is_connection_diagram_ask(msg: str) -> bool:
 def circuit_boundary_reply(lang: str = "no") -> str:
     if lang == "en":
         return (
-            "I produce block diagrams with connections and pins — not circuit "
-            "schematics (no IEC symbols, nets, or component values). "
-            "Want the block diagram?"
+            "I can draw an interconnection / wiring diagram (components, pins, "
+            "power rails, buses) into the document with DiagramEngine — not a "
+            "full KiCad/IEC circuit schematic with nets and component values. "
+            "Confirm the connection table and I insert the SVG."
         )
     return (
-        "Jeg lager blokkskjema med tilkoblinger og pinner — ikke kretsskjema. "
-        "Vil du ha blokkskjemaet?"
+        "Jeg kan tegne koblings-/tilkoblingsskjema (komponenter, pinner, "
+        "spenningsskinner, busser) inn i dokumentet med DiagramEngine — ikke "
+        "fullt KiCad/IEC-kretsskjema med nett og komponentverdier. "
+        "Bekreft tilkoblingstabellen, så legger jeg inn SVG."
     )
 
 
@@ -435,6 +443,7 @@ def diagram_created_reply(spec: dict, *, section: str = "connection_diagram",
     )
     n_cited = n_e - n_ref
     sec = section or "connection_diagram"
+    link = f"[[open_doc:{sec}]]"
     if lang == "en":
         assume = assumption or (
             "Chamber layout was not in the sources, so the plant is drawn as one module."
@@ -444,7 +453,7 @@ def diagram_created_reply(spec: dict, *, section: str = "connection_diagram",
         return (
             f"Added block diagram in **{sec}** — {n_c} blocks, {n_e} connections"
             f"{f', {n_cited} cited' if n_cited else ''}. "
-            f"{assume} [Open in document]"
+            f"{assume} {link}"
         )
     assume = assumption or (
         "Kammerinndeling er ikke oppgitt i kildene, så anlegget er tegnet "
@@ -456,7 +465,7 @@ def diagram_created_reply(spec: dict, *, section: str = "connection_diagram",
         f"Lagt inn funksjonsdiagram i **{sec}** — {n_c} blokker, "
         f"{n_e} forbindelser"
         f"{f', {n_cited} sitert' if n_cited else ''}. "
-        f"{assume} [Vis i dokumentet]"
+        f"{assume} {link}"
     )
 
 

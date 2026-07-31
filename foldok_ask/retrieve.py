@@ -103,7 +103,11 @@ def _core_tokens(question: str) -> list[str]:
 
 
 def index_to_chunks(index) -> list[dict]:
-    """Flatten workbench cache entries into searchable passage chunks."""
+    """Flatten workbench cache entries into searchable passage chunks.
+
+    Also injects ``kind=claim`` chunks from foldok_claims so sections retrieve
+    statements about the subject, not only captions about documents.
+    """
     chunks: list[dict] = []
     for e in index or []:
         if e.get("kind") in ("skipped",):
@@ -154,6 +158,18 @@ def index_to_chunks(index) -> list[dict]:
                 extra_id=str(f.get("id") or key),
                 key=key.lower(),
             )
+
+    # Subject-grain claims outrank document captions in ranking
+    try:
+        from foldok_claims import as_chunks, claims_from_index
+        indexed = claims_from_index(index)
+        paths = {
+            Path(e.get("file") or "").name: (e.get("file") or "")
+            for e in (index or []) if e.get("file")
+        }
+        chunks.extend(as_chunks(indexed.claims, paths=paths))
+    except Exception:
+        pass
     return chunks
 
 
@@ -179,7 +195,15 @@ def _lexical_score(question: str, chunk: dict) -> float:
     fname = (chunk.get("file_id") or "").lower()
     if any(t in fname for t in set(q_toks) if len(t) > 3):
         score += 0.10
-    if chunk.get("kind") in ("caption", "detail"):
+    # --- claims outrank summaries -------------------------------------
+    # A caption is a sentence about a document; a claim is a sentence about the
+    # subject. Ranking them equally is why a section about cable classes filled
+    # up with file abstracts instead of classes.
+    if chunk.get("kind") == "claim":
+        score += 0.18
+        if chunk.get("claim_binding"):
+            score += 0.07          # a requirement beats a loose statement
+    elif chunk.get("kind") in ("caption", "detail"):
         score += 0.05
     if len(q_core) >= 2 and cover < 0.34:
         score *= 0.55
@@ -222,7 +246,10 @@ def answer_relevance(question: str, chunk: dict) -> float:
             intent_boost += 0.40
 
     # Captions that name the topic beat stray fact rows
-    if kind in ("caption", "detail") and intent_boost > 0:
+    # A claim that matches the question's intent is the best possible hit.
+    if kind == "claim" and intent_boost > 0:
+        intent_boost += 0.14
+    elif kind in ("caption", "detail") and intent_boost > 0:
         intent_boost += 0.08
 
     base = _lexical_score(question, chunk)

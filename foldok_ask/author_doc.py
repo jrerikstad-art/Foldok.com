@@ -14,9 +14,19 @@ from typing import TYPE_CHECKING
 from .model import RetrievalHit
 from .plan import OutlineSection
 from .retrieve import retrieve
+from .claims_bridge import (
+    claims_for_section,
+    coherence_gap_lines,
+    corpus_claims,
+    format_claim_sentence,
+    has_type_coverage,
+    section_needs_types,
+)
 
 if TYPE_CHECKING:
     from .narrative import NarrativePlan
+    from foldok_claims import ClaimSet
+    from foldok_claims.coherence import CoherenceReport
 
 CONTACT_RX = re.compile(
     r"(?i)([\w.+-]+@[\w-]+\.[\w.-]+|\+?\d[\d\s().-]{7,}\d)"
@@ -423,6 +433,71 @@ def _sentence_for(claim: Claim, *, no: bool, cites: CiteRegistry, wrapper: str) 
     return wrapper.format(claim=body.rstrip("."), mark=mark)
 
 
+def _foldok_to_local(fc_claim, *, lang: str = "no") -> Claim:
+    """Adapt foldok_claims.Claim → Author Claim (short sentence + signals)."""
+    text = format_claim_sentence(fc_claim, lang=lang)
+    signals: set[str] = set()
+    t = (fc_claim.type or "").lower()
+    blob = (fc_claim.text or "").lower()
+    if t == "classification" or getattr(fc_claim.scope, "cable_class", ""):
+        signals.add("class")
+    if t in ("rule", "practice", "constraint") and any(
+        w in blob for w in ("zone", "sone", "jord", "earth", "bond")
+    ):
+        signals.add("zone")
+    if t in ("quantity", "rule", "distinction", "definition", "risk") or any(
+        w in blob for w in ("emc", "shield", "skjerm", "attenuat", "dB")
+    ):
+        signals.add("shield")
+    if "class" in blob or "klasse" in blob:
+        signals.add("class")
+    kind = "measure" if t == "quantity" else ("principle" if t in ("classification", "definition", "distinction") else "fact")
+    return Claim(
+        text_no=text,
+        text_en=text,
+        file_id=fc_claim.source or "",
+        kind=kind,
+        signals=signals or {"shield"},
+    )
+
+
+def _pick_foldok_claims(
+    claimset,
+    cites: CiteRegistry,
+    *,
+    purpose: str,
+    heading: str,
+    retrieve_query: str,
+    used_claim_ids: set[str],
+    lang: str,
+    n: int = 2,
+    prefer: set[str] | None = None,
+) -> list[Claim]:
+    raw = claims_for_section(
+        claimset,
+        purpose=purpose,
+        heading=heading,
+        retrieve_query=retrieve_query,
+        used_ids=used_claim_ids,
+        limit=n + 2,
+    )
+    out: list[Claim] = []
+    for fc in raw:
+        local = _foldok_to_local(fc, lang=lang)
+        if prefer and not (prefer & local.signals):
+            # still allow if type matched purpose via claims_for_section
+            pass
+        if not cites.claim_fresh(local.text_no):
+            continue
+        if not cites.unused(local.file_id) and out:
+            continue
+        used_claim_ids.add(fc.id)
+        out.append(local)
+        if len(out) >= n:
+            break
+    return out
+
+
 def write_framing(
     section: OutlineSection,
     index,
@@ -432,71 +507,119 @@ def write_framing(
     sketch=None,
     cites: CiteRegistry,
     lang: str = "no",
+    claimset=None,
+    used_claim_ids: set[str] | None = None,
+    lead_depth: str = "standard",
 ) -> SectionDraft:
-    from .plan import CorpusSketch, corpus_sketch
+    """Innledning via Lead Generator (½-page corpus framing + thesis + roadmap)."""
+    from .lead import LeadControls, author_lead_section
 
+    depth = lead_depth if lead_depth in ("short", "standard", "rich") else "standard"
+    return author_lead_section(
+        section, index,
+        narrative=narrative, artifact=artifact, sketch=sketch,
+        cites=cites, lang=lang,
+        controls=LeadControls(lead_depth=depth),  # type: ignore[arg-type]
+    )
+
+
+def section_summary(prose: str, *, max_sents: int = 2) -> str:
+    """2–3 sentence previous-section summary for continuity bridges."""
+    text = re.sub(r"\s+", " ", (prose or "").strip())
+    text = re.sub(r"\*?\(\d+\s+filer[^*]*\*?", "", text)
+    text = re.sub(r"\[\d+\]", "", text)
+    if not text:
+        return ""
+    parts = re.split(r"(?<=[.!?])\s+", text)
+    keep = [p.strip() for p in parts if len(p.strip()) > 20][:max_sents]
+    return " ".join(keep)
+
+
+def bridge_opening(
+    *,
+    prev_summary: str,
+    prev_beat: str,
+    next_beat: str,
+    next_purpose: str,
+    lang: str = "no",
+) -> str:
+    """Hard continuity input — not hope. Ban findings-voice openers."""
     no = (lang or "no").startswith("no")
-    sk: CorpusSketch = (
-        (narrative.sketch if narrative else None)
-        or sketch
-        or corpus_sketch(index, artifact=artifact)
-    )
-    thesis = (narrative.thesis if narrative else "") or ""
-    hits = retrieve(section.retrieve_query or sk.title, index, k=10, min_score=0.22)
-    claims = extract_claims(hits, limit=8)
-    # Reserve class/zone claims for later arc sections — lead uses shield evidence
-    picked = _pick_claims(claims, cites, n=2, prefer={"shield"})
-    if len(picked) < 2:
-        extra = _pick_claims(
-            [c for c in claims if c not in picked],
-            cites, n=2 - len(picked), prefer={"class", "zone"},
-        )
-        picked.extend(extra)
-
-    paras: list[str] = []
-    if thesis:
-        t = thesis.strip()
-        paras.append(t if t.endswith(".") else t + ".")
-
-    if picked:
-        c0 = picked[0]
-        if no:
-            paras.append(
-                f"Et konkret underlag for dette er at {c0.text_no} {cites.mark(c0.file_id)}."
-            )
-        else:
-            paras.append(
-                f"Concrete support includes that {c0.text_en} {cites.mark(c0.file_id)}."
-            )
-        if len(picked) > 1:
-            c1 = picked[1]
+    key = (prev_beat or "", next_beat or "")
+    canned = {
+        ("frame", "context"): (
+            "Med tesen lagt, følger begrunnelsen for hvorfor det betyr noe."
+            if no else
+            "With the thesis in place, the case for why it matters follows."
+        ),
+        ("frame", "concepts"): (
+            "Med tesen lagt, trengs felles begreper før designregler."
+            if no else
+            "With the thesis stated, shared concepts come before design rules."
+        ),
+        ("context", "concepts"): (
+            "Når begrensningen er klar, trengs felles språk for klasser og soner."
+            if no else
+            "Once the constraint is clear, shared language for classes and zones is needed."
+        ),
+        ("concepts", "rules"): (
+            "Når begrepene er på plass, følger designimplikasjonene."
+            if no else
+            "Having established the concepts, the design implications follow."
+        ),
+        ("concepts", "evidence"): (
+            "Samme logikk dukker opp i produkt-EMC-tester og målte påstander."
+            if no else
+            "The same logic appears in the product EMC tests and measured claims."
+        ),
+        ("evidence", "rules"): (
+            "Fra de målte påstandene følger praktiske designregler."
+            if no else
+            "From the measured claims follow practical design rules."
+        ),
+        ("rules", "standards"): (
+            "Reglene forankres i navngitte standarder med en rolle i argumentet."
+            if no else
+            "The rules are anchored in named standards that play a role in the argument."
+        ),
+        ("standards", "close"): (
+            "Mot slutten: hva leseren skal sitte igjen med."
+            if no else
+            "Toward the close: what the reader should leave with."
+        ),
+        ("standards", "conclusion"): (
+            "Mot slutten: hva leseren skal sitte igjen med."
+            if no else
+            "Toward the close: what the reader should leave with."
+        ),
+        ("rules", "close"): (
+            "Oppsummert følger anbefalingen av samme tråd."
+            if no else
+            "In closing, the recommendation follows the same thread."
+        ),
+        ("rules", "conclusion"): (
+            "Oppsummert følger anbefalingen av samme tråd."
+            if no else
+            "In closing, the recommendation follows the same thread."
+        ),
+    }
+    # Map problem→frame for lookup
+    pb = "frame" if prev_beat in ("problem", "frame") else prev_beat
+    nb = "close" if next_beat in ("conclusion", "close") else next_beat
+    line = canned.get((pb, nb)) or canned.get((prev_beat, next_beat))
+    if line:
+        return line
+    if prev_summary:
+        short = prev_summary.split(".")[0].strip()
+        if len(short) > 20:
             if no:
-                paras.append(
-                    f"Samme argument understøttes av at {c1.text_no} {cites.mark(c1.file_id)}."
-                )
-            else:
-                paras.append(
-                    f"The same argument is supported by {c1.text_en} {cites.mark(c1.file_id)}."
-                )
-
-    if no:
-        paras.append(
-            "Teksten følger problem → begreper → regler → standarder, "
-            "og markerer der dekning mangler."
-        )
-        foot = f"*(Underlag: {sk.file_count} indekserte filer.)*"
-    else:
-        paras.append(
-            "The text follows problem → concepts → rules → standards, "
-            "and marks where coverage is thin."
-        )
-        foot = f"*({sk.file_count} indexed files underpin this note.)*"
-
-    prose = _strip_banned(" ".join(paras) + "\n\n" + foot)
-    return SectionDraft(
-        heading=section.heading, purpose=section.purpose, kind="framing",
-        prose=prose.strip(), hits=hits, author_intent="frame", arc_beat="problem",
-    )
+                return f"Etter dette — {short[:110].rstrip('.')} — følger neste ledd i argumentet."
+            return f"Having established that — {short[:110].rstrip('.')} — the next step in the argument follows."
+    if next_purpose and no:
+        return "Neste ledd i argumentet bygger direkte på det foregående."
+    if next_purpose:
+        return "The next step in the argument builds directly on what precedes it."
+    return ""
 
 
 def write_teach(
@@ -509,75 +632,105 @@ def write_teach(
     arc_beat: str = "concepts",
     thesis: str = "",
     purpose: str = "",
+    claimset=None,
+    used_claim_ids: set[str] | None = None,
+    previous_summary: str = "",
+    previous_beat: str = "",
+    next_purpose: str = "",
+    main_argument: str = "",
 ) -> SectionDraft:
     no = (lang or "no").startswith("no")
     purpose = purpose or section.purpose
     optional = getattr(section, "optional", True)
     need = _purpose_needs(purpose, section.heading, section.retrieve_query)
+    used = used_claim_ids if used_claim_ids is not None else set()
 
     hits = retrieve(section.retrieve_query, index, k=10, min_score=0.26)
-    claims = extract_claims(hits, limit=10)
 
-    # Purpose fidelity gate
-    if need and not _claims_satisfy(claims, need):
-        gap = _fidelity_gap(section.heading, need, no=no)
-        if optional:
-            return SectionDraft(
-                heading=section.heading, purpose=purpose, kind=section.kind,
-                gap=gap, prose="", omitted=False, fidelity_ok=False,
-                author_intent=author_intent, arc_beat=arc_beat, hits=hits,
-            )
-        return SectionDraft(
-            heading=section.heading, purpose=purpose, kind=section.kind,
-            gap=gap, fidelity_ok=False,
-            author_intent=author_intent, arc_beat=arc_beat, hits=hits,
-        )
-
-    if not claims:
-        if optional and author_intent != "conclude":
-            return SectionDraft(
-                heading=section.heading, purpose=purpose, kind=section.kind,
-                omitted=True, author_intent=author_intent, arc_beat=arc_beat,
-            )
-        if author_intent == "conclude":
-            prose = _write_conclusion([], cites, thesis=thesis, lang=lang)
-            return SectionDraft(
-                heading=section.heading, purpose=purpose, kind=section.kind,
-                prose=prose, author_intent=author_intent, arc_beat=arc_beat,
-            )
-        return SectionDraft(
-            heading=section.heading, purpose=purpose, kind=section.kind,
-            gap=("MANGLER: for tynt treffgrunnlag" if no else "MISSING: too thin to ground"),
-            fidelity_ok=False, author_intent=author_intent, arc_beat=arc_beat,
-        )
-
-    if author_intent == "conclude":
-        prose = _write_conclusion(
-            _pick_claims(claims, cites, n=1, prefer=need or {"shield"}),
-            cites, thesis=thesis, lang=lang,
-        )
-    else:
-        picked = _pick_claims(claims, cites, n=2, prefer=need or {"class", "zone", "shield"})
-        if not picked:
-            # All matching claims already used earlier — honest thin section, not empty lead
-            gap = (
-                f"MANGLER: «{section.heading}» — relevante treff er allerede sitert i tidligere avsnitt; "
-                f"ingen nye konkrete krav funnet her."
+    # Primary: foldok_claims
+    picked: list[Claim] = []
+    if claimset is not None and len(claimset) > 0:
+        need_types = section_needs_types(purpose, section.heading, section.retrieve_query)
+        if need_types and not has_type_coverage(claimset, need_types):
+            gap = _fidelity_gap(section.heading, need, no=no) if need else (
+                f"MANGLER: «{section.heading}» — ingen treffende claims i korpus"
                 if no else
-                f"MISSING: “{section.heading}” — matching hits were already cited earlier; "
-                f"no fresh concrete requirements here."
+                f"MISSING: “{section.heading}” — no matching claims in corpus"
             )
             return SectionDraft(
                 heading=section.heading, purpose=purpose, kind=section.kind,
                 gap=gap, prose="", fidelity_ok=False,
                 author_intent=author_intent, arc_beat=arc_beat, hits=hits,
             )
-        if author_intent == "recommend":
-            prose = _write_recommend(section.heading, picked, cites, lang=lang)
-        elif author_intent == "argue":
-            prose = _write_argue(section.heading, picked, cites, lang=lang)
+        prefer = need or {"class", "zone", "shield"}
+        if author_intent == "conclude":
+            prefer = {"shield"}
+        picked = _pick_foldok_claims(
+            claimset, cites,
+            purpose=purpose, heading=section.heading,
+            retrieve_query=section.retrieve_query,
+            used_claim_ids=used, lang=lang, n=2 if author_intent != "conclude" else 1,
+            prefer=prefer,
+        )
+    else:
+        claims = extract_claims(hits, limit=10)
+        if need and not _claims_satisfy(claims, need):
+            gap = _fidelity_gap(section.heading, need, no=no)
+            return SectionDraft(
+                heading=section.heading, purpose=purpose, kind=section.kind,
+                gap=gap, prose="", fidelity_ok=False,
+                author_intent=author_intent, arc_beat=arc_beat, hits=hits,
+            )
+        if not claims and author_intent != "conclude":
+            if optional:
+                return SectionDraft(
+                    heading=section.heading, purpose=purpose, kind=section.kind,
+                    omitted=True, author_intent=author_intent, arc_beat=arc_beat,
+                )
+            return SectionDraft(
+                heading=section.heading, purpose=purpose, kind=section.kind,
+                gap=("MANGLER: for tynt treffgrunnlag" if no else "MISSING: too thin to ground"),
+                fidelity_ok=False, author_intent=author_intent, arc_beat=arc_beat,
+            )
+        if author_intent == "conclude":
+            picked = _pick_claims(claims, cites, n=1, prefer=need or {"shield"})
         else:
-            prose = _write_explain(section.heading, picked, cites, lang=lang)
+            picked = _pick_claims(claims, cites, n=2, prefer=need or {"class", "zone", "shield"})
+
+    bridge = bridge_opening(
+        prev_summary=previous_summary,
+        prev_beat=previous_beat,
+        next_beat=arc_beat,
+        next_purpose=next_purpose or purpose,
+        lang=lang,
+    )
+
+    if author_intent == "conclude":
+        prose = _write_conclusion(
+            picked, cites, thesis=thesis or main_argument, lang=lang,
+            leave_with="",
+        )
+    elif not picked:
+        gap = (
+            f"MANGLER: «{section.heading}» — relevante claims er allerede brukt tidligere; "
+            f"ingen nye konkrete krav her."
+            if no else
+            f"MISSING: “{section.heading}” — matching claims already used; no fresh requirements here."
+        )
+        return SectionDraft(
+            heading=section.heading, purpose=purpose, kind=section.kind,
+            gap=gap, prose="", fidelity_ok=False,
+            author_intent=author_intent, arc_beat=arc_beat, hits=hits,
+        )
+    elif author_intent == "recommend":
+        prose = _write_recommend(section.heading, picked, cites, lang=lang)
+    elif author_intent == "argue":
+        prose = _write_argue(section.heading, picked, cites, lang=lang)
+    else:
+        prose = _write_explain(section.heading, picked, cites, lang=lang)
+
+    if bridge and prose and not prose.lower().startswith(bridge[:18].lower()):
+        prose = f"{bridge} {prose}"
 
     prose = validate_prose(prose, hits) or prose
     prose = _strip_banned(prose)
@@ -703,7 +856,9 @@ def _write_recommend(heading, claims: list[Claim], cites, *, lang) -> str:
     return " ".join(parts)
 
 
-def _write_conclusion(claims: list[Claim], cites, *, thesis: str, lang: str) -> str:
+def _write_conclusion(
+    claims: list[Claim], cites, *, thesis: str, lang: str, leave_with: str = "",
+) -> str:
     no = lang.startswith("no")
     parts = []
     if thesis:
@@ -711,7 +866,6 @@ def _write_conclusion(claims: list[Claim], cites, *, thesis: str, lang: str) -> 
         parts.append(short)
     else:
         parts.append("Oppsummert er retningen i underlaget klar." if no else "In summary the direction is clear.")
-    # Prefer unused claim; skip if would only repeat body cite
     fresh = [c for c in claims if cites.unused(c.file_id)]
     if fresh:
         c0 = fresh[0]
@@ -719,7 +873,9 @@ def _write_conclusion(claims: list[Claim], cites, *, thesis: str, lang: str) -> 
             parts.append(f"Blant det som er etablert: {c0.text_no} {cites.mark(c0.file_id)}.")
         else:
             parts.append(f"Among what is established: {c0.text_en} {cites.mark(c0.file_id)}.")
-    if no:
+    if leave_with:
+        parts.append(leave_with if leave_with.endswith(".") else leave_with + ".")
+    elif no:
         parts.append(
             "Anbefalingen er å lese klassevalg, soner, installasjon og standarder som én sammenheng "
             "— og å lukke åpne punkter før beslutning."
@@ -738,12 +894,28 @@ def write_standards(
     *,
     cites: CiteRegistry,
     lang: str = "no",
+    claimset=None,
 ) -> SectionDraft:
     no = (lang or "no").startswith("no")
     hits = retrieve(
         section.retrieve_query or "standard IEC IEEE EN MIL shielding cable",
         index, k=20, min_score=0.18,
     )
+
+    # Prefer claim-based register (what the standard requires, not name windows)
+    if claimset is not None and len(claimset) > 0:
+        from .claims_bridge import standards_markdown
+        prose = standards_markdown(claimset, lang=lang)
+        if prose.strip():
+            # Register sources for appendix
+            from foldok_claims import standards_register
+            for entry in standards_register(claimset):
+                for src in entry.get("sources") or []:
+                    cites.mark(src, body=False)
+            return SectionDraft(
+                heading=section.heading, purpose=section.purpose, kind="standards",
+                prose=prose, hits=hits, author_intent="list", arc_beat="standards",
+            )
 
     def _std_key(sid: str) -> str:
         return re.sub(r"[-\s]+", "", sid.upper())
@@ -763,14 +935,12 @@ def write_standards(
             role = _role_for_standard(sid, text, no=no)
             if not role or role.startswith("(") or len(role) < 4:
                 continue
-            # Reject truncated garbage roles
             if role.endswith(("cov", "the", "and", "for", "with", "of", "i", "a")) and len(role) < 40:
                 continue
             if re.search(r"[;,]{2,}|\(\s*;", role):
                 continue
             entries[key] = (sid, role, h.file_id)
 
-    # Broader scan of facts for standard values
     if len(entries) < 3:
         for e in _usable(index)[:80]:
             fid = Path(e.get("file") or "").name
@@ -799,7 +969,6 @@ def write_standards(
 
     lines = []
     for sid, role, fid in list(entries.values())[:12]:
-        # Standards appendix may reuse body cites
         mark = cites.mark(fid, body=False)
         lines.append(f"- **{sid}** — {role} {mark}".rstrip())
 
@@ -889,6 +1058,7 @@ def write_gaps(
     *,
     lang: str = "no",
     thesis: str = "",
+    coherence=None,
 ) -> SectionDraft:
     no = (lang or "no").startswith("no")
     lines = []
@@ -901,7 +1071,6 @@ def write_gaps(
                 + ("ingen dekning i treff" if no else "no coverage in retrieval")
             )
 
-    # Thesis promises zones/classes — flag if body never delivered
     th = (thesis or "").lower()
     body = " ".join((d.prose or "") + (d.gap or "") for d in drafts).lower()
     if any(w in th for w in ("sone", "zone")) and not ZONE_RX.search(body):
@@ -911,18 +1080,18 @@ def write_gaps(
                if no else
                "thesis mentions zones, but the body lacked zone/earthing hits.")
         )
-    if any(w in th for w in ("klasse", "class")) and not CLASS_RX.search(
-        " ".join(d.prose for d in drafts if d.arc_beat == "concepts")
-    ):
-        # Only if no class language in concept sections
-        concept = " ".join(d.prose for d in drafts if d.arc_beat == "concepts")
-        if not CLASS_RX.search(concept):
-            lines.append(
-                "- Kabelklasser: "
-                + ("tesen lover klassevalg, men seksjonen mangler klasse 1–6 / separasjonsspråk."
-                   if no else
-                   "thesis promises class selection, but the section lacks class 1–6 / segregation language.")
-            )
+    concept = " ".join(d.prose for d in drafts if d.arc_beat == "concepts")
+    if any(w in th for w in ("klasse", "class")) and not CLASS_RX.search(concept):
+        lines.append(
+            "- Kabelklasser: "
+            + ("tesen lover klassevalg, men seksjonen mangler klasse 1–6 / separasjonsspråk."
+               if no else
+               "thesis promises class selection, but the section lacks class 1–6 / segregation language.")
+        )
+
+    # Coherence findings (what a summary cannot do)
+    if coherence is not None:
+        lines.extend(coherence_gap_lines(coherence, lang=lang, limit=6))
 
     if not lines:
         prose = (
@@ -962,10 +1131,31 @@ def author_document(
     cites = CiteRegistry()
     sketch = (narrative.sketch if narrative else None) or corpus_sketch(index, artifact=artifact)
     thesis = narrative.thesis if narrative else ""
+    blueprint = narrative.as_blueprint() if narrative is not None else None
+    main_argument = (
+        (blueprint.main_argument if blueprint else "")
+        or (narrative.intent.main_argument if narrative else "")
+        or thesis
+    )
+    leave_with = blueprint.reader_should_leave_with if blueprint else ""
     drafts: list[SectionDraft] = []
-    work = narrative.sections if narrative is not None else (outline or [])
+    work = list(narrative.sections if narrative is not None else (outline or []))
 
-    for sec in work:
+    claimset, coherence = corpus_claims(index)
+    used_claim_ids: set[str] = set()
+    prev_summary = ""
+    prev_beat = ""
+
+    def _next_purpose(i: int) -> str:
+        for j in range(i + 1, len(work)):
+            nxt = work[j]
+            kind = getattr(nxt, "kind", None) or getattr(nxt, "kind", "")
+            if kind in ("appendix", "gaps"):
+                continue
+            return getattr(nxt, "purpose", "") or ""
+        return ""
+
+    for i, sec in enumerate(work):
         if hasattr(sec, "to_outline"):
             outline_sec = sec.to_outline()
             intent = sec.author_intent
@@ -975,7 +1165,7 @@ def author_document(
             outline_sec = sec
             intent, beat, purpose = "explain", "concepts", sec.purpose
             if sec.kind == "framing":
-                intent, beat = "frame", "problem"
+                intent, beat = "frame", "frame"
             elif sec.kind == "standards":
                 intent, beat = "list", "standards"
             elif sec.kind == "gaps":
@@ -983,32 +1173,69 @@ def author_document(
             elif sec.kind == "appendix":
                 intent, beat = "list", "appendix"
 
+        next_purp = _next_purpose(i)
+
         if outline_sec.kind == "framing":
-            drafts.append(write_framing(
+            d = write_framing(
                 outline_sec, index, narrative=narrative, artifact=artifact,
                 sketch=sketch, cites=cites, lang=lang,
-            ))
+                claimset=claimset, used_claim_ids=used_claim_ids,
+            )
+            drafts.append(d)
+            if d.prose:
+                prev_summary = section_summary(d.prose)
+                prev_beat = beat or "frame"
         elif outline_sec.kind == "teach":
             d = write_teach(
                 outline_sec, index, cites=cites, lang=lang,
                 author_intent=intent, arc_beat=beat, thesis=thesis, purpose=purpose,
+                claimset=claimset, used_claim_ids=used_claim_ids,
+                previous_summary=prev_summary, previous_beat=prev_beat,
+                next_purpose=next_purp, main_argument=main_argument,
             )
+            # Inject leave-with into conclusion
+            if not d.omitted and intent == "conclude" and leave_with and d.prose:
+                if leave_with.rstrip(".") not in d.prose:
+                    d.prose = d.prose.rstrip() + " " + (
+                        leave_with if leave_with.endswith(".") else leave_with + "."
+                    )
             if not d.omitted:
                 drafts.append(d)
+                if d.prose:
+                    prev_summary = section_summary(d.prose)
+                    prev_beat = beat
         elif outline_sec.kind == "standards":
-            d = write_standards(outline_sec, index, cites=cites, lang=lang)
+            d = write_standards(outline_sec, index, cites=cites, lang=lang, claimset=claimset)
             if not d.omitted:
+                # Light bridge into standards
+                br = bridge_opening(
+                    prev_summary=prev_summary, prev_beat=prev_beat,
+                    next_beat="standards", next_purpose=purpose, lang=lang,
+                )
+                if br and d.prose and not d.prose.startswith(br[:12]):
+                    d.prose = f"{br}\n\n{d.prose}"
                 drafts.append(d)
+                if d.prose:
+                    prev_summary = section_summary(d.prose)
+                    prev_beat = "standards"
         elif outline_sec.kind == "gaps":
-            drafts.append(write_gaps(outline_sec, drafts, lang=lang, thesis=thesis))
+            drafts.append(write_gaps(
+                outline_sec, drafts, lang=lang, thesis=thesis, coherence=coherence,
+            ))
         elif outline_sec.kind == "appendix":
             drafts.append(write_appendix(outline_sec, cites, lang=lang))
         else:
             d = write_teach(
                 outline_sec, index, cites=cites, lang=lang,
                 author_intent=intent, arc_beat=beat, thesis=thesis, purpose=purpose,
+                claimset=claimset, used_claim_ids=used_claim_ids,
+                previous_summary=prev_summary, previous_beat=prev_beat,
+                next_purpose=next_purp, main_argument=main_argument,
             )
             if not d.omitted:
                 drafts.append(d)
+                if d.prose:
+                    prev_summary = section_summary(d.prose)
+                    prev_beat = beat
 
     return drafts, cites

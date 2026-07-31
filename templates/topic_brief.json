@@ -19,7 +19,7 @@
       "required_media": {},
       "required_content": ["no_uncited_specs"],
       "writing_rules": { "voice": "descriptive", "structure": "prose", "fact_citation": "required" },
-      "notes": "3–5 sentence framing from overview chunks; file count as footnote only."
+      "notes": "Lead Generator (arc frame): ½-page corpus framing + thesis + roadmap + limits. File count footnote only."
     },
     {
       "section_key": "answers",

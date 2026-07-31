@@ -536,6 +536,53 @@ def is_open_ended_create(message: str) -> bool:
     ))
 
 
+def is_index_coverage_ask(message: str) -> bool:
+    """Why aren't files indexed / silent drop explanation."""
+    lower = (message or "").lower()
+    return bool(re.search(
+        r"(hvorfor\s*(er\s*)?(ikke\s*)?(fil(ene)?|alt)\s*(i\s*)?(indeks|indeksert)|"
+        r"hvorfor\s*(ble\s*)?(fil(er)?|kilder?)\s*(hoppet\s*over|droppet|utelatt)|"
+        r"hva\s*(ble\s*)?(droppet|hoppet\s*over|utelatt)|"
+        r"dekning|coverage|"
+        r"why\s*(aren.?t|are\s*not|weren.?t)\s*(the\s*)?files?\s*index|"
+        r"what\s*(was\s*)?(dropped|skipped)|silent\s*drop)",
+        lower,
+    ))
+
+
+def index_coverage_reply(prescan: dict | None, *, lang: str = "no") -> str:
+    """Zero-token prose from foldok_scan enrichment on a prescan report."""
+    p = dict(prescan or {})
+    text = (p.get("coverage_text") or "").strip()
+    cov = p.get("coverage")
+    indexed = p.get("coverage_indexed")
+    total = p.get("coverage_total")
+    win = p.get("biggest_win") or {}
+    if text:
+        if len(text) > 2200:
+            text = text[:2200].rstrip() + "\n…"
+        return text
+    if lang == "en":
+        bits = []
+        if cov is not None and total:
+            bits.append(f"Coverage: {indexed}/{total} ({round(float(cov) * 100)}%).")
+        if win:
+            bits.append(
+                f"Biggest win: support {win.get('ext')} and recover {win.get('count')} files"
+                + (f" ({win.get('why')})." if win.get("why") else ".")
+            )
+        return " ".join(bits) or "No coverage scan available yet — run Hurtigscan first."
+    bits = []
+    if cov is not None and total:
+        bits.append(f"Dekning: {indexed}/{total} ({round(float(cov) * 100)}%).")
+    if win:
+        bits.append(
+            f"Største gevinst: støtt {win.get('ext')} og få {win.get('count')} filer til"
+            + (f" ({win.get('why')})." if win.get("why") else ".")
+        )
+    return " ".join(bits) or "Ingen dekningsrapport ennå — kjør Hurtigscan først."
+
+
 def is_source_summary_request(message: str) -> bool:
     """«Oppsummer prosjektet ut fra kildene» — zero-token when index exists."""
     q = _fold(message)
@@ -814,7 +861,7 @@ def is_recreate_form_ask(text: str) -> bool:
 def is_regenerate_document_ask(text: str) -> bool:
     """Full-document regenerate (not a single section).
 
-    Catches 're generate this document', typos like 'documen',
+    Catches 're generate this document', typos like 'documen' / 'regenarate',
     'generer dokumentet på nytt'. Section-scoped asks are excluded.
     """
     lower = _fold(text or "")
@@ -830,27 +877,69 @@ def is_regenerate_document_ask(text: str) -> bool:
     # document / dokument / draft (+ common truncations like "documen")
     doc = (
         r"(?:documen\w*|dokument\w*|utkast\w*|draft\w*|manual\w*|"
-        r"rapport\w*|report\w*|hele)"
+        r"rapport\w*|report\w*|hele|temabrief|topic\s*brief|fagpakke)"
     )
-    regener = r"(?:re\s*-?\s*generat\w*|regenerer\w*)"
+    # regenerate + common typos: regenarate / re-genarate / regenerat
+    regener = (
+        r"(?:re\s*-?\s*generat\w*|re\s*-?\s*genarat\w*|regenerat\w*|"
+        r"regenarat\w*|regenerer\w*)"
+    )
     if re.search(rf"\b{regener}\b.*\b{doc}\b|\b{doc}\b.*\b{regener}\b", lower):
         return True
-    # "re generate this" / "regenerate it" with no section → whole open document
+    # "re generate this" / "regenerate it" / "regenarate this" → whole open document
     if re.search(
         rf"\b{regener}\b(?:\s+\w+){{0,3}}\s+\b(this|it|dette|denne|det)\b",
         lower,
     ):
         return True
     if re.search(
-        r"\b(generer|bygg|kj[øo]r)\b.*\b(dokumentet|utkastet|hele\s+dokumentet|draft)\b.*"
+        r"\b(generer|bygg|kj[øo]r)\b.*\b(dokumentet|utkastet|hele\s+dokumentet|draft|temabrief)\b.*"
         r"\b(p[åa]\s*nytt|igjen|again)\b|"
-        r"\b(p[åa]\s*nytt|igjen|again)\b.*\b(generer|bygg)\b.*\b(dokument|utkast|draft)\b|"
-        r"\b(generate|rebuild)\b.*\b(the\s+)?(document|draft|manual)\b|"
-        r"\b(skriv|bygg)\s+(hele\s+)?(dokumentet|utkastet)\s+(p[åa]\s*nytt|om)\b",
+        r"\b(p[åa]\s*nytt|igjen|again)\b.*\b(generer|bygg)\b.*\b(dokument|utkast|draft|temabrief)\b|"
+        r"\b(generate|rebuild|improve|forbedre)\b.*\b(the\s+)?(document|draft|manual|temabrief|topic\s*brief)\b|"
+        r"\b(skriv|bygg)\s+(hele\s+)?(dokumentet|utkastet|temabrief)\s+(p[åa]\s*nytt|om)\b",
         lower,
     ):
         return True
     return False
+
+
+def open_document_template(state: dict | None) -> str | None:
+    """Template file for the document currently open in the editor."""
+    st = state or {}
+    doc = st.get("doc") or {}
+    for cand in (
+        doc.get("template_file"),
+        st.get("active_template"),
+        st.get("template"),
+    ):
+        if cand:
+            return cand
+    return None
+
+
+def recent_user_blob(state: dict | None, *, n: int = 6) -> str:
+    conv = (state or {}).get("conversation") or []
+    parts = []
+    for t in reversed(conv):
+        if (t.get("role") or "") != "user":
+            continue
+        parts.append(t.get("text") or "")
+        if len(parts) >= n:
+            break
+    return " ".join(reversed(parts))
+
+
+def reply_offers_form_create(reply: str) -> bool:
+    """True only when *this* reply offers to create a form/mal — not prior chat noise."""
+    return bool(re.search(
+        r"\b(skjema|form|multipoint|inspeksjonssjekkliste|inspection\s+checklist)\b|"
+        r"\b(opprett|lag|create|make).{0,48}\b(mal|template|skjema|form)\b|"
+        r"\b(mal|template|skjema|form).{0,48}\b(opprett|lag|create|make)\b|"
+        r"\bopprett\s+mal\b|\bcreate\s+(a\s+)?template\b",
+        reply or "",
+        re.I,
+    ))
 
 
 def dispatch_pending_action(pending: dict) -> dict | None:
@@ -903,6 +992,8 @@ def dispatch_pending_action(pending: dict) -> dict | None:
         return None  # handled earlier in server
     elif action == "resolve_mangler":
         return None  # needs a value, not bare ja
+    elif action == "set_system_under_install":
+        return None  # needs tray/sensor/…, not bare ja
     elif action == "write_checklist":
         # Affirmative after a mistaken .txt offer — redirect to form recreate
         # when the pending was about a form; else write checklist.
@@ -1030,9 +1121,58 @@ def route_editor_message(message: str, state: dict, gaps: list, scope_section=No
             "kind": "resolve_value",
         }
 
+    # Installation manual — set system_under_install before generate
+    if pending and pending.get("action") == "set_system_under_install":
+        import install_manual_compile as imc
+        # Chip labels: system_sensor → sensor
+        chip = re.match(r"(?i)^\s*system_(cable_tray|sensor|machine|enclosure|other)\s*$", text or "")
+        chosen = chip.group(1).lower() if chip else imc.parse_system_under_install(text)
+        if chosen:
+            return {
+                "execute": {
+                    "tool": "set_system_under_install",
+                    "system_under_install": chosen,
+                    "template_key": pending.get("template_key"),
+                    "template": pending.get("template"),
+                },
+                "kind": "set_system_under_install",
+                "clear_pending": True,
+            }
+
+    # Named install source: «bruk …» / «utvid med fil.pdf» (any name from the index)
+    # Cover/forside imperatives take precedence (Acceptance B / D2).
+    import install_manual_compile as _imc_focus
+    if _imc_focus.is_focus_ask(text) and not is_cover_imperative(text):
+        needles = _imc_focus.parse_focus_sources(text)
+        if needles:
+            open_tf = open_document_template(state) or state.get("active_template")
+            return {
+                "execute": {
+                    "tool": "set_install_focus",
+                    "focus_sources": needles,
+                    "template": open_tf,
+                },
+                "kind": "set_install_focus",
+                "clear_pending": False,
+            }
+
     # WORKORDER_0.25 B — ANY pending + affirmative → server dispatch (never re-ask / model)
     import hub_session as hses
     if pending and hses.is_affirmative(text):
+        # Mis-routed form offer after a regenerate ask → regenerate open doc instead
+        import template_lifecycle as _tl_aff
+        recent_u = recent_user_blob(state)
+        if (pending.get("action") == "recreate_form"
+                and pending.get("redirect_form")
+                and not is_recreate_form_ask(recent_u)
+                and not _tl_aff.is_inspection_checklist_ask(recent_u)):
+            open_tf = open_document_template(state)
+            if open_tf and "inspection" not in (open_tf or "").lower():
+                return {
+                    "execute": {"tool": "run_generate", "template": open_tf},
+                    "kind": "dispatch_generate",
+                    "clear_pending": True,
+                }
         dispatched = dispatch_pending_action(pending)
         if dispatched:
             return dispatched
@@ -1408,8 +1548,17 @@ def route_editor_message(message: str, state: dict, gaps: list, scope_section=No
 
     # Full document regenerate — BEFORE section regener (also catches "re generate")
     if is_regenerate_document_ask(text):
+        open_tf = open_document_template(state)
+        execute = {"tool": "run_generate"}
+        if open_tf:
+            execute["template"] = open_tf
+            execute["template_key"] = open_tf.replace(".json", "")
+        # Named temabrief / topic brief beats a stale active_template only when asked
+        if re.search(r"\b(temabrief|topic\s*brief|fagpakke)\b", lower):
+            execute["template"] = "topic_brief.json"
+            execute["template_key"] = "topic_brief"
         return {
-            "execute": {"tool": "run_generate"},
+            "execute": execute,
             "kind": "run_generate",
         }
 

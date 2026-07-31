@@ -110,6 +110,22 @@ def test_postprocess_strips_scope_filler_and_contact_noise_outside_cover():
     assert "@" not in out
 
 
+def test_postprocess_preserves_svg_despite_xmlns_url():
+    """xmlns http://… must not strip <svg> openers (CONTACT_NOISE false positive)."""
+    idx = [{"file": "a.txt", "facts": []}]
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40">\n'
+        '<rect x="1" y="1" width="40" height="20"/>\n'
+        "</svg>\n"
+        "Contact www.example.com for support\n"
+    )
+    out, _, _ = fc.postprocess("method", svg, idx, artifact={})
+    assert '<svg xmlns="http://www.w3.org/2000/svg"' in out
+    assert "<rect" in out
+    assert "</svg>" in out
+    assert "www.example.com" not in out
+
+
 def test_metode_hard_stop_blocks_large_unrelated_fact_bag():
     facts = [
         {"id": "doc", "key": "document_number", "value": "ITR-20-006"},

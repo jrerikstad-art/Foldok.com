@@ -7,10 +7,10 @@
 <meta name="description" content="Foldok is an engineering documentation operating system. Project folders become structured, cited, deliverable packages. Documentation is the primary workspace. You confirm before anything is final." />
 <meta name="application-name" content="Foldok" />
 <meta name="theme-color" content="#F5C400" />
-<link rel="icon" href="/favicon-32.png?v=6" type="image/png" sizes="32x32" />
-<link rel="icon" href="/favicon-16.png?v=6" type="image/png" sizes="16x16" />
-<link rel="icon" href="/favicon.svg?v=6" type="image/svg+xml" />
-<link rel="shortcut icon" href="/favicon.ico?v=6" />
+<link rel="icon" href="/favicon-32.png?v=7" type="image/png" sizes="32x32" />
+<link rel="icon" href="/favicon-16.png?v=7" type="image/png" sizes="16x16" />
+<link rel="icon" href="/favicon.svg?v=7" type="image/svg+xml" />
+<link rel="shortcut icon" href="/favicon.ico?v=7" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=6" sizes="180x180" />
 <meta property="og:title" content="Foldok — engineering documentation OS" />
 <meta property="og:description" content="Project folders in. Complete documentation out. An operating system for engineering documentation packages." />
@@ -682,21 +682,66 @@
     white-space:nowrap; pointer-events:none;
   }
   .docs-rail .doc-rail-item {
-    display:flex; align-items:flex-start; gap:8px; width:100%;
-    text-align:left; padding:10px 12px; margin-bottom:6px;
+    display:flex; flex-direction:column; align-items:stretch; gap:6px; width:100%;
+    text-align:left; padding:10px 12px; margin:0;
     border-radius:8px; border:1px solid var(--line); background:var(--sheet);
     font-weight:700; font-size:12.5px; line-height:1.35; color:var(--ink);
+    cursor:pointer; transition: border-color .12s, background .12s, opacity .12s;
   }
   .docs-rail .doc-rail-item:hover { border-color:var(--ink); }
   .docs-rail .doc-rail-item.on { border-color:var(--ink); background:var(--ink); color:#fff; }
-  .docs-rail .doc-rail-item .doc-rail-name { flex:1; min-width:0; }
-  .docs-rail .doc-rail-item .doc-rail-gap {
-    font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:700; flex-shrink:0;
-    color:var(--gap);
+  .docs-rail .doc-rail-item.loading { opacity:.72; pointer-events:none; }
+  .docs-rail .doc-rail-item .doc-rail-name {
+    display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
+    overflow:hidden; word-break:break-word; font-weight:700; line-height:1.3;
   }
-  .docs-rail .doc-rail-item.on .doc-rail-gap { color:var(--signal); }
-  .docs-rail .doc-rail-item.ok .doc-rail-gap { color:var(--ok); }
-  .docs-rail .doc-rail-item.on.ok .doc-rail-gap { color:#8fdfb0; }
+  .docs-rail .doc-rail-item .doc-rail-gap,
+  .docs-rail .doc-rail-item .doc-status {
+    font-family:"IBM Plex Mono",monospace; font-size:10px; font-weight:700;
+    align-self:flex-start; padding:2px 7px; border-radius:99px;
+    background:rgba(0,0,0,.05); color:var(--steel); white-space:nowrap;
+    max-width:100%; overflow:hidden; text-overflow:ellipsis;
+  }
+  .docs-rail .doc-rail-item.ok .doc-rail-gap,
+  .docs-rail .doc-rail-item.ok .doc-status {
+    background:rgba(26,127,75,.1); color:var(--ok);
+  }
+  .docs-rail .doc-rail-item:not(.ok) .doc-rail-gap.st-gaps,
+  .docs-rail .doc-rail-item:not(.ok) .doc-status.st-gaps {
+    background:rgba(180,83,9,.1); color:#b45309;
+  }
+  .docs-rail .doc-rail-item.on .doc-rail-gap,
+  .docs-rail .doc-rail-item.on .doc-status {
+    background:rgba(255,255,255,.14); color:rgba(255,255,255,.82);
+  }
+  .docs-rail .doc-rail-item.on.ok .doc-rail-gap,
+  .docs-rail .doc-rail-item.on.ok .doc-status {
+    background:rgba(143,223,176,.18); color:#8fdfb0;
+  }
+  .docs-rail .doc-rail-row {
+    display:flex; align-items:stretch; gap:6px; margin-bottom:8px;
+  }
+  .docs-rail .doc-rail-remove {
+    flex-shrink:0; width:32px; padding:0; align-self:stretch;
+    background:var(--sheet); border:1px solid var(--line); border-radius:8px;
+    cursor:pointer; color:var(--steel); font-size:16px; line-height:1;
+  }
+  .docs-rail .doc-rail-remove:hover { border-color:var(--ink); color:var(--ink); }
+  body.is-switching-doc .editor-canvas { position:relative; }
+  body.is-switching-doc #draft-area { opacity:.45; pointer-events:none; min-height:180px; }
+  #doc-switch-banner {
+    position:sticky; top:0; z-index:88; margin:0 0 12px; padding:10px 12px;
+    background:#F4F6F8; border:1px solid var(--line); border-radius:10px;
+    font-size:12.5px; font-weight:700; color:var(--ink);
+    display:flex; align-items:center; gap:10px;
+  }
+  #doc-switch-banner[hidden] { display:none !important; }
+  #doc-switch-banner .dsb-spin {
+    width:14px; height:14px; border-radius:50%;
+    border:2px solid var(--line); border-top-color:var(--ink);
+    animation: dsb-spin .7s linear infinite; flex-shrink:0;
+  }
+  @keyframes dsb-spin { to { transform: rotate(360deg); } }
   .docs-rail-tools { margin-top:16px; padding-top:12px; border-top:1px solid var(--line); }
   .docs-rail-tools .tool-btn {
     display:block; width:100%; text-align:left; margin-bottom:6px;
@@ -1577,13 +1622,76 @@ let ACCT_USAGE = null;
 const $ = s => document.querySelector(s);
 const esc = s => (s || "").replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 function shortName(name) { return (name || "").split(" / ")[0].trim(); }
+function prettyDocStem(stem) {
+  const s = String(stem || "").replace(/\.json$/i, "").trim();
+  if (!s) return "Utkast";
+  const known = {
+    topic_brief: "Temabrief",
+    topic_brief_narrative_preview: "Temabrief · forhåndsvisning",
+    research_project_report: "Forskningsprosjektrapport",
+    spec_coherence_review: "Spesifikasjonsgjennomgang",
+    inspection_checklist: "Inspeksjonssjekkliste",
+    contract_review: "Kontraktsgjennomgang",
+    installation_manual: "Installasjonsveiledning",
+  };
+  if (known[s]) return known[s];
+  // snake_case / kebab → readable title
+  if (/^[a-z0-9]+([_-][a-z0-9]+)+$/i.test(s)) {
+    return s.replace(/[_-]+/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  }
+  return s;
+}
 function docLabel(p, template) {
   if (!template) return "Utkast";
-  const d = (p.documents || []).find(x => x.template === template);
-  if (d?.export_name) return d.export_name;
+  const d = (p?.documents || []).find(x => x.template === template);
+  if (d?.export_name) {
+    // Prefer short human title; strip long path-like export names
+    const en = String(d.export_name).replace(/^.*[\\/]/, "").replace(/\.md$/i, "");
+    if (en && en.length <= 56 && !/^[a-z0-9_]+$/i.test(en)) return shortName(en);
+  }
   if (d?.name_no) return shortName(d.name_no);
   const t = (BOOT?.templates || []).find(x => x.file === template);
-  return shortName(t?.name_no || t?.name || template.replace(".json", ""));
+  if (t?.name_no || t?.name) return shortName(t.name_no || t.name);
+  return prettyDocStem(String(template).replace(/\.json$/i, ""));
+}
+function docStatusChip(d) {
+  const gaps = d?.gaps || 0;
+  const st = d?.status || {};
+  const ok = st.key === "ready" || st.key === "paid" || gaps === 0;
+  if (st.key === "ready" || st.key === "paid" || (ok && !st.label)) return { text: "Klar", cls: "st-ready", ok: true };
+  if (st.label) {
+    // Shorten verbose labels that were colliding with titles
+    let t = String(st.label);
+    t = t.replace(/^✓\s*/, "").replace(/Klar for eksport/i, "Klar");
+    if (t.length > 28) t = t.slice(0, 26) + "…";
+    return { text: t, cls: st.class || (ok ? "st-ready" : "st-gaps"), ok };
+  }
+  if (gaps > 0) return { text: `${gaps} mangler`, cls: "st-gaps", ok: false };
+  return { text: "Utkast", cls: "st-draft", ok: false };
+}
+function setDocSwitchLoading(on, label) {
+  document.body.classList.toggle("is-switching-doc", !!on);
+  let ban = $("#doc-switch-banner");
+  const canvas = document.querySelector(".editor-canvas");
+  if (on) {
+    if (!ban && canvas) {
+      ban = document.createElement("div");
+      ban.id = "doc-switch-banner";
+      canvas.insertBefore(ban, canvas.firstChild);
+    }
+    if (ban) {
+      ban.hidden = false;
+      ban.innerHTML = `<span class="dsb-spin" aria-hidden="true"></span>
+        <span>Åpner ${esc(label || "dokument")}…</span>`;
+    }
+    const draft = $("#draft-area");
+    if (draft && !draft.dataset.hadContent) {
+      draft.innerHTML = `<div class="mono" style="padding:28px 8px;color:var(--steel);font-size:12px">Laster dokument…</div>`;
+    }
+  } else if (ban) {
+    ban.hidden = true;
+  }
+  document.querySelectorAll(".doc-rail-item.loading").forEach(el => el.classList.remove("loading"));
 }
 function relExportPath(fullPath, folders) {
   if (!fullPath || !folders?.[0]) return fullPath || "";
@@ -4084,20 +4192,25 @@ async function renderProject(id) {
       window.__editorRailUser = true;
     }
     setEditorRail(EDITOR_RAIL, { user: false });
-  loadDraft(id, ACTIVE_DOC).catch(err => {
-    const isGone = err.status === 404;
-    const detail = err?.payload?.detail || err?.payload?.error || err.message || "";
-    const isFolderMissing = isGone && (
-      detail.includes("folder_missing") || detail.includes("no_folder") ||
-      (err?.payload?.error === "folder_missing") || (err?.payload?.error === "no_folder")
-    );
-    const msg = isFolderMissing
-      ? `Mappen til dette prosjektet finnes ikke lenger på disk.<br><small style="color:var(--steel)">${detail}</small>`
-      : isGone
-        ? "Utkastet ble ikke funnet — malen eller filen mangler."
-        : `Kunne ikke laste utkast: ${esc(detail || String(err))}`;
-    const draftArea = $("#draft-area");
-    if (draftArea) draftArea.innerHTML = `
+    // Keep switch-loading visible across draft fetch
+    setDocSwitchLoading(true, docLabel(p, ACTIVE_DOC));
+    try {
+      await loadDraft(id, ACTIVE_DOC);
+    } catch (err) {
+      const isGone = err.status === 404;
+      const detail = err?.payload?.detail || err?.payload?.error || err.message || "";
+      const isFolderMissing = isGone && (
+        detail.includes("folder_missing") || detail.includes("no_folder") ||
+        (err?.payload?.error === "folder_missing") || (err?.payload?.error === "no_folder")
+      );
+      const msg = isFolderMissing
+        ? `Mappen til dette prosjektet finnes ikke lenger på disk.<br><small style="color:var(--steel)">${detail}</small>`
+        : isGone
+          ? "Utkastet ble ikke funnet — malen eller filen mangler."
+          : `Kunne ikke laste utkast: ${esc(detail || String(err))}`;
+      const draftArea = $("#draft-area");
+      if (draftArea) {
+        draftArea.innerHTML = `
       <div style="padding:24px 0;display:flex;flex-direction:column;gap:16px;align-items:flex-start">
         <div style="color:var(--err,#c0392b)">${msg}</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -4105,8 +4218,11 @@ async function renderProject(id) {
           ${isFolderMissing ? `<button class="btn ghost" type="button" onclick="if(confirm('Slett dette prosjektet?')) deleteProject('${id}')">Slett prosjekt</button>` : ""}
         </div>
       </div>`;
-  });
-  setupEditorScrollFolds();
+      }
+    } finally {
+      setDocSwitchLoading(false);
+    }
+    setupEditorScrollFolds();
     updateAnnotChatBadge();
     if (p.folderless || p.need_folder_banner || !(p.folders || []).length) {
       setTimeout(() => showNeedFolderOrBanner(
@@ -5067,10 +5183,16 @@ async function scanSources(id) {
       host.innerHTML = `<div class="agree-card" style="margin-top:8px">
         <div class="agree-title"><b>Hurtigscan ferdig</b> — klikk mapper/filer (grønn = på), deretter start indeksering</div>
         <div class="agree-meta">${prescan.indexable || 0} indekserbare · hoppes over ${prescan.skipped || 0} ·
-          cache ${prescan.already_cached || 0} · estimat €${lo}–${hi}</div>
-        ${prescan.needs_decision_card
+          cache ${prescan.already_cached || 0} · estimat €${lo}–${hi}${
+            (prescan.coverage != null && Number(prescan.coverage) < 0.95)
+              ? ` · dekning ${Math.round(Number(prescan.coverage) * 100)}% (${prescan.coverage_indexed || 0}/${prescan.coverage_total || 0})`
+              : ""
+          }</div>
+        ${prescan.coverage_text && Number(prescan.coverage) < 0.95
+          ? `<div class="agree-why" style="margin-top:6px;white-space:pre-line;max-height:160px;overflow:auto">${esc(String(prescan.coverage_text).slice(0, 1200))}${String(prescan.coverage_text).length > 1200 ? "…" : ""}</div>`
+          : (prescan.needs_decision_card
           ? `<div class="agree-why" style="margin-top:6px">Stor mappe — slå av det du ikke trenger før du bruker penger.</div>`
-          : ""}
+          : "")}
         <div class="acts" style="margin-top:8px">
           <button type="button" class="btn" onclick="startIndexSelected('${id}')">Start indeksering av valgte</button>
           <button type="button" class="btn ghost" onclick="showIndexDecisionCard('${id}', LAST_PRESCAN.report, LAST_PRESCAN.card_text)">Flere valg …</button>
@@ -5153,7 +5275,11 @@ function showIndexDecisionCard(id, report, cardText) {
   host.innerHTML = `<div class="agree-card" id="index-decision-card" style="margin-top:10px">
     <div class="agree-title"><b>Stor mappe — velg før du bruker penger</b></div>
     <div class="agree-why" style="white-space:pre-line">${esc(cardText || "")}</div>
-    <div class="agree-meta">Estimat: €${lo}–${hi} · ${mlo}–${mhi} min · budsjett default €10</div>
+    <div class="agree-meta">Estimat: €${lo}–${hi} · ${mlo}–${mhi} min · budsjett default €10${
+      (report.coverage != null && Number(report.coverage) < 0.95)
+        ? ` · dekning ${Math.round(Number(report.coverage) * 100)}%`
+        : ""
+    }</div>
     <div style="margin-top:10px;font-size:12px;color:var(--steel)">Hvordan vil du starte?</div>
     <div class="acts" style="flex-wrap:wrap;margin-top:8px">
       <button type="button" class="btn" onclick="startIndex('${id}', {mode:'all'}, null)">Indekser alt · €${lo}–${hi}</button>
@@ -5942,8 +6068,23 @@ async function confirmArtifact(id, edited) {
 }
 
 async function viewDoc(id, template) {
+  const label = docLabel(PROJECT || {}, template);
   ACTIVE_DOC = template;
-  await renderProject(id);
+  // Immediate rail feedback before project reload remounts the DOM
+  document.querySelectorAll(".doc-rail-item[data-template]").forEach(btn => {
+    const on = btn.getAttribute("data-template") === template;
+    btn.classList.toggle("on", on);
+    btn.classList.toggle("loading", on);
+  });
+  const activeLabel = $("#doc-active-label");
+  if (activeLabel) activeLabel.textContent = label;
+  setDocSwitchLoading(true, label);
+  try {
+    await renderProject(id);
+  } catch (e) {
+    setDocSwitchLoading(false);
+    showToast?.(e.message || "Kunne ikke åpne dokument");
+  }
 }
 
 /** Gate for export — Path B balance / entitlement (WORKORDER 0.60).
@@ -6033,10 +6174,15 @@ async function exportDoc(id, template) {
     renderAccountHeader();
     ACTIVE_DOC = template;
     if (r.download_base64 && r.export_name) {
+      const mime = fmt === "pdf" ? "application/pdf"
+        : fmt === "html" ? "text/html"
+        : "application/octet-stream";
       const a = document.createElement("a");
-      a.href = "data:application/octet-stream;base64," + r.download_base64;
+      a.href = `data:${mime};base64,` + r.download_base64;
       a.download = r.export_name;
+      document.body.appendChild(a);
       a.click();
+      a.remove();
     }
     if (r.notices?.length) showToast(r.notices.join(" · "));
     await renderProject(id);
@@ -6044,6 +6190,8 @@ async function exportDoc(id, template) {
       showToast("Forhåndsvisning med vannmerke — logg inn og betal for ren PDF");
     } else if (r.paid) {
       showToast(`Betalt · rev ${r.revision || "A"} · ${fmtEur(r.price_eur)}`);
+    } else if (r.download_base64) {
+      showToast("PDF lastet ned" + (r.export_name ? ` · ${r.export_name}` : ""));
     } else if (r.reexport_free) {
       showToast("Re-eksport · gratis");
     }
@@ -6960,7 +7108,7 @@ function renderEditorRail() {
       <div class="export-meta" id="assist-export-meta">${active.export_path
         ? "✓ " + esc(relExportPath(active.export_path, p.folders || []))
         : "Lagrer til Rapporter/ (eller lastes ned hvis ingen mappe)"}</div>
-      <p style="font-size:11px;color:var(--steel);margin:8px 0 0">Motorarbeid uten AI er gratis. Betalt eksport = gratis re-nedlasting for alltid.</p>
+      <p style="font-size:11px;color:var(--steel);margin:8px 0 0">Lokal utvikling: eksport er gratis og laster ned PDF direkte. Sett FOLDOK_EXPORT_PRICE=1 for betalt gate.</p>
       <button type="button" class="btn ghost" style="margin-top:8px" onclick="toggleHistory()">Historikk</button>
     `;
     return;
@@ -7064,19 +7212,18 @@ function renderEditorRail() {
     return;
   }
   const rows = docsList.length ? docsList.map(d => {
-    const gaps = d.gaps || 0;
-    const st = d.status || {};
-    const ok = st.key === "ready" || st.key === "paid" || gaps === 0;
+    const stChip = docStatusChip(d);
     const active = d.template === ACTIVE_DOC;
     const tpl = esc(d.template).replace(/'/g, "\\'");
-    const chip = st.label || (ok ? "✓ Klar for eksport" : `● ${gaps} mangler`);
-    return `<div class="doc-rail-row" style="display:flex;align-items:stretch;gap:2px">
-      <button type="button" class="doc-rail-item ${active ? "on" : ""} ${ok ? "ok" : ""}" style="flex:1;min-width:0"
+    const label = esc(docLabel(p, d.template));
+    return `<div class="doc-rail-row">
+      <button type="button" class="doc-rail-item ${active ? "on" : ""} ${stChip.ok ? "ok" : ""}"
+        data-template="${esc(d.template)}"
         onclick="viewDoc('${esc(p.id || "")}','${tpl}')">
-        <span class="doc-rail-name">${esc(docLabel(p, d.template))}</span>
-        <span class="doc-rail-gap doc-status ${esc(st.class || "")}">${esc(chip)}</span>
+        <span class="doc-rail-name">${label}</span>
+        <span class="doc-rail-gap doc-status ${esc(stChip.cls)}">${esc(stChip.text)}</span>
       </button>
-      <button type="button" title="Fjern dokument" style="flex-shrink:0;padding:0 8px;background:none;border:1px solid var(--line);border-radius:6px;cursor:pointer;color:var(--steel);font-size:14px;line-height:1"
+      <button type="button" class="doc-rail-remove" title="Fjern dokument"
         onclick="removeDocument('${esc(p.id || "")}','${tpl}')">×</button>
     </div>`;
   }).join("") : `<div class="mono" style="font-size:12px;color:var(--steel);margin-bottom:10px">Ingen dokumenter ennå.</div>`;
@@ -8320,6 +8467,16 @@ function chatRenderActions(actions, tool) {
       return `<button type="button" class="btn" onclick="chatHint('${esc(a.label || "Confirm all")}')">${esc(a.label || "Confirm all")}</button>`;
     if (a.id === "confirm_generate")
       return `<button type="button" class="btn" onclick="chatHint('ja')">${esc(a.label || "Ja — kjør")}</button>`;
+    if (a.id === "system_cable_tray")
+      return `<button type="button" class="btn" onclick="chatHint('system_cable_tray')">${esc(a.label || "Kabelrenne")}</button>`;
+    if (a.id === "system_sensor")
+      return `<button type="button" class="btn" onclick="chatHint('system_sensor')">${esc(a.label || "Sensor")}</button>`;
+    if (a.id === "system_machine")
+      return `<button type="button" class="btn" onclick="chatHint('system_machine')">${esc(a.label || "Maskin")}</button>`;
+    if (a.id === "system_enclosure")
+      return `<button type="button" class="btn" onclick="chatHint('system_enclosure')">${esc(a.label || "Skap")}</button>`;
+    if (a.id === "system_other")
+      return `<button type="button" class="btn ghost" onclick="chatHint('system_other')">${esc(a.label || "Annet")}</button>`;
     if (a.id === "accept_draft")
       return `<button type="button" class="btn" onclick="chatHint('Bruk denne')">${esc(a.label || "Bruk denne")}</button>`;
     if (a.id === "save_as_template")
