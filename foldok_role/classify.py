@@ -1,35 +1,25 @@
 """Project material or reference material — the distinction the index was missing.
 
-A 30-page SICK technical brochure was added to an EMC installation folder, and
-the resulting document became about safety laser scanners. Not a writing failure.
-``plan.corpus_sketch`` counts one vote per tag per file::
+A dense vendor datasheet in a project folder can out-vote the project's own
+drawings on theme counts, so the planner builds a document about the product
+rather than the installation. Not a writing failure — the index never said that
+a datasheet and a drawing are different kinds of thing.
 
-    for e in usable[:100]:
-        for t in e.get("content_tags") or []:
-            tag_c[t] += 1
-    themes = [t for t, _ in tag_c.most_common(6)]
-
-A vendor brochure produces a dense, confident tag set — *safety laser scanner,
-sensor, ESD, PELV, shielding, functional earth*. A folder of the project's own
-drawings and correspondence produces fewer and vaguer ones. So the reference
-document out-votes the project, and the planner faithfully builds a document
-about what the corpus now looks like.
-
-The fix is not better tag counting. It is that **a datasheet and a drawing are
-not the same kind of thing**, and nothing in the index said so. Background
-material should inform a section; it should never decide what the document is
-about.
+Background material should inform a section; it should never decide what the
+document is about.
 
 Signals, in rough order of how much they settle it:
 
-*   a vendor's own document number — ``8027032/2022-07-19`` — is a publication
-    identity, and projects do not have those
-*   a manufacturer name in the filename, caption or footer
+*   a publication identity — long numeric document number with a date
+*   manufacturer / publisher phrasing (never a fixed vendor name list)
 *   a standard designation as the subject rather than as a citation
 *   the client or project name appearing nowhere in the file
 *   role hints the indexer already produced (``datasheet``, ``drawing``)
 
 None is conclusive alone, which is why they are weighted rather than chained.
+
+**Hard rule:** no real project names, client names, or vendor catalogues in
+engine logic. Fixtures in tests may invent names; production code may not.
 """
 
 from __future__ import annotations
@@ -56,12 +46,16 @@ ROLE_WEIGHT: dict[str, float] = {
 # A publication identity: long numeric document number, often with a date.
 PUB_NUMBER = re.compile(r"\b\d{6,9}\s*[/|]\s*\d{4}(?:-\d{2}){0,2}\b")
 
-VENDORS = (
-    "sick", "siemens", "abb", "schneider", "phoenix contact", "weidmüller",
-    "weidmuller", "rittal", "pepperl", "ifm", "banner", "omron", "keyence",
-    "chalfant", "legrand", "niedax", "atkore", "marco", "obo bettermann",
-    "hellermanntyton", "lapp", "igus", "festo", "wago", "eaton", "hager",
-    "fluke", "megger", "pilz", "leuze",
+# Generic publisher / OEM signals — never a catalogue of real vendors.
+MANUFACTURER_RX = re.compile(
+    r"("
+    r"\b(?:gmbh|ltd\.?|inc\.?|corp\.?|a/?s|ab\b|oy\b|bv\b|s\.?a\.?r?\.?l\.?)\b|"
+    r"\b(?:manufactured|produced|published|distributed)\s+by\b|"
+    r"\b(?:manufacturer|leverandør|supplier|oem)\b\s*[:=]|"
+    r"©|\ball rights reserved\b|"
+    r"(?:^|/)(?:ref|reference|datasheets?|vendor|supplier|oem)(?:/|$)"
+    r")",
+    re.I,
 )
 
 STANDARD_BODIES = ("iec", "iso", "en", "nek", "bs", "astm", "ieee", "nema", "ul",
@@ -206,10 +200,9 @@ def classify(
         score += 0.4
         reasons.append("carries a publication number — projects do not have those")
 
-    vendor = next((v for v in VENDORS if v in blob), "")
-    if vendor:
+    if MANUFACTURER_RX.search(blob):
         score += 0.35
-        reasons.append(f"published by {vendor}")
+        reasons.append("manufacturer / publisher signals (generic, not a named vendor list)")
 
     marketing = [w for w in IGNORE_WORDS if w in blob]
     technical = [w for w in TECHNICAL_WORDS if w in blob]

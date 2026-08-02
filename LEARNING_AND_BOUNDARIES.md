@@ -126,6 +126,13 @@ narrow case post-revenue: a tiny static classifier (e.g. doc-role
 pre-filter to cut vision cost), trained on corpora WE own/license,
 shipped as a frozen asset, never learning in the field.
 
+### BOUNDARY — no project or vendor hardcoding
+Development folders, client names, and OEM catalogues must never appear as
+engine constants or production heuristics. Terms come from the artifact and
+folder the user named. Fixtures may invent names; `foldok_role` must not ship
+a vendor list. Identity (`foldok_identity` / `PROJECT_IDENTITY.md`) is what
+keeps an installation document from becoming a product manual.
+
 ────────────────────────────────────────────────────────────────
 ACCEPTANCE (for §1; §2–3 are policy)
 ────────────────────────────────────────────────────────────────

@@ -91,7 +91,7 @@ INTENT_SEARCH_KEYS = [
      ["voltage", "installation_type", "contractor", "standard_ref"]),
     (r"våtrom|bad|membran",
      ["floor_area", "room_type", "property_address"]),
-    (r"bil|kjøretøy|rav4|service|vedlikehold",
+    (r"bil|kjøretøy|service|vedlikehold",
      ["make", "model", "model_year", "vin", "reg_no", "mileage", "oil_type"]),
 ]
 
@@ -858,11 +858,56 @@ def is_recreate_form_ask(text: str) -> bool:
     return bool(RECREATE_FORM_RE.search(t))
 
 
+def _collapse_repeat_letters(s: str) -> str:
+    return re.sub(r"(.)\1+", r"\1", s or "")
+
+
+def _edit_distance(a: str, b: str) -> int:
+    """Levenshtein for short tokens (typo tolerance)."""
+    if a == b:
+        return 0
+    if not a:
+        return len(b)
+    if not b:
+        return len(a)
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            ins, delete, sub = cur[j - 1] + 1, prev[j] + 1, prev[j - 1] + (ca != cb)
+            cur.append(min(ins, delete, sub))
+        prev = cur
+    return prev[-1]
+
+
+def looks_like_regenerate_word(word: str) -> bool:
+    """True for regenerate / regenerer and typos like egaanerate, regaanerate."""
+    w = re.sub(r"[^a-zæøå]", "", (word or "").lower())
+    if len(w) < 7 or len(w) > 18:
+        return False
+    # Must look like re… / eg… (egaanerate) — not plain "generate".
+    if not (w.startswith(("re", "eg")) or w.startswith("reg")):
+        return False
+    c = _collapse_repeat_letters(w)
+    targets = (
+        "regenerate", "regenerer", "regenerere", "regenerating", "regenerated",
+        "regenarate", "regenerat",
+    )
+    for t in targets:
+        if c == t or w == t:
+            return True
+        if abs(len(c) - len(t)) <= 3 and _edit_distance(c, t) <= 3:
+            return True
+    if not re.search(r"(re|eg).*gen.*r", c):
+        return False
+    return any(_edit_distance(c, t) <= 3 for t in ("regenerate", "regenerer"))
+
+
 def is_regenerate_document_ask(text: str) -> bool:
     """Full-document regenerate (not a single section).
 
-    Catches 're generate this document', typos like 'documen' / 'regenarate',
-    'generer dokumentet på nytt'. Section-scoped asks are excluded.
+    Catches 're generate this document', typos like 'documen' / 'regenarate' /
+    'egaanerate' / 'regaanerate', and bare 'regenerate' (open document in editor).
     """
     lower = _fold(text or "")
     if not lower:
@@ -901,7 +946,22 @@ def is_regenerate_document_ask(text: str) -> bool:
         lower,
     ):
         return True
-    return False
+    # Bare regenerate / typos while editing — regenerate the open document, do not
+    # fall through to the model (which invents Installasjonsmanual / €19 confirms).
+    words = re.findall(r"[a-zæøå0-9]+", lower)
+    if not any(looks_like_regenerate_word(w) for w in words):
+        return False
+    fillers = {
+        "please", "pls", "na", "nå", "igjen", "again", "this", "it", "det",
+        "dette", "denne", "hele", "the", "my", "mitt", "min", "doc", "document",
+        "dokument", "dokumentet", "utkast", "utkastet", "draft", "temabrief",
+        "topic", "brief", "fagpakke", "full", "fullt", "now", "du",
+    }
+    leftover = [
+        w for w in words
+        if w not in fillers and not looks_like_regenerate_word(w)
+    ]
+    return not leftover or bool(re.search(rf"\b{doc}\b", lower))
 
 
 def open_document_template(state: dict | None) -> str | None:
@@ -1560,6 +1620,8 @@ def route_editor_message(message: str, state: dict, gaps: list, scope_section=No
         return {
             "execute": execute,
             "kind": "run_generate",
+            # Drop stale Installasjonsmanual / €19 confirm pending from prior turns.
+            "clear_pending": True,
         }
 
     if re.search(

@@ -1,13 +1,13 @@
 """Foldok corpus — the folder proposes, the user disposes, the engine orders.
 
-    wide  = extract_many([(source, text), ...])       # 10 more content types
-    offer = build_offer(all_claims)                   # no document type named
-    offer.drop("sec.hypothesis")                      # the user deletes
-    outline = to_outline(offer)                       # narrative order enforced
+    from foldok_identity import identify_project
+    blueprint = identify_project(artifact=art, themes=project_themes, ...)
+    wide  = extract_many([(source, text), ...])
+    offer = build_offer(all_claims, identity=blueprint)  # scored vs identity
+    offer.drop("sec.hypothesis")
+    outline = to_outline(offer)
 
-Naming the document first made a template into a ceiling: a folder with fourteen
-topics lost eight of them whichever template was chosen. Naming goes last, and
-the document's identity emerges from what the user keeps.
+Identity first (see PROJECT_IDENTITY.md). Naming the document *label* goes last.
 """
 
 from .integrate import (
@@ -45,4 +45,4 @@ __all__ = [
     "inject_corpus_appendix", "to_outline",
 ]
 
-__version__ = "0.110.2"
+__version__ = "0.112.0"

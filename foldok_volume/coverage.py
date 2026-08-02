@@ -64,6 +64,26 @@ NOT_A_TOPIC = re.compile(
     re.I,
 )
 
+# Filename stems / TOC labels are not evidence.
+_HOLLOW_CLAIM = re.compile(
+    r"(?i)^(?:"
+    r"[\w]+(?:_[\w]+)+|"
+    r"installation(?:[_\s-]*(?:guide|guidance|manual))?\.?|"
+    r"installasjon(?:[_\s-]*(?:veiledning|manual|guide))?\.?"
+    r")$"
+)
+
+
+def _quote_usable(text: str) -> bool:
+    q = (text or "").strip()
+    if len(q) < 28:
+        return False
+    if "_" in q and q.count(" ") <= 1:
+        return False
+    if _HOLLOW_CLAIM.match(q):
+        return False
+    return True
+
 
 @dataclass
 class Evidence:
@@ -206,6 +226,7 @@ def analyse(
                 Evidence(source=str(c.get("source") or ""), quote=str(c.get("text") or ""),
                          kind=str(c.get("type") or "claim"))
                 for c in group[:8]
+                if _quote_usable(str(c.get("text") or ""))
             ],
         )
         covered = _covered_by(theme, section_terms)
@@ -213,6 +234,10 @@ def analyse(
             proposal.covered_by = covered
             report.covered.append(proposal)
         elif len(group) >= min_evidence and len(sources) >= min_sources:
+            # Need enough *usable* quotes — otherwise Installation_guide noise
+            # becomes a fake section.
+            if len(proposal.evidence) < min_evidence:
+                continue
             report.proposed.append(proposal)
 
     report.proposed = report.proposed[:limit]

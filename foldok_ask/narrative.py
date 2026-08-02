@@ -348,6 +348,15 @@ def plan_narrative(
             }:
                 continue
             evidence = list(row.get("evidence") or [])
+            # Drop TOC/filename "claims" — they inflate Installation sections with noise.
+            try:
+                from .author_doc import _usable_evidence_quote
+                evidence = [
+                    e for e in evidence
+                    if isinstance(e, dict) and _usable_evidence_quote(str(e.get("quote") or ""))
+                ]
+            except Exception:
+                pass
             if len(evidence) < 3:
                 continue
             quotes = " ".join(

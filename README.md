@@ -4,7 +4,7 @@ Folder-compiler: sources in → manuals, forms, diagrams, and evidence packages 
 
 **Brand:** Foldok · mark `[…]`  
 **Version:** see `VERSION` · **Deploy:** `DEPLOY.md` · **History:** `CHANGELOG.md`  
-**Vision:** `PRODUCT_VISION.md` · **Direction:** `PRODUCT_DIRECTION.md`  
+**Vision:** `PRODUCT_VISION.md` · **Editor:** `ENGINEERING_EDITOR.md` · **Direction:** `PRODUCT_DIRECTION.md`  
 **Claim boundary:** `COMPLIANCE_POLICY.md` — structural profiles only; no legal compliance stamps.
 
 **Latest release:** see GitHub Releases (`v` + `VERSION`) · build zip: `.\scripts\make_release.ps1`  
@@ -37,7 +37,7 @@ Static landing in `public/` — deploy to **Vercel** from GitHub (see `DEPLOY.md
 | Corpus engines (role → select → volume → budget → corpus) | **Shipped** — see table below |
 | Production SaaS (Next.js + Stripe) | **Not started** |
 
-### Corpus / author packages (0.106–0.111)
+### Corpus / author / compose packages (0.106–0.113)
 
 | Package | Role |
 |---|---|
@@ -46,9 +46,12 @@ Static landing in `public/` — deploy to **Vercel** from GitHub (see `DEPLOY.md
 | `foldok_volume` | Uncovered themes widen fixed outlines |
 | `foldok_budget` | Per-section citation scope + pipeline health |
 | `foldok_corpus` | Non-factual claim types + «Fra mappen» on every doc |
+| `foldok_identity` | Project Identity + NarrativeBlueprint before the market |
+| `foldok_evidence` | Project evidence assets (depicts / relevance / stage) |
+| `foldok_director` | Content Director → composition plan + coverage |
 
-Generate always ends with corpus appendix injection (`foldok_corpus.integrate`) so
-document type is not a ceiling on what the folder can contribute.
+Workbench **Compose** tab (`GET /api/compose`): Knowledge | Narrative | Live draft.
+Generate remains the last ~10% (render draft into slots).
 
 ---
 

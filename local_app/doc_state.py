@@ -148,6 +148,7 @@ def assemble_draft(state, template, artifact=None, full_index=None):
     doc = state.get("doc") or {}
     sections = doc.get("sections") or {}
     title = artifact.get("name") if artifact else "Utkast"
+    lang = "no" if str((state or {}).get("lang") or "en").lower().startswith("n") else "en"
     try:
         import doc_structure as dstruct
         section_defs = dstruct.effective_sections(state, template)
@@ -161,11 +162,29 @@ def assemble_draft(state, template, artifact=None, full_index=None):
         md = sec.get("md", "")
         if full_index and sec.get("stale_citations"):
             md = sc.section_md_for_display(sec, full_index, artifact)
-        stitle = s.get("title_no") or s.get("title") or sk
+        if lang == "no":
+            stitle = s.get("title_no") or s.get("title") or sk
+        else:
+            stitle = s.get("title") or s.get("title_en") or s.get("title_no") or sk
+        # Strip recursive bridges + TOC-title pseudo-claims left in older drafts.
+        try:
+            from foldok_ask.author_doc import scrub_authored_prose
+            md = scrub_authored_prose(md)
+            if md != (sec.get("md") or ""):
+                sec["md"] = md  # persist clean text so reload stays clean
+        except Exception:
+            pass
+        if not (md or "").strip():
+            md = (
+                "**[MANGLER: innhold]** — seksjonen hadde bare brotekst eller kapittelnavn, ikke teknisk underlag."
+                if lang == "no" else
+                "**[GAP: content]** — this section only had bridge text or chapter titles, not technical substance."
+            )
         body_parts.append(f"\n## {stitle}\n\n{md}\n")
         files = sec.get("files")
         if files:
-            body_parts.append("*Kilder: " + ", ".join(files) + "*\n")
+            src_label = "Kilder: " if lang == "no" else "Sources: "
+            body_parts.append(f"*{src_label}" + ", ".join(files) + "*\n")
     body = "".join(body_parts)
     # Orphan diagram sections (not in template) — still show if they hold SVG
     seen = {s["section_key"] for s in section_defs if s.get("section_key")}
@@ -184,7 +203,9 @@ def assemble_draft(state, template, artifact=None, full_index=None):
         if not has_diagram and "<svg" not in (sec.get("md") or "").lower():
             continue
         stitle = {
-            "connection_diagram": "Koblingsskjema / blokkskjema",
+            "connection_diagram": (
+                "Koblingsskjema / blokkskjema" if lang == "no" else "Connection / block diagram"
+            ),
         }.get(sk, sk.replace("_", " ").title())
         body += f"\n## {stitle}\n\n{sec.get('md') or ''}\n"
     cover = (state.get("cover_image") or {}).get("file")
@@ -195,7 +216,7 @@ def assemble_draft(state, template, artifact=None, full_index=None):
         template=template or {},
         section_defs=section_defs,
         index=index,
-        lang="no",
+        lang=lang,
         cover_figure=cover,
         doc_meta={
             "document_no": (template or {}).get("document_no")

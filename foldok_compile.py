@@ -663,7 +663,7 @@ def _inject_generic_identity(template, artifact=None):
     art_type = ((artifact or {}).get("artifact_type") or "").lower()
     name = ((artifact or {}).get("name") or "").lower()
     blob = art_type + " " + name
-    if any(w in blob for w in ("vehicle", "bil", "car", "toyota", "rav4", "auto", "service")):
+    if any(w in blob for w in ("vehicle", "bil", "car", "auto", "service", "kjøretøy")):
         fields = [
             ("reg_no", "Registreringsnummer"),
             ("vin", "Chassisnummer (VIN)"),
@@ -3297,14 +3297,14 @@ def compile_research_section(sec_key, mapping, index, artifact, lang="no"):
             body = lead + "\n\n" + _mangler_lines(["research_question"], lang=lang)
             body += (
                 "\n\nForeslåtte spørsmål (må bekreftes av bruker før de blir «fakta»):\n\n"
-                "- Hvilke skjermingskrav (dB / frekvens) gjelder for cable tray i prosjektets referanser?\n"
-                "- Hvilke standarder overlapper eller konflikter (f.eks. MIL-STD-285 vs IEEE 299)?\n"
-                "- Hva er relevant for offshore/HVDC-kontekst (Dogger Bank-underlag)?"
+                "- Hvilke skjermingskrav (dB / frekvens) gjelder i prosjektets referanser?\n"
+                "- Hvilke standarder overlapper eller konflikter?\n"
+                "- Hva er relevant for prosjektets anleggskontekst?"
                 if no else
                 "\n\nSuggested questions (must be confirmed before becoming facts):\n\n"
-                "- Which shielding requirements (dB / frequency) apply to cable tray in the references?\n"
-                "- Which standards overlap or conflict (e.g. MIL-STD-285 vs IEEE 299)?\n"
-                "- What is relevant for offshore/HVDC context?"
+                "- Which shielding requirements (dB / frequency) apply in the references?\n"
+                "- Which standards overlap or conflict?\n"
+                "- What is relevant for this project's site context?"
             )
         return body
 
@@ -4201,7 +4201,7 @@ def postprocess(sec_key, text, index, artifact=None, excluded_fact_ids=None, kno
     text = "\n".join(
         re.sub(r"[^\S\n]{2,}", " ", ln).rstrip() for ln in (text or "").splitlines()
     ).strip()
-    # Collapse accidental duplicated phrases in a cell/line ("Toyota X Toyota X")
+    # Collapse accidental duplicated phrases in a cell/line ("Make X Make X")
     text = "\n".join(
         re.sub(r"\b(.{8,80}?)\s+\1\b", r"\1", ln) for ln in text.splitlines()
     )

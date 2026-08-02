@@ -101,7 +101,7 @@ def test_project_material_outranks_a_vendor_manual_before_any_keyword():
     """A four-word aside from page 23 of a supplier PDF became step 1 of an
     installation sequence, because keyword overlap was the only ordering."""
     scope = CiteScope()
-    vendor = rank_key("sick.pdf", scope=scope, role="reference", signal_match=True)
+    vendor = rank_key("vendor.pdf", scope=scope, role="reference", signal_match=True)
     project = rank_key("plan.pdf", scope=scope, role="project", signal_match=False)
     assert project < vendor
 

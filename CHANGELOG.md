@@ -7,6 +7,66 @@ Versioning rules (semver, honestly applied):
   Templates carry their own `version` field (already in schema).
   The zip filename always carries the version: foldok-engine-vX.Y.Z.zip.
 
+## 0.113.7 — Regenerate typos → open Temabrief, not Installasjonsmanual
+- `egaanerate` / `regaanerate` / bare `regenerate` now hit deterministic
+  `run_generate` on the open document (clears stale €19 install pending)
+- Stops Haiku inventing “Installasjonsmanual venter på bekreftelse”
+
+## 0.113.6 — Restore regenSection (and section edit helpers)
+- Toolbar «↻ Regenerer» called a missing `regenSection` — ReferenceError
+- Restored regenerate → diff → Godta/Forkast, plus edit/revert and minimal MANGLER resolve
+
+## 0.113.5 — Three guards: bridge / slug / cite-spam
+- Bridge builder permanently empty (no «Etter dette —» stacking)
+- Topic slugs (`Electromagnetic_compatibility`) never written as body text
+- Volume author merges cites into real quotes; empty → honest MANGLER gap
+- Scrub + compose_brief wipe old Compatibility/Protection spam on assemble
+
+## 0.113.4 — Scrub bridge spam + TOC-title “facts”
+- ``bridge_opening`` disabled (source of endless «Etter dette —»)
+- ``scrub_authored_prose`` removes bridge paragraphs and lines like
+  ``Corrosion_protection. [17]`` on assemble and author
+- Empty scrubbed sections become an honest content GAP
+- Topic-brief cache key bumped so old composed bodies are not reused
+
+## 0.113.3 — Kill nested «Etter dette — Etter dette»
+- Root cause: ``bridge_opening`` wrapped the previous section summary; when that
+  summary was itself a bridge, it nested forever
+- Bridges no longer quote prior prose — only fixed beat-to-beat lines (or none)
+- ``strip_nested_bridges`` cleans old drafts on assemble and new author output
+
+## 0.113.2 — Document language follows UI (EN/NO)
+- UI language was chrome-only; ``/api/generate`` defaulted to Norwegian
+- ``api()`` now injects ``lang`` from the EN/NO toggle on every engine call
+- Server generate/compose defaults flipped to English; ``state.lang`` persisted on generate
+- Regenerate with EN selected to get an English document
+
+## 0.113.1 — Installation sections must instruct, not meta-narrate
+- Reject hollow TOC/filename “claims” (`Installation_guide`) as section body
+- Install/procedure sections no longer get research “argumentet” bridges
+- Nested bridge bug fixed (“Etter dette — Etter dette — Reglene forankres…”)
+- Honest GAP when folder only has chapter titles, not mounting steps
+
+## 0.113.0 — Engineering Editor: Compose
+- **`foldok_evidence`**: project Asset model (depicts, relevance, stage) — distinct from registry `foldok_assets`
+- **`foldok_director`**: Content Director → CompositionPlan with checklist, section clips, coverage bars
+- **`GET /api/compose`**: deterministic plan for the workbench (no LLM)
+- Workbench **Compose** tab: Knowledge | Narrative timeline | Live draft; draft is last ~10%
+- Default editor rail opens on Compose (gaps still take priority when blocking)
+- Docs: `ENGINEERING_EDITOR.md` status table updated
+
+## 0.112.0 — Project Identity (before the section market)
+- **`foldok_identity`**: `ProjectIdentity` + `NarrativeBlueprint` — purpose,
+  audience, primary/secondary/excluded topics, purpose-shaped arcs
+- Corpus → Identity → Blueprint → Topics → Sections (see `PROJECT_IDENTITY.md`)
+- `build_offer(..., identity=)` scores Relevant / Somewhat / Background / Ignore;
+  Ignore is not kept by default so OEM density cannot become the document
+- Wired through `sketch_patch` + `foldok_corpus.integrate`
+- **Hard rule:** no vendor catalogues / real project needles in engine logic —
+  removed `VENDORS` list; replaced with generic manufacturer/publisher signals;
+  stripped Dogger/Toyota/rav4 hardcoding from compile + chat intent
+- Tests use synthetic fixture names only
+
 ## 0.111.0 — Engine package stack + cleanup release
 - Ships foldok_role / select / volume / budget / corpus as first-class packages
 - Corpus «Fra mappen» on every generate (including form_fill)

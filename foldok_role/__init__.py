@@ -1,6 +1,6 @@
 """Foldok role — project material, reference material, and photos that exist.
 
-    roles   = classify_index(index, project_terms=["Dogger", "Bank"])
+    roles   = classify_index(index, project_terms=["Acme", "Site"])
     patch   = sketch_patch(index, artifact=artifact, project_name=name)
     offers  = offers_for(session.gaps(), index)
 

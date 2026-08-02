@@ -1,7 +1,7 @@
 """Tests for role classification, subject decision and photo binding.
 
-Three located bugs: a vendor brochure deciding the subject, file sort order
-naming documents, and a photo reported missing while it sits in the folder.
+Synthetic fixture names only — never real client/vendor catalogues in engine
+logic. Fixtures may invent "AcmeVendor" / "SiteAlpha"; production code may not.
 
 Run:  python -m pytest foldok_role/tests -q
 """
@@ -22,16 +22,18 @@ from foldok_role import (
     weighted_themes,
 )
 
-SICK = {
-    "file": "Ref/SICK EMC background.pdf",
-    "caption": ("SICK technical information: background knowledge on EMC, safety laser "
-                "scanners. 8027032/2022-07-19. Subject to change without notice."),
+# Invented OEM — publication number + reference language, not a real brand list.
+OEM = {
+    "file": "Ref/AcmeVendor EMC background.pdf",
+    "caption": ("AcmeVendor GmbH technical information: background knowledge on EMC, "
+                "safety laser scanners. 8027032/2022-07-19. "
+                "Subject to change without notice."),
     "content_tags": ["sensor", "esd", "pelv", "shielding", "functional earth", "emc"],
     "doc_role_hints": ["manual"],
 }
 DRAWING = {
     "file": "Docs/Kabelplan rev C.pdf",
-    "caption": "Kabelplan revisjon C, for construction, Dogger Bank",
+    "caption": "Kabelplan revisjon C, for construction, SiteAlpha",
     "content_tags": ["cable tray", "cable routing"],
     "doc_role_hints": ["drawing"],
 }
@@ -51,7 +53,7 @@ STANDARD = {
 
 # --- role classification -------------------------------------------------
 def test_a_vendor_brochure_is_reference():
-    result = classify(SICK, project_terms=["Dogger", "Bank"])
+    result = classify(OEM, project_terms=["SiteAlpha"])
     assert result.role == "reference"
     assert result.confidence > 0.8
 
@@ -64,7 +66,7 @@ def test_a_publication_number_is_a_strong_signal():
 
 def test_project_drawings_and_protocols_are_project():
     for entry in (DRAWING, PROTOCOL):
-        assert classify(entry, project_terms=["Dogger"]).role == "project"
+        assert classify(entry, project_terms=["SiteAlpha"]).role == "project"
 
 
 def test_a_standard_as_the_subject_is_reference():
@@ -72,8 +74,8 @@ def test_a_standard_as_the_subject_is_reference():
 
 
 def test_naming_the_project_pulls_a_file_towards_project():
-    named = classify(DRAWING, project_terms=["Dogger", "Bank"])
-    unnamed = classify(dict(DRAWING, caption="Kabelplan revisjon C"), project_terms=["Dogger"])
+    named = classify(DRAWING, project_terms=["SiteAlpha"])
+    unnamed = classify(dict(DRAWING, caption="Kabelplan revisjon C"), project_terms=["SiteAlpha"])
     assert named.confidence >= unnamed.confidence
 
 
@@ -94,21 +96,24 @@ def test_reference_material_weighs_least():
 
 # --- the vendor-swamping bug ---------------------------------------------
 def test_accumulating_reference_material_no_longer_decides_the_subject():
-    """Four vendor documents were making the document about shielding and ESD."""
+    """Four OEM documents were making the document about shielding and ESD."""
     project = [DRAWING, PROTOCOL,
-               {"file": "Docs/BoD.pptx", "caption": "EMC basis of design Dogger Bank",
+               {"file": "Docs/BoD.pptx", "caption": "EMC basis of design SiteAlpha",
                 "content_tags": ["emc", "cable routing", "separation"],
                 "doc_role_hints": ["drawing"]}]
     reference = [
-        SICK,
-        {"file": "Ref/SICK manual.pdf", "caption": "SICK microScan3 operating instructions",
+        OEM,
+        {"file": "Ref/oem_scanner_manual.pdf",
+         "caption": "AcmeVendor microScan operating instructions, manufactured by AcmeVendor GmbH",
          "content_tags": ["sensor", "shielding", "functional earth"], "doc_role_hints": ["manual"]},
-        {"file": "Ref/Phoenix clamps.pdf", "caption": "Phoenix Contact product catalogue",
+        {"file": "Ref/clamp_catalogue.pdf",
+         "caption": "VendorCo product catalogue — clamp range",
          "content_tags": ["shielding", "esd"], "doc_role_hints": ["datasheet"]},
-        {"file": "Ref/Weidmüller guide.pdf", "caption": "Weidmüller application note EMC",
+        {"file": "Ref/emc_app_note.pdf",
+         "caption": "Supplier application note EMC, all rights reserved",
          "content_tags": ["shielding", "esd", "functional earth"], "doc_role_hints": ["datasheet"]},
     ]
-    themes, _ = weighted_themes(project + reference, project_terms=["Dogger", "Bank"])
+    themes, _ = weighted_themes(project + reference, project_terms=["SiteAlpha"])
     assert "cable routing" in themes[:3]
     assert "shielding" not in themes[:3]
     assert "sensor" not in themes
@@ -116,41 +121,44 @@ def test_accumulating_reference_material_no_longer_decides_the_subject():
 
 def test_reference_material_still_contributes():
     """It informs the sections — it is where the shielding knowledge lives."""
-    _, weights = weighted_themes([DRAWING, SICK], project_terms=["Dogger"])
+    _, weights = weighted_themes([DRAWING, OEM], project_terms=["SiteAlpha"])
     assert weights.get("shielding", 0) > 0
 
 
 def test_a_reference_only_folder_still_produces_themes():
-    themes, _ = weighted_themes([SICK, STANDARD])
+    themes, _ = weighted_themes([OEM, STANDARD])
     assert themes
 
 
 # --- the subject bug ------------------------------------------------------
 def test_the_artifact_names_the_document():
-    subject = decide_subject([DRAWING, SICK], artifact={"name": "EMC installasjonsdokumentasjon"})
-    assert subject.title == "EMC installasjonsdokumentasjon" and subject.source == "artifact"
+    subject = decide_subject(
+        [DRAWING, OEM],
+        artifact={"name": "Installasjonsdokumentasjon SiteAlpha"},
+    )
+    assert subject.title == "Installasjonsdokumentasjon SiteAlpha" and subject.source == "artifact"
 
 
 def test_the_project_names_it_when_the_artifact_does_not():
-    assert decide_subject([DRAWING], project_name="Dogger Bank").source == "project"
+    assert decide_subject([DRAWING], project_name="SiteAlpha Plant").source == "project"
 
 
 def test_file_sort_order_never_names_a_document():
     """title = Path(usable[0]...).stem — whatever sorted first."""
-    subject = decide_subject([SICK, DRAWING])
+    subject = decide_subject([OEM, DRAWING])
     assert subject.source == "asked"
     assert not subject.confident
     assert "Ask, rather than letting file order decide" in subject.note
 
 
 def test_captions_for_the_sketch_come_from_project_files():
-    patch = sketch_patch([DRAWING, PROTOCOL, SICK], project_name="Dogger Bank")
+    patch = sketch_patch([DRAWING, PROTOCOL, OEM], project_name="SiteAlpha Plant")
     joined = " ".join(patch["sample_captions"])
-    assert "Kabelplan" in joined and "SICK" not in joined
+    assert "Kabelplan" in joined and "AcmeVendor" not in joined
 
 
 def test_the_sketch_reports_the_balance_of_material():
-    patch = sketch_patch([DRAWING, SICK, STANDARD], project_name="Dogger")
+    patch = sketch_patch([DRAWING, OEM, STANDARD], project_name="SiteAlpha")
     assert patch["project_files"] == 1 and patch["reference_files"] == 2
     assert "informerer seksjonene" in patch["role_note"]
 

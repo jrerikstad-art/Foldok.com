@@ -5,7 +5,7 @@
   "description": "Document-first brief: plan outline from intent + corpus → retrieve → ground → author prose → validate cites. Sources as appendix; gaps honest. Not a findings dump.",
   "applies_to": ["specification", "source_library", "general"],
   "version": 3,
-  "language_default": "no",
+  "language_default": "en",
   "export_price_tier": "standard",
   "sections": [
     {

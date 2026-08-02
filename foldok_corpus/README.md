@@ -40,7 +40,11 @@ justification   "fordi armering skjermer dårlig ved HF"       → Begrunnelse
 justification, and they feed different sections — forcing one reading is part of
 what made documents alike.
 
-## Naming goes last
+## Naming the label goes last — identity does not
+
+Identity (purpose, audience, primary vs secondary topics) comes from
+`foldok_identity` *before* the market runs. What goes last is only the document
+*name* / template label.
 
 ```
 Mappen støtter 5 seksjon(er) fra 18 utsagn i 2 kilder.
@@ -68,9 +72,12 @@ less important. A single source can still carry a section if it says enough
 
 A pile of sections in no order is not a document. Sections sit in bands —
 `frame → basis → body → evidence → exception → close` — and weight orders
-*within* a band, never across one. `check_order` reports an outline where
-evidence precedes its basis, because that reads as a mistake even when every
-sentence is correct.
+*within* a band, never across one. The *preferred arc* (installation vs research
+vs failure analysis) comes from `NarrativeBlueprint`, not from band decoration
+alone. `check_order` reports an outline where evidence precedes its basis,
+because that reads as a mistake even when every sentence is correct.
+
+See also `PROJECT_IDENTITY.md`.
 
 ## Honest about overlap
 

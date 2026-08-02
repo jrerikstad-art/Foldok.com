@@ -126,9 +126,26 @@ def compile_document_corpus_md(
 
     n_files = len({src for src, _ in docs})
     min_sources = 1 if n_files <= 1 else 2
+
+    blueprint = None
+    try:
+        from foldok_identity import identify_project
+        themes: list[str] = []
+        ref_themes: list[str] = []
+        try:
+            from foldok_role import sketch_patch
+            patch = sketch_patch(index or [], artifact=art)
+            themes = list(patch.get("themes") or [])
+        except Exception:
+            pass
+        blueprint = identify_project(artifact=art, themes=themes, reference_themes=ref_themes)
+    except Exception:
+        blueprint = None
+
     offer = build_offer(
         [c.to_dict() for c in wide.claims],
         lang=lang, min_weight=2, min_sources=min_sources,
+        identity=blueprint,
     )
 
     excluded = {t.strip().lower() for t in (exclude_titles or []) if t and t.strip()}

@@ -25,7 +25,7 @@ def _cache_key(index, artifact, lang) -> str:
         if e.get("kind") != "skipped"
     )[:80]
     art = artifact or {}
-    blob = "|".join(files) + "|" + str(art.get("name") or "") + "|" + (lang or "no") + "|" + ver
+    blob = "|".join(files) + "|" + str(art.get("name") or "") + "|" + (lang or "no") + "|" + ver + "|scrub-v3"
     return hashlib.sha1(blob.encode("utf-8", errors="replace")).hexdigest()[:20]
 
 

@@ -1,22 +1,26 @@
 # PRODUCT_VISION.md
 
 **Foldok** · Product Vision  
-Status: active · v1.5 · 2026-07-29
+Status: active · v1.6 · 2026-08-02
 
 ---
 
 ## One-liner
 
-**Foldok is an Engineering Documentation Operating System** — where engineering documentation is created, completed, reviewed, delivered, and kept alive.
+**Foldok is an Engineering Documentation Operating System** whose core product is an **Engineering Editor** — where engineers *compose* evidence into deliverables, then keep those packages alive.
 
 It is not an AI chat app.  
-It is not a general writing tool.  
-It is not a project-management suite.
+It is not Word / InDesign.  
+It is not NotebookLM.  
+It is not “generate a PDF from a folder.”
 
 **Documentation is the primary workspace.**  
-**Projects provide structure, context, sources, and lifecycle.**
+**Projects provide structure, context, sources, and lifecycle.**  
+**Compose is the verb. Generate is the last ten percent.**
 
 > Projects organize documentation. Documentation delivers projects.
+
+Deep dive: `ENGINEERING_EDITOR.md` · identity layer: `PROJECT_IDENTITY.md`
 
 ---
 
@@ -28,8 +32,9 @@ Generic AI tools help people read and draft from files. They do not:
 
 - keep **documentation** as a structured, maintainable workspace  
 - bind **evidence** and **requirements** to sections and packages  
-- treat **diagrams** as engineering data inside the package  
+- treat **diagrams** and **assets** as engineering data inside the package  
 - support **versioned delivery** and **re-analysis** when inputs change  
+- expose **coverage** (what is still weak) before publish  
 
 Foldok makes engineering documentation a managed process—not a one-off writing task.
 
@@ -37,10 +42,10 @@ Foldok makes engineering documentation a managed process—not a one-off writing
 
 ## Vision
 
-Analogy: **Visual Studio for engineering documentation** — people spend their time in the documentation workspace (as developers spend time in code), while sources, knowledge, requirements, diagrams, responsibilities, and delivery stay integrated around that work.
+Analogy: **the engineering editor** (CAD : geometry :: Foldok : evidence→deliverable) — people spend their time composing sections and assets the way editors cut a timeline, while sources, knowledge, requirements, diagrams, responsibilities, and delivery stay integrated around that work.
 
-AI is infrastructure.  
-The product is **status, decisions, and deliverables** — not a chatbot.
+AI is infrastructure — Copilot inside a section, not “write the manual.”  
+The product is **status, decisions, coverage, and deliverables** — not a chatbot.
 
 ### Philosophy
 
@@ -55,18 +60,26 @@ Engineering documentation should behave like engineered software:
 
 Foldok brings **history, traceability, reproducibility, and confidence under change** to documentation packages—similar in *discipline* to version control for source code, not as a clone of Git.
 
+**Evidence-first** (not document-first, not chat-first):
+
+```text
+Evidence → Understanding → Narrative → Document → Publishing
+```
+
+See `ENGINEERING_EDITOR.md` for the three-pane composer (Knowledge | Narrative | Live page) and section-as-object model.
+
 ---
 
 ## Canonical workflow
 
-The documentation lifecycle is stable. People move through it in the order their organization needs.
+The documentation lifecycle is stable. People move through it in the order their organization needs. The editor verb is **compose**, not generate.
 
 ```text
 Open / continue
-    → Understand sources
-    → Build knowledge
+    → Understand sources + project identity
+    → Build knowledge (facts, assets, coverage)
     → Resolve gaps
-    → Edit documentation          ★ primary work
+    → Compose documentation       ★ primary work (section objects + timeline)
     → Review (when required)
     → Deliver
     → Maintain
@@ -74,12 +87,12 @@ Open / continue
 
 | Stage | Outcome |
 |-------|---------|
-| Understand | Sources visible and grouped |
-| Knowledge | Entities, facts, relations, citations inspectable |
+| Understand | Sources visible; Project Identity set (purpose, audience, primary topics) |
+| Knowledge | Entities, facts, assets, relations, citations inspectable |
 | Resolve | Missing evidence handled with guided actions |
-| Edit | Documents and diagrams improved in the main workspace |
-| Review | Human acceptance when the organization requires a gate |
-| Deliver | Versioned package exported or distributed |
+| Compose | Sections arranged on a narrative timeline; coverage visible; draft is a render |
+| Review | Sign-off / peer check when the org requires it |
+| Deliver | Versioned package with receipt |
 | Maintain | Source changes map to affected documents |
 
 No stage is named “AI.”  
@@ -100,7 +113,7 @@ Projects may enable a **Responsibility layer** — a RACI (or optional RASCI) ma
 | UI term | Meaning |
 |---------|---------|
 | **Responsibilities** | Project roles and assignments (not “RACI” as the tab name) |
-| **Workflow step** | e.g. Resolve gaps, Edit documents, Approve delivery |
+| **Workflow step** | e.g. Resolve gaps, Compose documents, Approve delivery |
 | **Responsible** | Does the work (R) |
 | **Accountable** | Signs off (A) — prefer one per step |
 | **Support** | Hands-on help (S) — only if RASCI enabled |
@@ -233,18 +246,25 @@ Truth/coverage and readable synthesis are **different jobs**. A customer-facing 
 ### Pipeline (preferred)
 
 ```text
-Facts (cited, stable)
+Evidence + Project Identity
     ↓
-Authoring pass (prose, flow, no repetition) — from known facts only
+Content Director (what belongs — deterministic)
     ↓
-Verification (every claim still maps to a fact or is marked)
+Narrative Blueprint + section objects
+    ↓
+Authoring pass (prose into slots — last ~10%)
+    ↓
+Verification (every claim maps to a fact or is marked)
     ↓
 Publish (LayoutTree / package)
 ```
 
-**Not this:** Intent → free narrative → verify later. That is NotebookLM’s shape: write boldly and sometimes fill. Foldok’s edge is the opposite — missing pieces stay visible.
+**Not this:** Generate → hope → edit. That is still document-engine thinking.  
+**Not this:** Intent → free narrative → verify later. That is NotebookLM’s shape.
 
-Prefer: **knowledge + outline + required slots → Authoring Engine → fact check → publishing.**
+Foldok’s edge: **compose evidence into a package** — missing pieces stay visible as coverage, not as prose filler.
+
+Prefer: **identity + knowledge + outline + required slots → Authoring Engine → fact check → publishing.**
 
 ### What the Authoring Engine does
 
@@ -276,17 +296,19 @@ NotebookLM stops at a good draft from sources. Foldok’s path with authoring do
 
 That’s a **package**, not a chat export. Do not chase “sounds like NotebookLM”; chase **“I’d hand this to the customer.”**
 
-### Next cycle (document quality — not a new domain engine)
+### Next cycle (editor polish — foundation shipped in 0.113)
 
-1. Raise the bar on `generate_section_prose` (prompts + post-checks).  
-2. Ban “findings list” voice when enough facts support a topic.  
-3. Section intros + transitions; dedupe repeated headings.  
-4. After write: verification — unsourced sentence → gap or rewrite.  
-5. Keep composition/typography (print-first) investment.
+1. ~~**Document Composer UI**~~ — Compose tab: Knowledge | Narrative | Live page.  
+2. ~~**Content Director**~~ — `foldok_director` + `GET /api/compose`.  
+3. ~~**Project Asset object**~~ — `foldok_evidence`.  
+4. ~~**Section coverage**~~ — evidence / figures / standards bars on clips.  
+5. Drag-reorder narrative clips; bind/unbind assets from the timeline.  
+6. Raise the bar on slot prose; ban “findings list” voice when facts exist.  
+7. After write: verification — unsourced sentence → gap or rewrite.
 
-**Shipped:** `foldok_author` **0.86** — fact-shaped intents compose (and verify) from facts; procedural intents (`instruct_procedure`, `warn_hazard`, `troubleshoot`, `explain_process`) are **refused by name** and authored via `Procedure` instead of invented. `write_section_prose` uses compose/verify and falls back to the fact ledger for refused intents.
+**Shipped:** `foldok_author` **0.86** — fact-shaped intents compose (and verify) from facts; procedural intents (`instruct_procedure`, `warn_hazard`, `troubleshoot`, `explain_process`) are **refused by name** and authored via `Procedure` instead of invented. `write_section_prose` uses compose/verify and falls back to the fact ledger for refused intents. **`foldok_identity` 0.112** — Project Identity before the section market.
 
-Success test: open a generated manual and ask only — *Would I give this to a customer?* If no, fix authoring — not another extraction feature.
+Success test: open a composed manual and ask only — *Would I give this to a customer?* If no, fix authoring or coverage — not another extraction feature.
 
 ---
 
@@ -475,7 +497,7 @@ They own geometry and enterprise records. Foldok owns the **documentation worksp
 
 ## One sentence for the team
 
-> Build an operating system for engineering documentation: the editor is where work happens; the project supplies knowledge, requirements, evidence, and delivery; responsibilities stay optional and flexible; AI stays infrastructure.
+> Build the engineering editor: compose evidence into deliverables; the project supplies identity, knowledge, requirements, and coverage; AI stays a section assistant; the document engine is infrastructure, not the product.
 
 ---
 
@@ -483,11 +505,14 @@ They own geometry and enterprise records. Foldok owns the **documentation worksp
 
 | Doc | Role |
 |-----|------|
+| `ENGINEERING_EDITOR.md` | **Product shape** — compose vs generate, 3-pane editor, Content Director |
+| `PROJECT_IDENTITY.md` | Identity before section market |
 | `PRODUCT_DIRECTION.md` | Settled GTM, wedge, pricing, never-list |
+| `LEARNING_AND_BOUNDARIES.md` | Engine vs AI line; no vendor hardcoding |
 | `NAVIGATION_SPEC.md` | Explorer UX (converge with vision nav over time) |
 | `docs/prd/` | Surface PRDs — shipped vs target at current version |
 | `COMPLIANCE_POLICY.md` | Claim boundary |
 
 ---
 
-*End of PRODUCT_VISION.md · v1.4*
+*End of PRODUCT_VISION.md · v1.6*

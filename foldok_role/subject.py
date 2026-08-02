@@ -151,7 +151,44 @@ def sketch_patch(
         "project_files": len(roles.of("project")),
         "reference_files": len(roles.of("reference")),
         "role_note": roles.summary(),
+        "identity": _identity_dict(
+            entries=entries,
+            artifact=artifact, project_name=project_name, folder=folder,
+            themes=subject.themes, roles=roles,
+        ),
     }
+
+
+def _identity_dict(
+    *,
+    entries: Sequence[Mapping[str, Any]],
+    artifact: Mapping[str, Any] | None,
+    project_name: str,
+    folder: str,
+    themes: Sequence[str],
+    roles: Any,
+) -> dict[str, Any]:
+    """Attach ProjectIdentity when foldok_identity is present — never vendor lists."""
+    try:
+        from foldok_identity import identify_project
+        by = roles.by_file()
+        ref_themes: list[str] = []
+        for e in entries:
+            c = by.get(str(e.get("file") or ""))
+            if not c or c.role != "reference":
+                continue
+            for t in e.get("content_tags") or []:
+                ref_themes.append(str(t))
+        bp = identify_project(
+            artifact=artifact,
+            project_name=project_name,
+            folder=folder,
+            themes=list(themes or []),
+            reference_themes=ref_themes,
+        )
+        return bp.to_dict()
+    except Exception:
+        return {}
 
 
 def _terms(project_name: str, folder: str) -> list[str]:

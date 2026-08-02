@@ -28,10 +28,10 @@ INDEX = [
      "doc_role_hints": ["test_report"]},
     {"file": "Ref/EN 50174-2.pdf", "caption": "EN 50174-2 cabling installation planning",
      "doc_role_hints": ["standard"]},
-    {"file": "Ref/Legrand brochure.pdf",
-     "caption": "Legrand company profile — our solutions. Follow us. Request a quote."},
-    {"file": "Ref/SICK product shot.jpg", "kind": "photo",
-     "caption": "SICK microScan3 product photo. Subject to change without notice."},
+    {"file": "Ref/VendorCo brochure.pdf",
+     "caption": "VendorCo company profile — our solutions. Follow us. Request a quote."},
+    {"file": "Ref/oem_product_shot.jpg", "kind": "photo",
+     "caption": "AcmeVendor scanner product photo. Subject to change without notice."},
 ]
 
 
@@ -54,13 +54,13 @@ def test_sales_material_never_reaches_the_document():
 def test_a_suppliers_product_photo_is_not_evidence_of_this_installation():
     """Putting a catalogue shot in a handover document is a small lie."""
     c = context()
-    excluded = [e for e in c.excluded if "SICK" in e.file]
+    excluded = [e for e in c.excluded if "oem_product_shot" in e.file]
     assert excluded and "not evidence" in excluded[0].reason
 
 
 def test_reference_images_can_be_admitted_deliberately():
     c = build_context(INDEX, project_terms=["Storgata"], include_reference_images=True)
-    assert any("SICK" in a.file for a in c.images)
+    assert any("oem_product_shot" in a.file for a in c.images)
 
 
 def test_exclusions_are_recorded_not_dropped():

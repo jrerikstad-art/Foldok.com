@@ -560,103 +560,224 @@ def write_framing(
     )
 
 
+_BRIDGE_NOISE = re.compile(
+    r"(?i)\b("
+    r"etter dette|etter at|neste ledd i argumentet|neste tema|"
+    r"reglene forankres|med tesen lagt|når begrensningen er klar|"
+    r"når begrepene er på plass|having established|next step in the argument|"
+    r"with the thesis|the rules are anchored|mot slutten: hva leseren|"
+    r"toward the close|in closing, the recommendation|"
+    r"the next topic builds|neste tema bygger|"
+    r"installasjonssteg og krav|installation steps and requirements"
+    r")\b[^.]{0,160}"
+)
+
+# Nested continuity garbage still present in old drafts / accidental re-authorship.
+_NESTED_BRIDGE_RX = re.compile(
+    r"(?is)^\s*((?:Etter\s+dette\s*[—–\-]+\s*){1,}|"
+    r"(?:Etter\s+at\s+[^.]{0,120},\s*følger\s+neste\s+tema\.?\s*)+|"
+    r"(?:Having\s+established\s+that\s*[—–\-]+\s*){1,})"
+)
+
+_INSTALL_CTX = re.compile(
+    r"(?i)\b("
+    r"install\w*|installasjon\w*|monter\w*|montage|mount\w*|"
+    r"prosedyre|procedure|commission\w*|idrift\w*|"
+    r"verifikasjon|verification"
+    r")\b"
+)
+
+# TOC titles / filename stems mistaken for claims — not installation content.
+_HOLLOW_QUOTE = re.compile(
+    r"(?i)^(?:"
+    r"[\w]+(?:_[\w]+)+|"                          # Installation_guide
+    r"installation(?:[_\s-]*(?:guide|guidance|manual))?\.?|"
+    r"installasjon(?:[_\s-]*(?:veiledning|manual|guide))?\.?|"
+    r"(?:user|operating|product)\s*(?:manual|guide|instructions)\.?|"
+    r"[\w\s./\\-]{0,48}(?:\.pdf|\.docx?)\.?"
+    r")$"
+)
+
+
 def section_summary(prose: str, *, max_sents: int = 2) -> str:
-    """2–3 sentence previous-section summary for continuity bridges."""
+    """2–3 sentence previous-section summary (legacy; bridges no longer consume this)."""
     text = re.sub(r"\s+", " ", (prose or "").strip())
     text = re.sub(r"\*?\(\d+\s+filer[^*]*\*?", "", text)
     text = re.sub(r"\[\d+\]", "", text)
+    text = _BRIDGE_NOISE.sub(" ", text)
+    text = re.sub(r"\s{2,}", " ", text).strip(" —–-\t")
     if not text:
         return ""
     parts = re.split(r"(?<=[.!?])\s+", text)
-    keep = [p.strip() for p in parts if len(p.strip()) > 20][:max_sents]
+    keep = [p.strip() for p in parts if len(p.strip()) > 20 and not _BRIDGE_NOISE.search(p)][:max_sents]
     return " ".join(keep)
+
+
+_TOPIC_SLUG_RX = re.compile(
+    r"(?i)^[a-zæøå][a-zæøå0-9]*(?:_[a-zæøå0-9]+)+$"
+)
+_HOLLOW_LINE_RX = re.compile(
+    r"(?im)^\s*[A-Za-zÆØÅæøå][\w]*(?:_[A-Za-zÆØÅæøå0-9]+)+\.?\s*(?:\[\d+\]\s*)+\s*$"
+)
+_BRIDGE_RUN_RX = re.compile(
+    r"(?i)(?:Etter\s+dette\s*[—–\-]+\s*)+"
+)
+_BRIDGE_TAIL_RX = re.compile(
+    r"(?i)\s*[—–\-]*\s*følger\s+neste\s+ledd\s+i\s+argumentet\.?\s*"
+)
+_META_OPENER_RX = re.compile(
+    r"(?i)^(Reglene\s+forankres\b|Med\s+tesen\s+lagt\b|"
+    r"Having\s+established\b|The\s+rules\s+are\s+anchored\b|"
+    r"Neste\s+ledd\b|The\s+next\s+step\s+in\s+the\s+argument\b)"
+)
+
+
+def _is_topic_slug(text: str) -> bool:
+    """True for Electromagnetic_compatibility / Corrosion_protection — not prose."""
+    q = (text or "").strip().strip("\"'").rstrip(".")
+    # Drop trailing cite marks for the test.
+    q = re.sub(r"\s*(?:\[\d+\])+\s*$", "", q).strip().rstrip(".")
+    if not q or " " in q:
+        return False
+    return bool(_TOPIC_SLUG_RX.match(q)) or ("_" in q and q.count(" ") == 0)
+
+
+def _usable_evidence_quote(quote: str) -> bool:
+    """Reject filename stems, TOC labels, and topic slugs; keep real sentences."""
+    q = (quote or "").strip().strip("\"'")
+    if len(q) < 28:
+        return False
+    if _is_topic_slug(q):
+        return False
+    if "_" in q and q.count(" ") <= 1:
+        return False
+    if _HOLLOW_QUOTE.match(q):
+        return False
+    if ABSTRACT_RX.search(q) and not re.search(
+        r"(?i)\b(\d|shall|must|skal|bør|mm\b|Nm\b|step|steg|mount|monter)\b", q
+    ):
+        return False
+    if not re.search(r"[.!?:,;—–-]", q) and len(q) < 50:
+        return False
+    return True
+
+
+def _is_install_context(*parts: str) -> bool:
+    return bool(_INSTALL_CTX.search(" ".join(p for p in parts if p)))
 
 
 def bridge_opening(
     *,
-    prev_summary: str,
-    prev_beat: str,
-    next_beat: str,
-    next_purpose: str,
+    prev_summary: str = "",
+    prev_beat: str = "",
+    next_beat: str = "",
+    next_purpose: str = "",
+    lang: str = "no",
+    heading: str = "",
+) -> str:
+    """Continuity bridges are disabled — they stacked into «Etter dette —» spam."""
+    return ""
+
+
+def scrub_authored_prose(prose: str, *, lang: str = "no") -> str:
+    """Three guards: one bridge, no topic slugs as body, no empty cite spam.
+
+    Removes::
+
+        Etter dette — Etter dette — Reglene forankres…
+        Electromagnetic_compatibility. [20]
+        Electromagnetic_compatibility. [21]
+    """
+    text = (prose or "").strip()
+    if not text:
+        return ""
+
+    # (1) Peel stacked bridge prefixes anywhere in the text.
+    text = _BRIDGE_RUN_RX.sub("", text)
+    text = _BRIDGE_TAIL_RX.sub(" ", text)
+    text = re.sub(r"(?i)(?:Etter\s+dette\s*[—–\-]+\s*)+", "", text)
+
+    kept: list[str] = []
+    seen_slugs: set[str] = set()
+    for para in re.split(r"\n\s*\n", text):
+        p = para.strip(" —–-\t")
+        if not p:
+            continue
+        lines_out: list[str] = []
+        for line in p.splitlines():
+            ln = line.strip()
+            if not ln:
+                continue
+            # (2) Ban snake_case / topic ids as body lines (with or without cites).
+            if _HOLLOW_LINE_RX.match(ln) or _is_topic_slug(ln):
+                slug = re.sub(r"\s*(?:\[\d+\])+\s*$", "", ln).strip().rstrip(".").lower()
+                seen_slugs.add(slug)
+                continue
+            # Same slug repeated as "Title_case. [n]" variants
+            bare = re.sub(r"\s*(?:\[\d+\])+\s*$", "", ln).strip().rstrip(".")
+            if _is_topic_slug(bare):
+                seen_slugs.add(bare.lower())
+                continue
+            lines_out.append(line.rstrip())
+        if not lines_out:
+            continue
+        chunk = "\n".join(lines_out).strip(" —–-\t")
+        # Pure meta openers with no substance after scrub → drop.
+        if _META_OPENER_RX.match(chunk) and len(chunk) < 120:
+            continue
+        if re.match(
+            r"(?i)^(følger\s+neste\s+ledd|neste\s+ledd\s+i\s+argumentet)\.?$",
+            chunk,
+        ):
+            continue
+        kept.append(chunk)
+
+    out = "\n\n".join(kept).strip()
+    out = re.sub(r"[ \t]{2,}", " ", out)
+    out = re.sub(r"\n{3,}", "\n\n", out)
+    return out.strip()
+
+
+def strip_nested_bridges(prose: str) -> str:
+    return scrub_authored_prose(prose)
+
+
+def _merged_volume_prose(
+    usable: list[dict],
+    cites,
+    *,
+    heading: str = "",
     lang: str = "no",
 ) -> str:
-    """Hard continuity input — not hope. Ban findings-voice openers."""
-    no = (lang or "no").startswith("no")
-    key = (prev_beat or "", next_beat or "")
-    canned = {
-        ("frame", "context"): (
-            "Med tesen lagt, følger begrunnelsen for hvorfor det betyr noe."
-            if no else
-            "With the thesis in place, the case for why it matters follows."
-        ),
-        ("frame", "concepts"): (
-            "Med tesen lagt, trengs felles begreper før designregler."
-            if no else
-            "With the thesis stated, shared concepts come before design rules."
-        ),
-        ("context", "concepts"): (
-            "Når begrensningen er klar, trengs felles språk for klasser og soner."
-            if no else
-            "Once the constraint is clear, shared language for classes and zones is needed."
-        ),
-        ("concepts", "rules"): (
-            "Når begrepene er på plass, følger designimplikasjonene."
-            if no else
-            "Having established the concepts, the design implications follow."
-        ),
-        ("concepts", "evidence"): (
-            "Samme logikk dukker opp i produkt-EMC-tester og målte påstander."
-            if no else
-            "The same logic appears in the product EMC tests and measured claims."
-        ),
-        ("evidence", "rules"): (
-            "Fra de målte påstandene følger praktiske designregler."
-            if no else
-            "From the measured claims follow practical design rules."
-        ),
-        ("rules", "standards"): (
-            "Reglene forankres i navngitte standarder med en rolle i argumentet."
-            if no else
-            "The rules are anchored in named standards that play a role in the argument."
-        ),
-        ("standards", "close"): (
-            "Mot slutten: hva leseren skal sitte igjen med."
-            if no else
-            "Toward the close: what the reader should leave with."
-        ),
-        ("standards", "conclusion"): (
-            "Mot slutten: hva leseren skal sitte igjen med."
-            if no else
-            "Toward the close: what the reader should leave with."
-        ),
-        ("rules", "close"): (
-            "Oppsummert følger anbefalingen av samme tråd."
-            if no else
-            "In closing, the recommendation follows the same thread."
-        ),
-        ("rules", "conclusion"): (
-            "Oppsummert følger anbefalingen av samme tråd."
-            if no else
-            "In closing, the recommendation follows the same thread."
-        ),
-    }
-    # Map problem→frame for lookup
-    pb = "frame" if prev_beat in ("problem", "frame") else prev_beat
-    nb = "close" if next_beat in ("conclusion", "close") else next_beat
-    line = canned.get((pb, nb)) or canned.get((prev_beat, next_beat))
-    if line:
-        return line
-    if prev_summary:
-        short = prev_summary.split(".")[0].strip()
-        if len(short) > 20:
-            if no:
-                return f"Etter dette — {short[:110].rstrip('.')} — følger neste ledd i argumentet."
-            return f"Having established that — {short[:110].rstrip('.')} — the next step in the argument follows."
-    if next_purpose and no:
-        return "Neste ledd i argumentet bygger direkte på det foregående."
-    if next_purpose:
-        return "The next step in the argument builds directly on what precedes it."
-    return ""
+    """One paragraph from real quotes; merge cites; never emit topic slugs."""
+    buckets: dict[str, dict] = {}
+    for ev in usable:
+        quote = str(ev.get("quote") or "").strip()
+        if not _usable_evidence_quote(quote):
+            continue
+        key = re.sub(r"\s+", " ", quote.lower())[:160]
+        src = str(ev.get("source") or "").strip()
+        slot = buckets.setdefault(key, {"quote": quote, "sources": []})
+        if src and src not in slot["sources"]:
+            slot["sources"].append(src)
+    if not buckets:
+        return ""
+
+    parts: list[str] = []
+    for slot in list(buckets.values())[:5]:
+        quote = slot["quote"]
+        sentence = quote[0].upper() + quote[1:] if quote else quote
+        if not sentence.endswith((".", "!", "?")):
+            sentence += "."
+        marks = []
+        for src in slot["sources"][:4]:
+            if hasattr(cites, "may_cite") and cites.may_cite(src):
+                marks.append(cites.mark(src, body=True))
+            elif src:
+                marks.append(cites.mark(src, body=False))
+        cite = (" " + "".join(marks)) if marks else ""
+        parts.append(f"{sentence}{cite}")
+    return "\n\n".join(parts)
 
 
 def write_volume_section(
@@ -678,41 +799,31 @@ def write_volume_section(
     """
     no = (lang or "no").startswith("no")
     purpose = purpose or section.purpose
-    lines: list[str] = []
-    bridge = bridge_opening(
-        prev_summary=previous_summary,
-        prev_beat=previous_beat,
-        next_beat=arc_beat,
-        next_purpose=next_purpose or purpose,
-        lang=lang,
-    )
-    if bridge:
-        lines.append(bridge)
+    heading = section.heading or ""
 
-    used_src: set[str] = set()
-    for ev in evidence[:8]:
+    usable = []
+    for ev in evidence[:12]:
         if not isinstance(ev, dict):
             continue
         quote = str(ev.get("quote") or "").strip()
-        src = str(ev.get("source") or "").strip()
-        if len(quote) < 8:
+        if not _usable_evidence_quote(quote):
             continue
-        mark = ""
-        if src and hasattr(cites, "may_cite") and cites.may_cite(src):
-            mark = " " + cites.mark(src, body=True)
-            used_src.add(src)
-        elif src:
-            mark = " " + cites.mark(src, body=False)
-        sentence = quote[0].upper() + quote[1:] if quote else quote
-        if not sentence.endswith((".", "!", "?")):
-            sentence += "."
-        lines.append(f"{sentence}{mark}")
+        usable.append(ev)
 
-    if len(lines) <= (1 if bridge else 0):
+    # Never prepend bridges — bridge_opening is disabled; keep call sites quiet.
+    prose = _merged_volume_prose(usable, cites, heading=heading, lang=lang) if usable else ""
+    prose = scrub_authored_prose(prose, lang=lang)
+
+    if not prose:
+        theme = heading or "topic"
         gap = (
-            f"MANGLER: foreslått seksjon «{section.heading}» uten nok underlag."
+            f"**[MANGLER: dekkende tekst]** — «{theme}» fant bare emnenøkler "
+            f"(f.eks. Electromagnetic_compatibility) eller brotekst, ikke påstander. "
+            f"Slett seksjonen, eller legg til kilder med faktisk tekst om temaet."
             if no else
-            f"MISSING: proposed section “{section.heading}” lacks enough grounding."
+            f"**[GAP: covering text]** — “{theme}” only found topic keys "
+            f"(e.g. Electromagnetic_compatibility) or bridge text, not claims. "
+            f"Delete the section, or add sources with real text on the topic."
         )
         return SectionDraft(
             heading=section.heading, purpose=purpose, kind=section.kind,
@@ -727,7 +838,7 @@ def write_volume_section(
     )
     return SectionDraft(
         heading=section.heading, purpose=purpose, kind=section.kind,
-        prose="\n\n".join(lines) + note,
+        prose=prose + note,
         author_intent="explain", arc_beat=arc_beat, fidelity_ok=True,
     )
 
@@ -845,6 +956,7 @@ def write_teach(
         next_beat=arc_beat,
         next_purpose=next_purpose or purpose,
         lang=lang,
+        heading=section.heading or "",
     )
 
     if author_intent == "conclude":
@@ -876,6 +988,20 @@ def write_teach(
 
     prose = validate_prose(prose, hits) or prose
     prose = _strip_banned(prose)
+    prose = scrub_authored_prose(prose, lang=lang)
+    if not prose.strip():
+        gap = (
+            f"**[MANGLER: dekkende tekst]** — «{section.heading}» uten skrivbar claim-tekst "
+            f"(kun emnenøkler / tomme treff)."
+            if no else
+            f"**[GAP: covering text]** — “{section.heading}” has no writable claim text "
+            f"(topic keys / empty hits only)."
+        )
+        return SectionDraft(
+            heading=section.heading, purpose=purpose, kind=section.kind,
+            gap=gap, prose="", fidelity_ok=False,
+            author_intent=author_intent, arc_beat=arc_beat, hits=hits,
+        )
     return SectionDraft(
         heading=section.heading, purpose=purpose, kind=section.kind,
         prose=prose, hits=hits, author_intent=author_intent, arc_beat=arc_beat,
@@ -903,6 +1029,12 @@ def _fidelity_gap(heading: str, need: set[str], *, no: bool) -> str:
 
 def _purpose_lead(heading: str, *, no: bool, author_intent: str) -> str:
     h = (heading or "").lower()
+    if _is_install_context(heading):
+        return (
+            "Installasjonen må beskrives som konkrete steg og krav — ikke som et kapittelnavn."
+            if no else
+            "Installation must be described as concrete steps and requirements — not a chapter title."
+        )
     if author_intent == "argue":
         if "emc" in h or "skjerm" in h:
             return (
@@ -934,16 +1066,25 @@ def _purpose_lead(heading: str, *, no: bool, author_intent: str) -> str:
             "Zones and earthing limit noise paths in the installation."
         )
     return (
-        f"{heading} må leses som del av samme argument."
+        f"{heading} hører til samme tekniske sammenheng."
         if no else
-        f"{heading} must be read as part of the same argument."
+        f"{heading} belongs in the same technical context."
     )
 
 
 def _write_explain(heading, claims: list[Claim], cites, *, lang) -> str:
     no = lang.startswith("no")
+    claims = [c for c in (claims or []) if _usable_evidence_quote(
+        getattr(c, "text_no", None) or getattr(c, "text_en", None) or getattr(c, "text", "") or ""
+    )]
     lead = _purpose_lead(heading, no=no, author_intent="explain")
     if not claims:
+        if _is_install_context(heading):
+            return (
+                f"{lead} MANGLER: underlaget har bare fil-/kapittelnavn, ikke monteringssteg."
+                if no else
+                f"{lead} MISSING: sources only have file/TOC titles, not mounting steps."
+            )
         return lead
     parts = [lead]
     c0 = claims[0]
@@ -962,6 +1103,9 @@ def _write_explain(heading, claims: list[Claim], cites, *, lang) -> str:
 
 def _write_argue(heading, claims: list[Claim], cites, *, lang) -> str:
     no = lang.startswith("no")
+    claims = [c for c in (claims or []) if _usable_evidence_quote(
+        getattr(c, "text_no", None) or getattr(c, "text_en", None) or getattr(c, "text", "") or ""
+    )]
     lead = _purpose_lead(heading, no=no, author_intent="argue")
     if not claims:
         return lead
@@ -981,6 +1125,9 @@ def _write_argue(heading, claims: list[Claim], cites, *, lang) -> str:
 
 def _write_recommend(heading, claims: list[Claim], cites, *, lang) -> str:
     no = lang.startswith("no")
+    claims = [c for c in (claims or []) if _usable_evidence_quote(
+        getattr(c, "text_no", None) or getattr(c, "text_en", None) or getattr(c, "text", "") or ""
+    )]
     lead = _purpose_lead(heading, no=no, author_intent="recommend")
     if not claims:
         return lead

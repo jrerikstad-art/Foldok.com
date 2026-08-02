@@ -1,7 +1,7 @@
 """Compose topic_brief: Narrative → Author → Validator → Critic → appendix."""
 from __future__ import annotations
 
-from .author_doc import author_document
+from .author_doc import author_document, scrub_authored_prose
 from .critic import review_document
 from .model import Question
 from .narrative import plan_narrative
@@ -62,24 +62,31 @@ def compose_topic_brief(
     body_parts = []
     gaps = ""
     sources = ""
+    no = (lang or "no").startswith("no")
     for d in drafts:
         if d.kind == "framing":
-            overview = d.prose
+            overview = scrub_authored_prose(d.prose or "", lang=lang) if d.prose else ""
         elif d.kind == "appendix":
             sources = d.prose
         elif d.kind == "gaps":
             gaps = d.prose
         else:
             block = f"### {d.heading}\n\n"
-            if d.gap and not d.prose:
+            body = scrub_authored_prose(d.prose or "", lang=lang)
+            if d.gap and not body:
                 block += d.gap
+            elif not body:
+                block += (
+                    f"**[MANGLER: dekkende tekst]** — «{d.heading}» i valgte kilder."
+                    if no else
+                    f"**[GAP: covering text]** — “{d.heading}” in selected sources."
+                )
             else:
-                block += d.prose
+                block += body
                 if d.gap:
                     block += f"\n\n*{d.gap}*"
             body_parts.append(block)
 
-    no = (lang or "no").startswith("no")
     gaps_body = gaps or (
         "Ingen kritiske dekningshull notert." if no else "No critical gaps noted."
     )

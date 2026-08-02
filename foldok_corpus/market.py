@@ -9,13 +9,14 @@ been read**, and then its section list becomes a ceiling. A folder with fourteen
 topics loses eight of them regardless of which template is chosen, and every
 template draws from the same narrow claim pool.
 
-So naming goes last, not first:
+So identity comes first, naming last:
 
-    1  read the folder, report what it can support
-    2  offer every section the material justifies, with its weight and evidence
+    0  identify the project (purpose, audience, primary vs secondary topics)
+    1  read the folder, report what it can support *for that identity*
+    2  offer every section the material justifies, scored for relevance
     3  the user keeps, deletes, reorders
     4  the engine enforces the arc — some orders are simply wrong
-    5  the document's identity emerges from the selection
+    5  the document's *label* emerges from the selection
 
 What abundance alone does not fix: a pile of sections in no order is not a
 document. Section 3 assuming section 2 is what makes prose readable, so ordering
@@ -27,6 +28,8 @@ declaration and test records": a **requirement over the selection** rather than 
 recipe for it. That is ``foldok_gaps`` already, and it puts the relationship the
 right way round. The user knows what they need; Foldok checks whether they have
 it.
+
+See ``PROJECT_IDENTITY.md`` and ``foldok_identity``.
 """
 
 from __future__ import annotations
@@ -93,6 +96,7 @@ class Offer:
     sources: tuple[str, ...] = ()
     samples: tuple[str, ...] = ()
     kept: bool = True                 # abundance: offered as kept, user deletes
+    relevance: str = "somewhat"       # vs ProjectIdentity: relevant|somewhat|background|ignore
 
     @property
     def justified(self) -> bool:
@@ -103,9 +107,14 @@ class Offer:
         return BAND.get(self.band, 2)
 
     def explain(self, *, lang: str = "no") -> str:
-        if lang.startswith("no"):
-            return f"{self.title} — {self.weight} utsagn fra {len(self.sources)} kilde(r)"
-        return f"{self.title} — {self.weight} statement(s) from {len(self.sources)} source(s)"
+        base = (
+            f"{self.title} — {self.weight} utsagn fra {len(self.sources)} kilde(r)"
+            if lang.startswith("no") else
+            f"{self.title} — {self.weight} statement(s) from {len(self.sources)} source(s)"
+        )
+        if self.relevance and self.relevance != "somewhat":
+            return f"{base} [{self.relevance}]"
+        return base
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -113,6 +122,7 @@ class Offer:
             "weight": self.weight, "sources": list(self.sources),
             "claim_types": list(self.claim_types), "kept": self.kept,
             "justified": self.justified, "samples": list(self.samples[:3]),
+            "relevance": self.relevance,
         }
 
 
@@ -187,8 +197,13 @@ def build_offer(
     lang: str = "no",
     min_weight: int = MIN_WEIGHT,
     min_sources: int = MIN_SOURCES,
+    identity: Any = None,
 ) -> CorpusOffer:
-    """What this folder can support. Takes no document type, by design.
+    """What this folder can support for an optional ProjectIdentity.
+
+    Without ``identity``, offers are availability-only (legacy). With it, each
+    offer is scored Relevant / Somewhat / Background / Ignore, and Ignore is
+    dropped from the default kept set so OEM density cannot become the document.
 
     ``claims`` is anything with ``type``, ``text`` and ``source`` — the union of
     ``foldok_claims`` and ``foldok_corpus.widen`` output.
@@ -203,6 +218,10 @@ def build_offer(
         if claim.get("source"):
             sources.add(str(claim["source"]))
 
+    proj = None
+    if identity is not None:
+        proj = getattr(identity, "identity", identity)
+
     offers: list[Offer] = []
     for ctype, group in by_type.items():
         group_sources = tuple(sorted({str(c.get("source") or "") for c in group if c.get("source")}))
@@ -210,7 +229,7 @@ def build_offer(
         substantial = len(group_sources) == 1 and len(group) >= SINGLE_SOURCE_WEIGHT
         if not (corroborated or substantial):
             continue
-        offers.append(Offer(
+        offer = Offer(
             key=f"sec.{ctype}",
             title=_title_for(ctype, lang),
             band=TYPE_BAND.get(ctype, "body"),
@@ -218,7 +237,16 @@ def build_offer(
             weight=len(group),
             sources=group_sources,
             samples=tuple(str(c.get("text") or "")[:120] for c in group[:3]),
-        ))
+        )
+        if proj is not None:
+            try:
+                from foldok_identity import score_offer
+                offer.relevance = score_offer(offer, proj)
+            except Exception:
+                offer.relevance = "somewhat"
+            if offer.relevance == "ignore":
+                offer.kept = False
+        offers.append(offer)
 
     offers.sort(key=lambda o: (o.rank, -o.weight))
     return CorpusOffer(offers=offers, claim_total=len(claims), source_total=len(sources))
