@@ -570,8 +570,65 @@
     display:grid; grid-template-columns:minmax(240px,280px) minmax(0,1fr); gap:0;
     min-height:0; flex:1;
   }
+  .editor-work-body.compose-mode {
+    grid-template-columns:minmax(220px,260px) minmax(0,1fr) minmax(240px,300px);
+  }
   .editor-work-body.rail-collapsed { grid-template-columns:minmax(0,1fr); }
-  .editor-work-body.rail-collapsed .editor-rail { display:none; }
+  .editor-work-body.rail-collapsed .editor-rail,
+  .editor-work-body.rail-collapsed .compose-narrative { display:none; }
+  .compose-narrative {
+    display:none; background:var(--paper); border-left:1px solid var(--line);
+    flex-direction:column; min-height:0; overflow:hidden;
+  }
+  .editor-work-body.compose-mode .compose-narrative { display:flex; }
+  .compose-narrative .narr-head {
+    padding:12px 14px; border-bottom:1px solid var(--line); flex-shrink:0;
+  }
+  .compose-narrative .narr-head h3 { margin:0; font-size:13px; font-weight:800; }
+  .compose-narrative .narr-meta {
+    font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--steel); margin-top:4px;
+  }
+  .compose-narrative .narr-body { flex:1; overflow-y:auto; padding:8px 10px 16px; min-height:0; }
+  .compose-check {
+    display:flex; flex-wrap:wrap; gap:6px; margin:0 0 10px; padding:0 2px;
+  }
+  .compose-check .ck {
+    font-size:10px; font-weight:700; padding:4px 8px; border-radius:6px;
+    border:1px solid var(--line); color:var(--steel); background:var(--sheet);
+  }
+  .compose-check .ck.done { color:var(--ok); border-color:color-mix(in srgb, var(--ok) 40%, var(--line)); }
+  .compose-clip {
+    border:1px solid var(--line); border-radius:8px; padding:10px 10px 8px;
+    margin:0 0 8px; background:var(--sheet); cursor:pointer;
+  }
+  .compose-clip:hover { border-color:var(--ink); }
+  .compose-clip.on { border-color:var(--ink); box-shadow:inset 3px 0 0 var(--ink); }
+  .compose-clip .clip-top { display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
+  .compose-clip b { font-size:12.5px; }
+  .compose-clip .st {
+    font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--steel); text-transform:uppercase;
+  }
+  .compose-clip .st.complete { color:var(--ok); }
+  .compose-clip .st.partial { color:var(--warn, #b78105); }
+  .compose-clip .purpose { font-size:11px; color:var(--steel); margin:4px 0 6px; }
+  .compose-bars { display:grid; gap:3px; margin:6px 0; }
+  .compose-bars .bar-row { display:grid; grid-template-columns:72px 1fr 28px; gap:6px; align-items:center; font-size:10px; color:var(--steel); }
+  .compose-bars .track { height:5px; background:var(--line); border-radius:99px; overflow:hidden; }
+  .compose-bars .fill { height:100%; background:var(--ink); border-radius:99px; }
+  .compose-sug { font-size:11px; color:var(--steel); margin:4px 0 0; padding-left:14px; }
+  .compose-sug li { margin:2px 0; }
+  .know-block { margin:0 0 12px; }
+  .know-block h4 { margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--steel); }
+  .know-chip {
+    display:inline-block; font-size:11px; padding:3px 8px; margin:0 4px 4px 0;
+    border-radius:6px; background:var(--paper); border:1px solid var(--line);
+  }
+  .know-chip.sec { opacity:.75; }
+  .know-chip.excl { opacity:.45; text-decoration:line-through; }
+  .cov-overall {
+    font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--steel);
+    margin:8px 0 12px; line-height:1.5;
+  }
   #draft-area { min-width:0; max-width:100%; overflow-x:auto; }
   .editor-rail {
     background:var(--sheet); display:flex; flex-direction:column;
@@ -820,6 +877,7 @@
   }
   @media (max-width:1100px) {
     .editor-work-body { grid-template-columns:220px minmax(0,1fr); }
+    .editor-work-body.compose-mode { grid-template-columns:200px minmax(0,1fr) 220px; }
     .editor-shell { grid-template-columns:minmax(0,1fr) minmax(280px,320px); }
   }
   @media (max-width:900px) {
@@ -1607,6 +1665,7 @@
 <script>
 let BOOT = null, POLL = null, ACTIVE_DOC = null, LAST_PID = null, PROJECT = null;
 let PENDING_REGEN = null;
+let REGEN_POLL = null;
 let MANGler_CTX = null;
 let CHAT_SCOPE = { type: "document", section: null };
 let CHAT_TURNS = 0;
@@ -1700,16 +1759,39 @@ function relExportPath(fullPath, folders) {
   if (fp.startsWith(root)) return fp.slice(root.length).replace(/^\//, "");
   return fullPath;
 }
-const api = (p, opt) => fetch(p, opt).then(async r => {
-  const j = r.headers.get("content-type")?.includes("json") ? await r.json() : await r.text();
-  if (!r.ok) {
-    const err = new Error((j && j.error) || r.status);
-    err.status = r.status;
-    err.payload = j;
-    throw err;
+const api = (p, opt) => {
+  // Always send UI language with engine calls — otherwise generate defaults to Norwegian
+  // while the chrome is English.
+  opt = opt ? { ...opt } : {};
+  const uiLang = (typeof getUiLang === "function" ? getUiLang() : (localStorage.getItem("foldok_ui_lang") || "en"));
+  const lang = uiLang === "no" ? "no" : "en";
+  const method = (opt.method || "GET").toUpperCase();
+  if (method === "POST" && opt.body != null) {
+    try {
+      const o = typeof opt.body === "string" ? JSON.parse(opt.body) : opt.body;
+      if (o && typeof o === "object" && !Array.isArray(o) && (o.lang == null || o.lang === "")) {
+        o.lang = lang;
+        opt.body = JSON.stringify(o);
+      }
+    } catch (_) { /* non-JSON body */ }
+  } else if (method === "GET" || !opt.method) {
+    try {
+      const u = new URL(p, location.origin);
+      if (!u.searchParams.has("lang")) u.searchParams.set("lang", lang);
+      p = u.pathname + u.search;
+    } catch (_) { /* relative path edge */ }
   }
-  return j;
-});
+  return fetch(p, opt).then(async r => {
+    const j = r.headers.get("content-type")?.includes("json") ? await r.json() : await r.text();
+    if (!r.ok) {
+      const err = new Error((j && j.error) || r.status);
+      err.status = r.status;
+      err.payload = j;
+      throw err;
+    }
+    return j;
+  });
+};
 
 async function boot() {
   try {
@@ -4128,6 +4210,7 @@ async function renderProject(id) {
         <div class="editor-shell">
           <div class="editor-work">
             <nav class="editor-flow" id="editor-flow" aria-label="Arbeidsflyt">
+              <button type="button" data-rail="compose" onclick="setEditorRail('compose')">Compose</button>
               <button type="button" data-rail="analyze" onclick="setEditorRail('analyze')">Analyze</button>
               <button type="button" data-rail="gaps" onclick="setEditorRail('gaps')">
                 <span class="flow-dot" id="flow-gaps-dot" hidden></span>Resolve Gaps
@@ -4151,6 +4234,13 @@ async function renderProject(id) {
                 <div id="diff-area"></div>
                 <div id="draft-area">Laster utkast…</div>
               </div>
+              <aside class="compose-narrative" id="compose-narrative" aria-label="Narrative">
+                <div class="narr-head">
+                  <h3>Narrative</h3>
+                  <div class="narr-meta" id="narr-meta">Seksjoner som klipp</div>
+                </div>
+                <div class="narr-body" id="narr-body"></div>
+              </aside>
             </div>
           </div>
           <aside class="assist-dock" id="assist-dock">
@@ -4188,7 +4278,7 @@ async function renderProject(id) {
     initAssistWelcome();
     LAST_DOC_SOURCE_NAMES = [];
     if (!window.__editorRailUser) {
-      EDITOR_RAIL = (p.gap_summary?.blocking > 0) ? "gaps" : "documents";
+      EDITOR_RAIL = (p.gap_summary?.blocking > 0) ? "gaps" : "compose";
       window.__editorRailUser = true;
     }
     setEditorRail(EDITOR_RAIL, { user: false });
@@ -6781,8 +6871,130 @@ function openFigLightbox(src) {
   document.body.appendChild(lb);
 }
 
-let EDITOR_RAIL = "documents"; // analyze | gaps | tools | documents | publish
+async function loadComposePlan() {
+  if (!PROJECT?.id) return;
+  const tpl = ACTIVE_DOC || PROJECT?.doc?.template || "";
+  try {
+    const q = new URLSearchParams({ id: PROJECT.id, template: tpl || "" });
+    const plan = await api("/api/compose?" + q.toString());
+    COMPOSE_PLAN = plan;
+    renderComposeKnowledge(plan);
+    renderComposeNarrative(plan);
+  } catch (err) {
+    const body = $("#rail-body");
+    if (body && EDITOR_RAIL === "compose") {
+      body.innerHTML = `<div class="mono" style="font-size:12px;color:var(--gap)">${esc(err.message || String(err))}</div>`;
+    }
+    const narr = $("#narr-body");
+    if (narr) narr.innerHTML = `<div class="mono" style="font-size:11px;color:var(--steel)">Kunne ikke laste narrative.</div>`;
+  }
+}
+
+function covBar(label, frac) {
+  const pct = Math.round(Math.max(0, Math.min(1, frac || 0)) * 100);
+  return `<div class="bar-row"><span>${esc(label)}</span><div class="track"><div class="fill" style="width:${pct}%"></div></div><span>${pct}%</span></div>`;
+}
+
+function renderComposeKnowledge(plan) {
+  if (EDITOR_RAIL !== "compose") return;
+  const body = $("#rail-body");
+  const meta = $("#rail-meta");
+  if (!body || !plan) return;
+  const idn = plan.identity || {};
+  const kn = plan.knowledge || {};
+  const cov = plan.overall_coverage || {};
+  const lib = (plan.library && plan.library.summary) || kn.asset_summary || {};
+  if (meta) {
+    meta.textContent = (idn.document_kind || "generic") + (idn.title_hint ? " · " + idn.title_hint : "");
+  }
+  const prim = (kn.primary_topics || []).map(t => `<span class="know-chip">${esc(t)}</span>`).join("") || "<span class='know-chip sec'>—</span>";
+  const sec = (kn.secondary_topics || []).map(t => `<span class="know-chip sec">${esc(t)}</span>`).join("");
+  const excl = (kn.excluded_topics || []).map(t => `<span class="know-chip excl">${esc(t)}</span>`).join("");
+  const assetLines = Object.entries(lib).filter(([k]) => k !== "excluded")
+    .map(([k, v]) => `<div class="pub-row"><span>${esc(k)}</span><span class="mono">${v}</span></div>`).join("");
+  const notes = (plan.notes || []).map(n => `<li>${esc(n)}</li>`).join("");
+  body.innerHTML = `
+    <div class="cov-overall">
+      Evidens ${Math.round((cov.evidence || 0) * 100)}% ·
+      Figurer ${Math.round((cov.figures || 0) * 100)}% ·
+      Standarder ${Math.round((cov.standards || 0) * 100)}% ·
+      Åpne ${cov.open_questions || 0}
+    </div>
+    <div class="know-block">
+      <h4>Identitet</h4>
+      <div style="font-size:12px;line-height:1.45">
+        <b>${esc(idn.purpose || "Formål ikke satt")}</b><br>
+        <span style="color:var(--steel)">${esc(idn.audience || "Målgruppe ikke satt")}</span>
+      </div>
+    </div>
+    <div class="know-block"><h4>Primary</h4>${prim}</div>
+    ${sec ? `<div class="know-block"><h4>Secondary</h4>${sec}</div>` : ""}
+    ${excl ? `<div class="know-block"><h4>Ignored</h4>${excl}</div>` : ""}
+    <div class="know-block"><h4>Assets</h4>${assetLines || "<span class='mono' style='font-size:11px;color:var(--steel)'>Ingen</span>"}</div>
+    <div class="know-block">
+      <h4>Kilder</h4>
+      <div class="pub-row"><span>Filer</span><span class="mono">${kn.source_count || 0}</span></div>
+      <div class="pub-row"><span>Fakta</span><span class="mono">${kn.fact_total || 0}</span></div>
+    </div>
+    ${notes ? `<ul class="compose-sug">${notes}</ul>` : ""}
+    <button type="button" class="btn" style="width:100%;margin-top:8px"
+      onclick="composeDraft()">${plan.ready_to_draft ? "Render utkast →" : "Generer utkast (siste 10%) →"}</button>
+  `;
+}
+
+function renderComposeNarrative(plan) {
+  const narr = $("#narr-body");
+  const nmeta = $("#narr-meta");
+  if (!narr || !plan) return;
+  const checks = (plan.checklist || []).map(c =>
+    `<span class="ck ${c.done ? "done" : ""}" title="${esc(c.detail || "")}">${c.done ? "✓ " : ""}${esc(c.label)}</span>`
+  ).join("");
+  if (nmeta) nmeta.textContent = `${(plan.sections || []).length} klipp · ${plan.ready_to_draft ? "klar for utkast" : "bygg evidens først"}`;
+  const clips = (plan.sections || []).map(s => {
+    const cov = s.coverage || {};
+    const on = COMPOSE_CLIP_KEY === s.key ? " on" : "";
+    const sugs = (s.suggestions || []).slice(0, 3).map(x => `<li>${esc(x)}</li>`).join("");
+    return `<div class="compose-clip${on}" data-key="${esc(s.key)}" onclick="selectComposeClip('${esc(s.key)}')">
+      <div class="clip-top"><b>${esc(s.title)}</b><span class="st ${esc(s.status)}">${esc(s.status)}</span></div>
+      <div class="purpose">${esc(s.purpose || s.arc_stage || "")}</div>
+      <div class="compose-bars">
+        ${covBar("Evidens", cov.evidence)}
+        ${covBar("Figurer", cov.figures)}
+        ${covBar("Std", cov.standards)}
+      </div>
+      <div class="mono" style="font-size:10px;color:var(--steel)">${s.asset_ids?.length || 0} assets · ${s.fact_count || 0} fakta</div>
+      ${sugs ? `<ul class="compose-sug">${sugs}</ul>` : ""}
+    </div>`;
+  }).join("");
+  narr.innerHTML = `<div class="compose-check">${checks}</div>${clips || "<div class='mono' style='font-size:11px;color:var(--steel)'>Ingen seksjoner i malen.</div>"}`;
+}
+
+function selectComposeClip(key) {
+  COMPOSE_CLIP_KEY = key;
+  document.querySelectorAll(".compose-clip").forEach(el => {
+    el.classList.toggle("on", el.dataset.key === key);
+  });
+  try { selectSection(key); } catch (_) {}
+  const host = $("#draft-annot-host") || $("#draft-area");
+  const el = host && host.querySelector(`.sec-wrap[data-section="${CSS.escape(key)}"]`);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function composeDraft() {
+  if (!PROJECT?.id) return;
+  const file = ACTIVE_DOC || $("#tpl")?.value;
+  if (!file) {
+    try { alert("Velg et dokument først"); } catch (_) {}
+    return;
+  }
+  await lagDokumentet(file);
+  loadComposePlan();
+}
+
+let EDITOR_RAIL = "documents"; // compose | analyze | gaps | tools | documents | publish
 let LAST_DOC_SOURCE_NAMES = [];
+let COMPOSE_PLAN = null;
+let COMPOSE_CLIP_KEY = null;
 const ANNOT = {
   on: false,
   tool: "arrow",
@@ -6810,6 +7022,8 @@ function setEditorRail(mode, opts) {
   document.querySelectorAll("#editor-flow button").forEach(btn => {
     btn.classList.toggle("on", btn.dataset.rail === EDITOR_RAIL);
   });
+  const work = $("#editor-work-body");
+  if (work) work.classList.toggle("compose-mode", EDITOR_RAIL === "compose");
   renderEditorRail();
   if (EDITOR_RAIL !== "tools" && ANNOT.on) setAnnotLayer(false);
 
@@ -7029,6 +7243,15 @@ function renderEditorRail() {
     warning: gaps.filter(g => g.severity === "warning").length,
   };
   if (dot) dot.hidden = !(gs.blocking > 0);
+
+  if (EDITOR_RAIL === "compose") {
+    if (title) title.textContent = "Knowledge";
+    if (meta) meta.textContent = "Evidens · emner · assets";
+    body.className = "rail-body";
+    body.innerHTML = `<div class="mono" style="font-size:11px;color:var(--steel)">Laster compose-plan…</div>`;
+    loadComposePlan();
+    return;
+  }
 
   if (EDITOR_RAIL === "analyze") {
     if (title) title.textContent = "Kilder / Analyze";
@@ -8450,6 +8673,176 @@ function askAssistAboutSection(sectionKey) {
     assistBubble("bot", `Seksjon <b>${esc(sectionKey)}</b> er valgt. Prøv «skriv om strengere» eller «forkort denne seksjonen».`);
   }
   $("#assist-input")?.focus();
+}
+
+/** Per-section regenerate → diff → accept (APIs exist; helpers were dropped from the UI). */
+async function regenSection(id, template, sectionKey, instruction) {
+  if (!id || !template || !sectionKey) return;
+  if (instruction === undefined)
+    instruction = prompt("Ekstra instruksjon (valgfritt):", "") || undefined;
+  const diffEl = $("#diff-area");
+  try {
+    if (diffEl) {
+      diffEl.innerHTML = `<div class="mono" style="font-size:11px;color:var(--steel)">Regenererer ${esc(sectionKey)}…</div>`;
+      diffEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+    showToast?.("Regenererer seksjon…");
+    const { job } = await api("/api/doc/regenerate-section", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, template, section_key: sectionKey, instruction }),
+    });
+    pollRegen(job, id, template, sectionKey);
+  } catch (e) {
+    const msg = e.message || String(e);
+    if (diffEl) diffEl.innerHTML = `<div class="err">${esc(msg)}</div>`;
+    try { assistBubble("bot", esc(msg)); } catch (_) {}
+    alert(msg);
+  }
+}
+
+function pollRegen(job, id, template, sectionKey) {
+  if (REGEN_POLL) clearInterval(REGEN_POLL);
+  const diffEl = $("#diff-area");
+  REGEN_POLL = setInterval(async () => {
+    try {
+      const j = await api("/api/job?id=" + encodeURIComponent(job));
+      if (!j || j.status === "running") return;
+      clearInterval(REGEN_POLL);
+      REGEN_POLL = null;
+      if (j.status === "error") {
+        const err = j.error || "Regenerering feilet";
+        if (diffEl) diffEl.innerHTML = `<div class="err">${esc(err)}</div>`;
+        try { assistBubble("bot", esc(err)); } catch (_) {}
+        return;
+      }
+      const r = j.result || {};
+      PENDING_REGEN = { id, template, sectionKey, new_md: r.new_md, old_md: r.old_md };
+      const oldPreview = String(r.old_md || "");
+      const newPreview = String(r.new_md || "");
+      const card = `
+        <div class="diff-card">
+          <div class="label">FORHÅNDSVISNING — ${esc(sectionKey)} · godta før det lagres</div>
+          <del>${esc(oldPreview.slice(0, 1200))}${oldPreview.length > 1200 ? "…" : ""}</del>
+          <ins>${esc(newPreview.slice(0, 1200))}${newPreview.length > 1200 ? "…" : ""}</ins>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="btn" type="button" onclick="acceptRegen()">Godta</button>
+            <button class="btn ghost" type="button" onclick="rejectRegen()">Forkast</button>
+          </div>
+        </div>`;
+      if (diffEl) {
+        diffEl.innerHTML = card;
+        diffEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      try {
+        assistBubble("bot", `Forslag for <b>${esc(sectionKey)}</b> er klart over dokumentet. Godta eller forkast — ingenting er lagret ennå.`);
+      } catch (_) {}
+    } catch (_) { /* keep polling */ }
+  }, 800);
+}
+
+async function acceptRegen() {
+  if (!PENDING_REGEN) return;
+  const { id, template, sectionKey, new_md } = PENDING_REGEN;
+  try {
+    await api("/api/doc/accept-regen", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, template, section_key: sectionKey, new_md }),
+    });
+    PENDING_REGEN = null;
+    const diffEl = $("#diff-area");
+    if (diffEl) diffEl.innerHTML = "";
+    try { assistBubble("bot", `Godtok regenerert seksjon <b>${esc(sectionKey)}</b>.`); } catch (_) {}
+    await renderProject(id);
+  } catch (e) {
+    alert(e.message || String(e));
+  }
+}
+
+function rejectRegen() {
+  PENDING_REGEN = null;
+  const diffEl = $("#diff-area");
+  if (diffEl) diffEl.innerHTML = "";
+  try { assistBubble("bot", "Forkastet — dokumentet er uendret."); } catch (_) {}
+}
+
+function editSection(sectionKey) {
+  const wrap = document.getElementById("sec-" + sectionKey);
+  if (!wrap || !PROJECT?.id || !ACTIVE_DOC) return;
+  const cur = PROJECT?.doc?.sections?.[sectionKey]?.md || "";
+  wrap.innerHTML = `<textarea id="edit-${sectionKey}" rows="14" style="width:100%;font:13px/1.45 ui-monospace,monospace">${esc(cur)}</textarea>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" type="button" onclick="saveEdit('${sectionKey}')">Lagre</button>
+      <button class="btn ghost" type="button" onclick="loadDraft('${PROJECT.id}','${ACTIVE_DOC}')">Avbryt</button>
+    </div>`;
+}
+
+async function saveEdit(sectionKey) {
+  const md = document.getElementById("edit-" + sectionKey)?.value;
+  if (md == null || !PROJECT?.id || !ACTIVE_DOC) return;
+  try {
+    const r = await api("/api/doc/edit-section", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: PROJECT.id, template: ACTIVE_DOC, section_key: sectionKey, md }),
+    });
+    if (r.violations?.length)
+      alert("Advarsel: uverifiserte tall i spesifikasjonsseksjon: " + r.violations.join(", "));
+    await renderProject(PROJECT.id);
+  } catch (e) {
+    alert(e.message || String(e));
+  }
+}
+
+async function revertSection(sectionKey) {
+  if (!PROJECT?.id || !ACTIVE_DOC || !sectionKey) return;
+  if (!confirm("Tilbakestill denne seksjonen til forrige versjon?")) return;
+  try {
+    await api("/api/doc/revert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: PROJECT.id, template: ACTIVE_DOC, section_key: sectionKey }),
+    });
+    await renderProject(PROJECT.id);
+  } catch (e) {
+    alert(e.message || String(e));
+  }
+}
+
+/** Minimal MANGLER resolve — full popover UI was lost; keep chips working. */
+function openManglerMenu(key, section, severity, event) {
+  if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+  MANGler_CTX = { key, section, severity: severity || "blocking" };
+  const val = prompt(`Verdi for ${key}:`, "");
+  if (val === null || !String(val).trim()) return;
+  const unit = prompt("Enhet (valgfritt, f.eks. mnd):", "") || "";
+  resolveMangler(key, String(val).trim(), String(unit).trim() || undefined, "user");
+}
+
+function manglerPanel(_which) {
+  /* Popover panels not mounted; openBomMangler / locate still call this safely. */
+}
+
+async function resolveMangler(key, value, unit, _how) {
+  if (!PROJECT?.id || !ACTIVE_DOC || !key || value == null || !String(value).trim()) return;
+  try {
+    await api("/api/doc/resolve-mangler", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: PROJECT.id,
+        template: ACTIVE_DOC,
+        key,
+        value: String(value).trim(),
+        unit: unit || undefined,
+      }),
+    });
+    showToast?.("Mangel løst");
+    await renderProject(PROJECT.id);
+  } catch (e) {
+    alert(e.message || String(e));
+  }
 }
 
 function chatRenderActions(actions, tool) {
