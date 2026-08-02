@@ -172,6 +172,11 @@ def assemble_draft(state, template, artifact=None, full_index=None):
     for sk, sec in sections.items():
         if sk in seen:
             continue
+        if sk == "_corpus_offer":
+            md = (sec.get("md") or "").strip()
+            if md and "Fra mappen" not in body and "From the folder" not in body:
+                body += "\n" + md + "\n"
+            continue
         if sk == "connection_diagram" and sec.get("mirror_of"):
             continue  # already written into the mirrored template section
         has_diagram = bool(sec.get("svg")) or (sec.get("block_type") in (

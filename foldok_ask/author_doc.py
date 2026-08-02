@@ -97,43 +97,25 @@ BANNED_VOICE_RX = re.compile(
 )
 
 
+from foldok_budget import CiteScope, rank_key as _rank_key, section_budget as _section_budget
+
+
 @dataclass
-class CiteRegistry:
-    """Maps file_id → [n]. Tracks body uses so one file ≈ one narrative cite."""
-    _order: list[str] = field(default_factory=list)
-    _body_used: set[str] = field(default_factory=set)
-    _claim_texts: set[str] = field(default_factory=set)
+class CiteRegistry(CiteScope):
+    """Citation scope: per-section budget + document share (foldok_budget).
 
-    def number_for(self, file_id: str) -> int:
-        fid = (file_id or "").strip()
-        if not fid:
-            return 0
-        if fid not in self._order:
-            self._order.append(fid)
-        return self._order.index(fid) + 1
-
-    def mark(self, file_id: str, *, body: bool = True) -> str:
-        fid = (file_id or "").strip()
-        if not fid:
-            return ""
-        n = self.number_for(fid)
-        if body:
-            self._body_used.add(fid)
-        return f"[{n}]" if n else ""
-
-    def unused(self, file_id: str) -> bool:
-        return (file_id or "") not in self._body_used
-
-    def claim_fresh(self, text: str) -> bool:
-        key = re.sub(r"\s+", " ", (text or "").lower())[:90]
-        if not key or key in self._claim_texts:
-            return False
-        self._claim_texts.add(key)
-        return True
+    Drop-in for the old document-wide one-file-one-cite rule that discarded
+    ~95% of extracted claims. ``enter_section`` must be called once per
+    authored section.
+    """
 
     def appendix_lines(self, *, lang: str = "no") -> list[str]:
         if not self._order:
-            return ["Ingen siterte kilder." if (lang or "no").startswith("no") else "No cited sources."]
+            return [
+                "Ingen siterte kilder."
+                if (lang or "no").startswith("no") else
+                "No cited sources."
+            ]
         return [f"[{i}] {fid}" for i, fid in enumerate(self._order, 1)]
 
     @property
@@ -400,28 +382,54 @@ def _claims_satisfy(claims: list[Claim], need: set[str]) -> bool:
     return bool(need & have)
 
 
-def _pick_claims(claims: list[Claim], cites: CiteRegistry, *, n: int = 2,
-                 prefer: set[str] | None = None) -> list[Claim]:
-    """Prefer unused files, fresh claim text, and matching signals."""
+def _file_roles(index) -> dict[str, str]:
+    """file_id → project|reference|unknown|ignore (best-effort)."""
+    try:
+        from foldok_role import classify_index
+        report = classify_index(index or [])
+        out: dict[str, str] = {}
+        for row in getattr(report, "classifications", None) or []:
+            out[str(getattr(row, "file", "") or "")] = str(getattr(row, "role", "unknown") or "unknown")
+        return {k: v for k, v in out.items() if k}
+    except Exception:
+        return {}
+
+
+def _pick_claims(
+    claims: list[Claim],
+    cites: CiteRegistry,
+    *,
+    n: int = 2,
+    prefer: set[str] | None = None,
+    roles: dict[str, str] | None = None,
+) -> list[Claim]:
+    """Prefer project role, fresh claim text, matching signals — per-section scope."""
     prefer = prefer or set()
-    ranked = sorted(
-        claims,
-        key=lambda c: (
-            0 if cites.unused(c.file_id) else 1,
-            0 if (prefer & c.signals) else 1,
-            0 if c.kind in ("measure", "principle") else 1,
-            0 if "york" in c.text_no.lower() or "50174" in c.text_no else 1,
-        ),
-    )
+    roles = roles or {}
+    per_section = int(getattr(cites, "per_section", 1) or 1)
+
+    def _key(c: Claim):
+        return _rank_key(
+            c.file_id,
+            scope=cites,
+            role=roles.get(c.file_id, "unknown"),
+            signal_match=bool(prefer & c.signals),
+            kind=c.kind,
+        )
+
+    ranked = sorted(claims, key=_key)
     out: list[Claim] = []
-    files: set[str] = set()
+    local_uses: dict[str, int] = {}
     for c in ranked:
-        if c.file_id in files:
+        fid = c.file_id or ""
+        if local_uses.get(fid, 0) >= per_section:
+            continue
+        if hasattr(cites, "may_cite") and not cites.may_cite(fid):
             continue
         if not cites.claim_fresh(c.text_no):
             continue
         out.append(c)
-        files.add(c.file_id)
+        local_uses[fid] = local_uses.get(fid, 0) + 1
         if len(out) >= n:
             break
     return out
@@ -461,6 +469,10 @@ def _foldok_to_local(fc_claim, *, lang: str = "no") -> Claim:
     )
 
 
+def _claim_key(text: str) -> str:
+    return re.sub(r"\s+", " ", (text or "").lower())[:90]
+
+
 def _pick_foldok_claims(
     claimset,
     cites: CiteRegistry,
@@ -472,6 +484,7 @@ def _pick_foldok_claims(
     lang: str,
     n: int = 2,
     prefer: set[str] | None = None,
+    roles: dict[str, str] | None = None,
 ) -> list[Claim]:
     raw = claims_for_section(
         claimset,
@@ -479,20 +492,44 @@ def _pick_foldok_claims(
         heading=heading,
         retrieve_query=retrieve_query,
         used_ids=used_claim_ids,
-        limit=n + 2,
+        limit=max(n + 6, 8),
     )
-    out: list[Claim] = []
+    prefer = prefer or set()
+    roles = roles or {}
+    per_section = int(getattr(cites, "per_section", 1) or 1)
+    seen_texts = getattr(cites, "_claim_texts", set())
+
+    def _key(local: Claim):
+        return _rank_key(
+            local.file_id,
+            scope=cites,
+            role=roles.get(local.file_id, "unknown"),
+            signal_match=bool(prefer & local.signals),
+            kind=local.kind,
+        )
+
+    candidates: list[tuple[Claim, object]] = []
     for fc in raw:
         local = _foldok_to_local(fc, lang=lang)
-        if prefer and not (prefer & local.signals):
-            # still allow if type matched purpose via claims_for_section
-            pass
-        if not cites.claim_fresh(local.text_no):
+        key = _claim_key(local.text_no)
+        if not key or key in seen_texts:
             continue
-        if not cites.unused(local.file_id) and out:
+        candidates.append((local, fc))
+
+    candidates.sort(key=lambda pair: _key(pair[0]))
+    out: list[Claim] = []
+    local_uses: dict[str, int] = {}
+    for local, fc in candidates:
+        fid = local.file_id or ""
+        if local_uses.get(fid, 0) >= per_section:
+            continue
+        if hasattr(cites, "may_cite") and not cites.may_cite(fid):
+            continue
+        if not cites.claim_fresh(local.text_no):
             continue
         used_claim_ids.add(fc.id)
         out.append(local)
+        local_uses[fid] = local_uses.get(fid, 0) + 1
         if len(out) >= n:
             break
     return out
@@ -622,6 +659,79 @@ def bridge_opening(
     return ""
 
 
+def write_volume_section(
+    section: OutlineSection,
+    evidence: list[dict],
+    *,
+    cites: CiteRegistry,
+    lang: str = "no",
+    arc_beat: str = "evidence",
+    purpose: str = "",
+    previous_summary: str = "",
+    previous_beat: str = "",
+    next_purpose: str = "",
+) -> SectionDraft:
+    """Author a foldok_volume-proposed section from its carried evidence.
+
+    These sections exist because the fixed outline had nowhere to put the
+    material — write them from the evidence bundle, do not omit them.
+    """
+    no = (lang or "no").startswith("no")
+    purpose = purpose or section.purpose
+    lines: list[str] = []
+    bridge = bridge_opening(
+        prev_summary=previous_summary,
+        prev_beat=previous_beat,
+        next_beat=arc_beat,
+        next_purpose=next_purpose or purpose,
+        lang=lang,
+    )
+    if bridge:
+        lines.append(bridge)
+
+    used_src: set[str] = set()
+    for ev in evidence[:8]:
+        if not isinstance(ev, dict):
+            continue
+        quote = str(ev.get("quote") or "").strip()
+        src = str(ev.get("source") or "").strip()
+        if len(quote) < 8:
+            continue
+        mark = ""
+        if src and hasattr(cites, "may_cite") and cites.may_cite(src):
+            mark = " " + cites.mark(src, body=True)
+            used_src.add(src)
+        elif src:
+            mark = " " + cites.mark(src, body=False)
+        sentence = quote[0].upper() + quote[1:] if quote else quote
+        if not sentence.endswith((".", "!", "?")):
+            sentence += "."
+        lines.append(f"{sentence}{mark}")
+
+    if len(lines) <= (1 if bridge else 0):
+        gap = (
+            f"MANGLER: foreslått seksjon «{section.heading}» uten nok underlag."
+            if no else
+            f"MISSING: proposed section “{section.heading}” lacks enough grounding."
+        )
+        return SectionDraft(
+            heading=section.heading, purpose=purpose, kind=section.kind,
+            gap=gap, prose="", fidelity_ok=False,
+            author_intent="explain", arc_beat=arc_beat,
+        )
+
+    note = (
+        "\n\n*(Seksjon foreslått fra udekket materiale i mappen — slett hvis den ikke hører hjemme.)*"
+        if no else
+        "\n\n*(Section proposed from uncovered folder material — delete if it does not belong.)*"
+    )
+    return SectionDraft(
+        heading=section.heading, purpose=purpose, kind=section.kind,
+        prose="\n\n".join(lines) + note,
+        author_intent="explain", arc_beat=arc_beat, fidelity_ok=True,
+    )
+
+
 def write_teach(
     section: OutlineSection,
     index,
@@ -638,12 +748,17 @@ def write_teach(
     previous_beat: str = "",
     next_purpose: str = "",
     main_argument: str = "",
+    roles: dict[str, str] | None = None,
 ) -> SectionDraft:
     no = (lang or "no").startswith("no")
     purpose = purpose or section.purpose
     optional = getattr(section, "optional", True)
     need = _purpose_needs(purpose, section.heading, section.retrieve_query)
     used = used_claim_ids if used_claim_ids is not None else set()
+    roles = roles or {}
+
+    if hasattr(cites, "enter_section"):
+        cites.enter_section(getattr(section, "key", "") or section.heading or purpose)
 
     hits = retrieve(section.retrieve_query, index, k=10, min_score=0.26)
 
@@ -665,15 +780,39 @@ def write_teach(
         prefer = need or {"class", "zone", "shield"}
         if author_intent == "conclude":
             prefer = {"shield"}
+        pick_n = 1 if author_intent == "conclude" else 2
+        n_avail = len(claimset) if claimset is not None else 0
+        if author_intent != "conclude":
+            pick_n = _section_budget(max(n_avail, 1), floor=2, ceiling=8)
         picked = _pick_foldok_claims(
             claimset, cites,
             purpose=purpose, heading=section.heading,
             retrieve_query=section.retrieve_query,
-            used_claim_ids=used, lang=lang, n=2 if author_intent != "conclude" else 1,
-            prefer=prefer,
+            used_claim_ids=used, lang=lang, n=pick_n,
+            prefer=prefer, roles=roles,
         )
     else:
-        claims = extract_claims(hits, limit=10)
+        claim_limit = 10
+        try:
+            from foldok_volume import claim_budget
+            n_avail = sum(
+                len(e.get("facts") or []) + (1 if e.get("caption") else 0)
+                for e in (index or [])
+                if e.get("kind") != "skipped"
+            )
+            try:
+                from foldok_claims import claims_from_index
+                n_avail = max(n_avail, len(claims_from_index(index or [], min_confidence=0.35)))
+            except Exception:
+                pass
+            claim_limit = claim_budget(max(n_avail, 1), max(1, 6))
+        except Exception:
+            n_avail = 0
+        claims = extract_claims(hits, limit=claim_limit)
+        if author_intent == "conclude":
+            pick_n = 1
+        else:
+            pick_n = _section_budget(max(len(claims), 1), floor=2, ceiling=8)
         if need and not _claims_satisfy(claims, need):
             gap = _fidelity_gap(section.heading, need, no=no)
             return SectionDraft(
@@ -693,9 +832,12 @@ def write_teach(
                 fidelity_ok=False, author_intent=author_intent, arc_beat=arc_beat,
             )
         if author_intent == "conclude":
-            picked = _pick_claims(claims, cites, n=1, prefer=need or {"shield"})
+            picked = _pick_claims(claims, cites, n=1, prefer=need or {"shield"}, roles=roles)
         else:
-            picked = _pick_claims(claims, cites, n=2, prefer=need or {"class", "zone", "shield"})
+            picked = _pick_claims(
+                claims, cites, n=pick_n,
+                prefer=need or {"class", "zone", "shield"}, roles=roles,
+            )
 
     bridge = bridge_opening(
         prev_summary=previous_summary,
@@ -1140,6 +1282,7 @@ def author_document(
     leave_with = blueprint.reader_should_leave_with if blueprint else ""
     drafts: list[SectionDraft] = []
     work = list(narrative.sections if narrative is not None else (outline or []))
+    roles = _file_roles(index)
 
     claimset, coherence = corpus_claims(index)
     used_claim_ids: set[str] = set()
@@ -1176,6 +1319,8 @@ def author_document(
         next_purp = _next_purpose(i)
 
         if outline_sec.kind == "framing":
+            if hasattr(cites, "enter_section"):
+                cites.enter_section(getattr(outline_sec, "key", "") or "framing")
             d = write_framing(
                 outline_sec, index, narrative=narrative, artifact=artifact,
                 sketch=sketch, cites=cites, lang=lang,
@@ -1186,13 +1331,25 @@ def author_document(
                 prev_summary = section_summary(d.prose)
                 prev_beat = beat or "frame"
         elif outline_sec.kind == "teach":
-            d = write_teach(
-                outline_sec, index, cites=cites, lang=lang,
-                author_intent=intent, arc_beat=beat, thesis=thesis, purpose=purpose,
-                claimset=claimset, used_claim_ids=used_claim_ids,
-                previous_summary=prev_summary, previous_beat=prev_beat,
-                next_purpose=next_purp, main_argument=main_argument,
-            )
+            evidence = list(getattr(sec, "volume_evidence", None) or [])
+            if getattr(sec, "proposed", False) and evidence:
+                if hasattr(cites, "enter_section"):
+                    cites.enter_section(getattr(outline_sec, "key", "") or outline_sec.heading)
+                d = write_volume_section(
+                    outline_sec, evidence, cites=cites, lang=lang,
+                    arc_beat=beat, purpose=purpose,
+                    previous_summary=prev_summary, previous_beat=prev_beat,
+                    next_purpose=next_purp,
+                )
+            else:
+                d = write_teach(
+                    outline_sec, index, cites=cites, lang=lang,
+                    author_intent=intent, arc_beat=beat, thesis=thesis, purpose=purpose,
+                    claimset=claimset, used_claim_ids=used_claim_ids,
+                    previous_summary=prev_summary, previous_beat=prev_beat,
+                    next_purpose=next_purp, main_argument=main_argument,
+                    roles=roles,
+                )
             # Inject leave-with into conclusion
             if not d.omitted and intent == "conclude" and leave_with and d.prose:
                 if leave_with.rstrip(".") not in d.prose:
@@ -1231,6 +1388,7 @@ def author_document(
                 claimset=claimset, used_claim_ids=used_claim_ids,
                 previous_summary=prev_summary, previous_beat=prev_beat,
                 next_purpose=next_purp, main_argument=main_argument,
+                roles=roles,
             )
             if not d.omitted:
                 drafts.append(d)

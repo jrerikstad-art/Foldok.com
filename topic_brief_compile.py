@@ -13,13 +13,19 @@ _CACHE: dict[str, dict] = {}
 
 
 def _cache_key(index, artifact, lang) -> str:
+    from pathlib import Path as _P
+    ver = ""
+    try:
+        ver = (_P(__file__).resolve().parent / "VERSION").read_text(encoding="utf-8").strip()
+    except Exception:
+        pass
     files = sorted(
         str(e.get("file") or "")
         for e in (index or [])
         if e.get("kind") != "skipped"
     )[:80]
     art = artifact or {}
-    blob = "|".join(files) + "|" + str(art.get("name") or "") + "|" + (lang or "no")
+    blob = "|".join(files) + "|" + str(art.get("name") or "") + "|" + (lang or "no") + "|" + ver
     return hashlib.sha1(blob.encode("utf-8", errors="replace")).hexdigest()[:20]
 
 

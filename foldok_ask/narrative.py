@@ -109,6 +109,8 @@ class NarrativeSection:
     kind: SectionKind
     optional: bool = True
     arc_id: str = ""
+    proposed: bool = False  # foldok_volume — corpus-widened; safe to delete
+    volume_evidence: list[dict] = field(default_factory=list)
 
     def resolved_arc_id(self) -> str:
         return self.arc_id or _BEAT_TO_ARC_ID.get(self.arc_beat, self.arc_beat)
@@ -133,6 +135,8 @@ class NarrativeSection:
             "arc_id": self.resolved_arc_id(),
             "kind": self.kind,
             "optional": self.optional,
+            "proposed": self.proposed,
+            "volume_evidence": list(self.volume_evidence or []),
         }
 
     @classmethod
@@ -148,6 +152,8 @@ class NarrativeSection:
             kind=d.get("kind") or "teach",  # type: ignore[arg-type]
             optional=bool(d.get("optional", True)),
             arc_id=d.get("arc_id") or "",
+            proposed=bool(d.get("proposed")),
+            volume_evidence=list(d.get("volume_evidence") or []),
         )
 
 
@@ -227,6 +233,7 @@ class NarrativePlan:
     sections: list[NarrativeSection] = field(default_factory=list)
     sketch: CorpusSketch | None = None
     blueprint: NarrativeBlueprint | None = None
+    volume_note: str = ""  # foldok_volume coverage summary
 
     def to_outline(self) -> list[OutlineSection]:
         return [s.to_outline() for s in self.sections]
@@ -272,7 +279,7 @@ class NarrativePlan:
         return bp
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "title": self.title,
             "intent": self.intent.to_dict(),
             "thesis": self.thesis,
@@ -280,6 +287,9 @@ class NarrativePlan:
             "sections": [s.to_dict() for s in self.sections],
             "blueprint": self.as_blueprint().to_dict(),
         }
+        if self.volume_note:
+            d["volume_note"] = self.volume_note
+        return d
 
 
 def plan_narrative(
@@ -306,6 +316,70 @@ def plan_narrative(
         intent.reader_should_leave_with = _leave_with(intent, no)
 
     sections = _arc_sections(sketch, intent, user_questions, no)
+    volume_note = ""
+    try:
+        from foldok_volume import analyse, widen
+        claims = _claims_from_index(index)
+        # Critical: framing/meta retrieve_query dumps every theme (theme_q), which
+        # made _covered_by claim Innledning already covers "separation"/"cable"/…
+        # — so justified() was always empty and the document never grew.
+        outline = _outline_for_volume(sections)
+        report = analyse(claims, outline)
+        volume_note = report.summary(lang=lang)
+        existing = {s.heading.lower() for s in sections}
+        # Insert proposed sections before conclusion / open / appendix
+        insert_at = len(sections)
+        for i, s in enumerate(sections):
+            if s.arc_beat in ("conclusion", "close", "open", "appendix") or s.kind in ("gaps", "appendix"):
+                insert_at = i
+                break
+        extra: list[NarrativeSection] = []
+        for row in widen(outline, report):
+            if not row.get("proposed"):
+                continue
+            title = str(row.get("title") or row.get("key") or "").strip()
+            if not title or title.lower() in existing:
+                continue
+            existing.add(title.lower())
+            theme = str(row.get("query") or row.get("theme") or title)
+            # Drop filler themes the grammar filter still lets through ("punkt", "graders")
+            if len(theme) < 8 or theme.lower() in {
+                "punkt", "graders", "kabler", "skal", "utføres", "krever", "angitt",
+            }:
+                continue
+            evidence = list(row.get("evidence") or [])
+            if len(evidence) < 3:
+                continue
+            quotes = " ".join(
+                str(e.get("quote") or "")[:80] for e in evidence[:4] if isinstance(e, dict)
+            )
+            extra.append(NarrativeSection(
+                heading=title,
+                purpose=str(row.get("purpose") or f"Material in the folder about {theme}"),
+                role_in_argument=(
+                    "Udekket materiale i mappen — slett seksjonen hvis du ikke trenger den."
+                    if no else
+                    "Uncovered corpus material — delete the section if you do not need it."
+                ),
+                retrieve_query=f"{title} {theme} {quotes}"[:400],
+                author_intent="explain",
+                arc_beat="evidence",
+                kind="teach",
+                # Must be authored (not silently omitted). User deletes in the editor.
+                optional=False,
+                proposed=True,
+                volume_evidence=evidence,
+            ))
+        if extra:
+            sections[insert_at:insert_at] = extra
+            volume_note = (
+                f"{volume_note} · +{len(extra)} seksjon(er) lagt til"
+                if no else
+                f"{volume_note} · +{len(extra)} section(s) added"
+            )
+    except Exception:
+        pass
+
     for s in sections:
         if not s.arc_id:
             s.arc_id = _BEAT_TO_ARC_ID.get(s.arc_beat, s.arc_beat)
@@ -325,9 +399,90 @@ def plan_narrative(
         arc=arc_labels,
         sections=sections,
         sketch=sketch,
+        volume_note=volume_note,
     )
     plan.as_blueprint()
     return plan
+
+
+def _outline_for_volume(sections: list[NarrativeSection]) -> list[dict]:
+    """Outline terms for coverage analysis — without theme-stuffed framing queries.
+
+    Framing retrieve_query includes every sketch theme, so every corpus theme
+    looked "already covered" and widen() never added sections.
+    """
+    out: list[dict] = []
+    for s in sections:
+        meta = (
+            s.kind in ("framing", "gaps", "appendix")
+            or s.arc_beat in ("frame", "conclusion", "close", "open", "appendix")
+        )
+        if meta:
+            out.append({
+                "key": s.heading,
+                "title": s.heading,
+                "purpose": "",
+                "query": "",
+            })
+        else:
+            # Title + short purpose only — not the full retrieve_query theme dump
+            out.append({
+                "key": s.heading,
+                "title": s.heading,
+                "purpose": (s.purpose or "")[:160],
+                "query": s.heading,
+            })
+    return out
+
+
+def _claims_from_index(index) -> list[dict]:
+    """Claim-shaped rows for foldok_volume — prefer foldok_claims, else facts/captions."""
+    out: list[dict] = []
+    try:
+        from foldok_claims import claims_from_index
+        for c in claims_from_index(index or [], min_confidence=0.35):
+            text = (
+                getattr(c, "text", None)
+                or getattr(c, "text_no", None)
+                or (c.get("text") if isinstance(c, dict) else None)
+                or ""
+            )
+            src = (
+                getattr(c, "source", None)
+                or getattr(c, "file", None)
+                or getattr(c, "file_id", None)
+                or (c.get("source") if isinstance(c, dict) else None)
+                or "?"
+            )
+            text = str(text).strip()
+            if len(text) >= 8:
+                out.append({
+                    "text": text,
+                    "source": str(src),
+                    "type": str(getattr(c, "type", None) or getattr(c, "kind", None) or "claim"),
+                })
+    except Exception:
+        pass
+    if len(out) >= 12:
+        return out
+    for e in index or []:
+        src = str(e.get("file") or "?")
+        if e.get("kind") == "skipped" or not e.get("file"):
+            continue
+        for f in e.get("facts") or []:
+            if not isinstance(f, dict):
+                continue
+            text = f"{f.get('key') or ''}: {f.get('value') or ''}".strip(": ").strip()
+            if len(text) >= 8:
+                out.append({"text": text, "source": src, "type": "fact"})
+        cap = str(e.get("caption") or "").strip()
+        if len(cap) >= 12:
+            out.append({"text": cap, "source": src, "type": "caption"})
+        for t in e.get("content_tags") or []:
+            tag = str(t).strip()
+            if len(tag) >= 5:
+                out.append({"text": tag, "source": src, "type": "tag"})
+    return out
 
 
 def plan_blueprint(document_type: str = "topic_brief", index=None, **kwargs) -> NarrativeBlueprint:

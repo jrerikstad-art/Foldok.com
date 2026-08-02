@@ -25,6 +25,22 @@ _PURPOSE_TYPES: list[tuple[tuple[str, ...], tuple[str, ...]]] = [
      ("hypothesis", "risk")),
     (("standard", "referanse"),
      ("reference", "rule")),
+    (("valg", "beslut", "decision", "rationale", "begrunn"),
+     ("decision", "justification", "rule")),
+    (("problem", "funn", "finding", "korrosjon", "defect"),
+     ("problem", "risk", "exception")),
+    (("forutset", "condition", "gyldig", "validity"),
+     ("condition", "constraint", "rule")),
+    (("ansvar", "rolle", "responsibility", "leverandør"),
+     ("responsibility", "rule")),
+    (("endring", "revisjon", "change", "revision"),
+     ("change", "rule")),
+    (("unntak", "avvik", "exception", "deviation"),
+     ("exception", "constraint")),
+    (("rekkefølge", "sekvens", "sequence", "procedure", "fremdrift"),
+     ("sequence", "practice", "rule")),
+    (("konsekvens", "consequence", "impact"),
+     ("consequence", "quantity", "rule")),
 ]
 
 

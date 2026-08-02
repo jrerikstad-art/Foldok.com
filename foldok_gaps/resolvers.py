@@ -203,19 +203,39 @@ class PhotoCaptureResolver:
 
     def resolve(self, gap: Gap, document: Document, **kwargs: Any) -> Resolution:
         req = gap.requirement
+        lang = str(kwargs.get("lang") or "no")
+        instruction = req.capture_prompt or f"Photograph: {req.title}"
+        candidates: list[dict[str, Any]] = []
+        # foldok_role — offer photos already in the folder before "go take it"
+        index = kwargs.get("index")
+        if index is not None:
+            try:
+                from foldok_role import offers_for
+                offers = offers_for([gap], index)
+                if offers:
+                    offer = offers[0]
+                    candidates = [c.to_dict() for c in offer.candidates]
+                    if offer.has_candidates:
+                        instruction = offer.message(lang=lang)
+            except Exception:
+                pass
         art = Artifact(
             id=_artifact_id(gap),
             kind="photo",
             title=gap.title,
-            instruction=req.capture_prompt or f"Photograph: {req.title}",
+            instruction=instruction,
             pending_fields=("path",),
             produced_by=self.id,
             provenance=Provenance(source="engine", note="capture task"),
+            data={"photo_candidates": candidates} if candidates else {},
         )
         _attach(document, gap, art)
+        follow = ("take the photo on site",)
+        if candidates:
+            follow = ("confirm which folder photo matches, or take a new one",)
         return Resolution(
             gap.id, self.id, "in_progress", art.instruction, artifact=art,
-            follow_up=("take the photo on site",),
+            follow_up=follow,
         )
 
 

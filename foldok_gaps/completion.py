@@ -64,10 +64,13 @@ class CompletionSession:
         pack: RequirementPack,
         registry: ResolverRegistry | None = None,
         mode: Mode | str | None = None,
+        *,
+        index: list | None = None,
     ) -> None:
         self.document = document
         self.pack = pack
         self.registry = registry or default_registry()
+        self.index = index  # project index — used by foldok_role photo offers
         if mode is not None:
             self.set_mode(mode)
         self.document.pack_id = pack.id
@@ -112,10 +115,46 @@ class CompletionSession:
         return policy_mod.gate(self.document, self.pack, self.mode, self.gaps())
 
     # -- offers ---------------------------------------------------------
+    def photo_offers(self, index: list | None = None) -> list[Any]:
+        """Photos already in the folder, ranked against open photo gaps.
+
+        Nothing is bound automatically — Foldok ranks; a person confirms.
+        """
+        idx = index if index is not None else self.index
+        if idx is None:
+            return []
+        try:
+            from foldok_role import offers_for
+            return offers_for(self.gaps().open(), idx)
+        except Exception:
+            return []
+
     def options(self, gap_id: str) -> list[Offer]:
         gap = self.gap(gap_id)
         offers: list[Offer] = []
+        # Prefer confirming an existing photo before "go take it"
+        if gap.requirement.kind == "photo" and self.index is not None:
+            try:
+                from foldok_role import offers_for
+                role_offers = offers_for([gap], self.index)
+                if role_offers and role_offers[0].has_candidates:
+                    n = len(role_offers[0].candidates)
+                    offers.append(
+                        Offer(
+                            resolver_id="photo_capture",
+                            label=f"Confirm folder photo ({n} candidate(s))",
+                            generates_content=False,
+                            produces="photo",
+                            caution="Nothing is bound automatically — you confirm which file.",
+                        )
+                    )
+            except Exception:
+                pass
         for r in self.registry.for_requirement(gap.requirement):
+            if any(o.resolver_id == r.id and "candidate" in (o.label or "").lower() for o in offers):
+                # already surfaced the confirm-folder path for photo_capture
+                if r.id == "photo_capture":
+                    continue
             caution = ""
             if r.generates_content:
                 caution = "Foldok writes a draft; it does not count until you confirm it."
@@ -155,7 +194,10 @@ class CompletionSession:
         if resolver.id == "defer" and not self.mode.allow_defer:
             raise ResolverRefused(f"items cannot be parked in {self.mode.title.lower()} mode")
 
-        resolution = resolver.resolve(gap, self.document, **kwargs)
+        resolve_kw = dict(kwargs)
+        if self.index is not None and "index" not in resolve_kw:
+            resolve_kw["index"] = self.index
+        resolution = resolver.resolve(gap, self.document, **resolve_kw)
         self.history.append(resolution)
         self.invalidate()
         return resolution

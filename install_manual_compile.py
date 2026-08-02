@@ -1096,10 +1096,13 @@ def extract_install_claims(
                 val = str(row.get("value") or "").strip()
                 if len(val) < 40:
                     continue
-                pid = "page:" + re.sub(
-                    r"[^a-zA-Z0-9]+", "_",
-                    f"{Path(fn).stem}_{row.get('source_location')}_{val[:40]}",
-                )[:72]
+                # Long OEM stems used to truncate every page id to the same
+                # 72-char prefix — keep stem short + page + content digest.
+                stem = Path(fn).stem
+                short = stem[-24:] if len(stem) > 24 else stem
+                loc = re.sub(r"\s+", "", str(row.get("source_location") or ""))
+                digest = abs(hash(val.lower()[:120])) % (10**10)
+                pid = f"page:{short}_{loc}_{digest}"
                 if pid in seen:
                     continue
                 seen.add(pid)
@@ -1231,7 +1234,13 @@ def compile_sequence_from_plan(plan: dict, *, lang: str = "no") -> str:
         ) + "*",
         "",
     ]
-    for i, c in enumerate(use[:18], 1):
+    step_cap = 18
+    try:
+        from foldok_volume import claim_budget
+        step_cap = min(36, max(18, claim_budget(len(use), 1)))
+    except Exception:
+        pass
+    for i, c in enumerate(use[:step_cap], 1):
         key = str(c.get("key") or "").replace("_", " ")
         val = _claim_value(c)
         cite = _cite_claim(c)
@@ -1344,6 +1353,210 @@ def compile_appendix_from_plan(plan: dict, *, lang: str = "no") -> str:
     return "\n".join(lines)
 
 
+def _volume_claims_from_install(claims: list[dict]) -> list[dict]:
+    """Install claim rows → foldok_volume {text, source} shape.
+
+    When the install is focused on one OEM PDF, page locations become the
+    source grain so themes can still meet MIN_SOURCES across pages.
+    """
+    out: list[dict] = []
+    files = {str(c.get("_file") or "") for c in (claims or []) if c.get("_file")}
+    single = len(files) <= 1
+    for c in claims or []:
+        text = _claim_value(c)
+        if len(text) < 12 or text == "—":
+            continue
+        fn = str(c.get("_file") or c.get("id") or "?")
+        src = fn
+        if single:
+            loc = str(c.get("source_location") or c.get("_page_cite") or "")
+            m = re.search(r"page\s*(\d+)", loc, re.I) or re.search(r"\bp(?:age)?[=:\s]*(\d+)", loc, re.I)
+            if m:
+                src = f"{Path(fn).name}#p{m.group(1)}"
+            elif c.get("_kind") == "page":
+                src = f"{Path(fn).name}#span-{str(c.get('id') or '')[-8:]}"
+            else:
+                src = f"{Path(fn).name}#{str(c.get('id') or '')[:24]}"
+        out.append({
+            "text": text,
+            "source": src,
+            "type": str(c.get("_kind") or "fact"),
+        })
+    return out
+
+
+def _install_outline_for_volume(*, lang: str = "no") -> list[dict]:
+    """Fixed install sections as narrow outline terms (bilingual queries).
+
+    Coverage matching is English-token heavy on OEM PDFs; Norwegian titles
+    alone left themes like ``safety`` unmarked and falsely \"proposed\".
+    """
+    no = lang != "en"
+    rows = [
+        ("identification", "Identifikasjon" if no else "Identification",
+         "identification identity type designation article"),
+        ("system_overview", "Systemoversikt" if no else "System Overview",
+         "system overview product description scope"),
+        ("prerequisites", "Forutsetninger" if no else "Prerequisites",
+         "prerequisites tools materials parts required before"),
+        ("safety", "Sikkerhet" if no else "Safety",
+         "safety sikkerhet hazard warning danger protective"),
+        ("sequence", "Installasjonssekvens" if no else "Installation Sequence",
+         "installation sequence mounting install steps procedure"),
+        ("verification", "Kontroll" if no else "Verification",
+         "verification kontroll check test inspect commissioning"),
+        ("supplier", "Leverandør" if no else "Supplier",
+         "supplier manufacturer leverandør contact address"),
+    ]
+    return [
+        {"key": key, "title": title, "purpose": "", "query": query}
+        for key, title, query in rows
+    ]
+
+
+def compile_install_volume_md(
+    index: list[dict],
+    artifact: dict | None = None,
+    *,
+    mapped_files: Iterable[str] | None = None,
+    lang: str = "no",
+    limit: int = 8,
+) -> str:
+    """Uncovered corpus themes as extra install subsections (delete-friendly).
+
+    Installation manuals use a fixed template; foldok_volume expands *content*
+    by appending justified topics the fixed buckets did not absorb.
+    """
+    try:
+        from foldok_volume import analyse, widen
+    except Exception:
+        return ""
+
+    art = artifact if isinstance(artifact, dict) else {}
+    cached = art.get("_install_volume_md")
+    if isinstance(cached, str):
+        return cached
+
+    plan = get_install_claim_plan(index, art, mapped_files=mapped_files)
+    # Plan stores claims under ``claims`` / ``buckets`` — not flat top-level keys.
+    all_claims: list[dict] = list(plan.get("claims") or [])
+    if not all_claims:
+        buckets = plan.get("buckets") or {}
+        for key in ("identity", "overview", "prerequisites", "safety", "checks",
+                    "sequence", "supplier_only", "appendix"):
+            all_claims.extend(buckets.get(key) or [])
+        all_claims.extend(plan.get("sequence_steps") or [])
+        all_claims.extend(plan.get("appendix") or [])
+    seen: set[str] = set()
+    unique: list[dict] = []
+    for c in all_claims:
+        cid = str(c.get("id") or "")
+        if cid and cid in seen:
+            continue
+        if cid:
+            seen.add(cid)
+        unique.append(c)
+
+    volume_claims = _volume_claims_from_install(unique)
+    if len(volume_claims) < 8:
+        volume_claims = _volume_claims_from_install(
+            extract_install_claims(index, art, mapped_files=mapped_files)
+        )
+    if len(volume_claims) < 4:
+        art["_install_volume_md"] = ""
+        return ""
+
+    n_files = len({
+        str(c.get("source") or "").split("#")[0]
+        for c in volume_claims
+    })
+    # One focused OEM PDF: page-grains count as sources; lower bar slightly
+    min_sources = 1 if n_files <= 1 else 2
+    min_evidence = 2 if n_files <= 1 else 3
+
+    outline = _install_outline_for_volume(lang=lang)
+    outline_keys = {str(s.get("key") or "").lower() for s in outline}
+    report = analyse(
+        volume_claims, outline,
+        min_evidence=min_evidence, min_sources=min_sources, limit=limit,
+    )
+    no = lang != "en"
+    note = report.summary(lang=lang)
+    # analyse() already applied min_* when building ``proposed``; do not
+    # re-filter with ProposedSection.justified (hardcoded MIN_* defaults).
+    proposed = list(report.proposed or [])
+    if not proposed:
+        art["_install_volume_note"] = note
+        art["_install_volume_md"] = ""
+        return ""
+
+    lines = [
+        "",
+        "## " + ("Ytterligere emner fra kildene" if no else "Additional topics from sources"),
+        "",
+        "*" + (
+            f"{note}. Seksjonene under er foreslått fra materiale den faste "
+            "disposisjonen ikke tok opp — slett det som ikke hører hjemme i "
+            "installasjonsmanualen."
+            if no else
+            f"{note}. Sections below are proposed from material the fixed "
+            "outline did not absorb — delete what does not belong in the "
+            "installation manual."
+        ) + "*",
+        "",
+    ]
+    filler = {
+        "punkt", "graders", "kabler", "skal", "utføres", "krever", "angitt",
+        "value", "page", "guidance", "detail", "detaila", "detailb",
+        "should", "always", "connect", "cross", "using", "both", "sides",
+        "volts", "above", "below", "these", "those", "which", "where",
+        "functional", "large", "possible", "suitable", "specified",
+        "directly", "mounted", "applied",
+    }
+    added = 0
+    for row in widen(outline, report):
+        if not row.get("proposed"):
+            continue
+        theme = str(row.get("query") or row.get("theme") or "").strip()
+        title = str(row.get("title") or theme).strip()
+        theme_l = theme.lower()
+        # Skip filler and themes that duplicate fixed outline keys
+        if theme_l in filler or theme_l in outline_keys:
+            continue
+        if len(theme) < 5:
+            continue
+        evidence = list(row.get("evidence") or [])
+        if len(evidence) < min_evidence:
+            continue
+        lines.append(f"### {title}")
+        lines.append("")
+        for ev in evidence[:6]:
+            if not isinstance(ev, dict):
+                continue
+            quote = str(ev.get("quote") or "").strip()
+            src = str(ev.get("source") or "").strip()
+            if len(quote) < 12:
+                continue
+            cite = f" ({src})" if src else ""
+            if not quote.endswith((".", "!", "?")):
+                quote += "."
+            lines.append(f"- {quote}{cite}")
+        lines.append("")
+        added += 1
+        if added >= limit:
+            break
+
+    if added == 0:
+        art["_install_volume_note"] = note
+        art["_install_volume_md"] = ""
+        return ""
+
+    md = "\n".join(lines).rstrip() + "\n"
+    art["_install_volume_note"] = f"{note} · +{added}"
+    art["_install_volume_md"] = md
+    return md
+
+
 def compile_install_section_from_plan(
     section_key: str,
     index: list[dict],
@@ -1378,6 +1591,13 @@ def compile_install_section_from_plan(
         app = compile_appendix_from_plan(plan, lang=lang)
         if app:
             text = text.rstrip() + "\n" + app
+        # Corpus volume expansion — only once, on the sequence section
+        if sk == "sequence":
+            vol = compile_install_volume_md(
+                index, artifact, mapped_files=mapped_files, lang=lang,
+            )
+            if vol:
+                text = text.rstrip() + "\n" + vol
     return text
 
 

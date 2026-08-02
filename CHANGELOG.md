@@ -7,6 +7,89 @@ Versioning rules (semver, honestly applied):
   Templates carry their own `version` field (already in schema).
   The zip filename always carries the version: foldok-engine-vX.Y.Z.zip.
 
+## 0.111.0 — Engine package stack + cleanup release
+- Ships foldok_role / select / volume / budget / corpus as first-class packages
+- Corpus «Fra mappen» on every generate (including form_fill)
+- Citation scope (foldok_budget) required — removed dead one-cite-per-file fallback
+- Removed superseded install-only corpus compiler (shared ``integrate`` owns it)
+- Release script: strip all ``_import_*`` scratch; privacy-grep new packages
+- Docs: README package table; VERSION sync
+
+## 0.110.2 — Corpus appendix on every document type
+- ``foldok_corpus`` no longer topic-brief-only: ``run_generate`` *and*
+  ``run_form_fill`` inject «Fra mappen» after assemble for all templates
+- Shared ``foldok_corpus.integrate`` (PDF + caption extract, offer, inject)
+- Removed duplicate install/topic-brief-only corpus section writers
+- Harden empty/corrupt index cache JSON (no more KeyError on ``caption``)
+
+## 0.110.1 — Corpus reaches installation manuals
+- ``foldok_corpus`` was only wired into topic briefs; install regenerates
+  saw no change. Focus OEM PDFs are now wide-extracted (full page text) and
+  append «Fra mappen» sections (begrunnelse, konsekvenser, …)
+- Clears ``_install_corpus_md`` cache on overview rebuild
+
+## 0.110.0 — foldok_corpus (folder proposes, user disposes)
+- Ten non-factual claim types (decision, problem, condition, open_question, …)
+  so sections are not all built from "what is true?"
+- ``build_offer`` / section market: folder supports N sections before any
+  document type is named; user deletes what they do not want
+- Narrative order held by band (frame → basis → body → evidence → exception → close)
+- Wired into ``plan_narrative`` (+ purpose→type map in ``claims_bridge``)
+
+## 0.109.0 — foldok_budget (citation scope + pipeline health)
+- Document-wide one-cite-per-file discarded ~95% of claims; ``CiteScope``
+  allows up to 3 cites/file per section with a 45% document-share ceiling
+- ``rank_key`` puts project role before keywords (vendor asides stay fallback)
+- ``section_budget`` scales claims per section with retrieval yield
+- ``check_pipeline`` diagnoses thin/broken stages; surfaces in topic-brief gaps
+- Wired into ``foldok_ask.author_doc`` / ``compose_brief``
+
+## 0.108.3 — Install volume actually expands (single-PDF focus)
+- Page-guidance claim ids truncated on long OEM stems — only 1 of 16 pages
+  survived; ids now use short stem + page + content digest
+- Volume read claims from flat plan keys that never existed; uses ``plan.claims``
+- Single-PDF focus: page-grain sources + lowered min_sources/min_evidence
+- Outline coverage terms are bilingual so ``safety`` is not re-proposed
+- ``foldok_volume`` justified()/theme vocabulary honour caller thresholds;
+  modal/filler themes (should, always, …) filtered
+
+## 0.108.2 — Volume expands installation manuals too
+- Active install manuals never hit ``plan_narrative``; volume now appends
+  «Ytterligere emner fra kildene» on the sequence section from uncovered claims
+- Topic-brief compose cache keys include VERSION so regenerates pick up fixes
+- Sequence step cap scales with claim budget
+
+## 0.108.1 — Volume actually expands the document
+- Framing ``retrieve_query`` dumped every theme, so coverage thought everything
+  was already covered and ``widen()`` added nothing — fixed via narrow outline
+  terms for analysis
+- Proposed sections are authored from carried evidence (not omitted as optional)
+- Volume note surfaces in Åpne punkter; claim pick scales with corpus size
+
+## 0.108.0 — foldok_volume (corpus decides document length)
+- Fixed outlines no longer cap the document at ~40 claims
+- Uncovered themes become marked optional sections (delete = one click)
+- Claim budget per section scales with corpus size
+- Wired into ``plan_narrative`` + ``extract_claims``
+
+## 0.107.0 — foldok_select (curation then selection)
+- ``build_context``: admissible corpus; sales material excluded (role=ignore)
+- Section illustration menus are bounded choices — model never asked if an
+  image exists
+- ``ensure_min_figures`` filters/ranks via select context
+
+## 0.106.1 — foldok_role ignore tier
+- Sales brochures / price lists get role ``ignore`` (weight 0) — not weak
+  reference; they do not vote on the subject
+
+## 0.106.0 — foldok_role (project vs reference + photo offers)
+- Classify index entries as project / reference / unknown; theme votes are
+  role-weighted so vendor brochures inform but do not decide the subject
+- Document title from artifact → project → folder (never file sort order)
+- Photo gaps offer existing folder photos for confirmation before capture
+- Wired: `foldok_ask.plan.corpus_sketch`, `PhotoCaptureResolver`,
+  `CompletionSession.photo_offers` / capture publish
+
 ## 0.105.1 — Free PDF download on Export (dev)
 - Export PDF is a real PDF (PyMuPDF Story), not a renamed `.md`
 - Clicking **Eksporter** always returns `download_base64` → browser download

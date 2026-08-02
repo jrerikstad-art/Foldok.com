@@ -105,10 +105,17 @@ def document_from_project(project: dict[str, Any], state: dict[str, Any]) -> Doc
     return doc
 
 
-def session_for_project(project: dict[str, Any], state: dict[str, Any]) -> CompletionSession:
+def session_for_project(
+    project: dict[str, Any],
+    state: dict[str, Any],
+    *,
+    index: list | None = None,
+) -> CompletionSession:
     pack = pack_for_state(state)
     doc = document_from_project(project, state)
-    session = CompletionSession(doc, pack, default_registry(), mode=doc.mode)
+    session = CompletionSession(
+        doc, pack, default_registry(), mode=doc.mode, index=index,
+    )
     state.setdefault("completion", {})
     state["completion"]["pack_id"] = pack.id
     state["completion"]["document"] = doc.to_dict()
@@ -160,7 +167,8 @@ def capture_bind(folder: str | Path, project: dict[str, Any], state: dict[str, A
 
 
 def capture_publish(folder: str | Path, project: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
-    session = session_for_project(project, state)
+    index = _load_index_soft(project, state)
+    session = session_for_project(project, state, index=index)
     tasks = tasks_from_gaps(session.gaps())
     path = publish(
         folder,
@@ -170,14 +178,58 @@ def capture_publish(folder: str | Path, project: dict[str, Any], state: dict[str
         document_id=session.document.id,
     )
     persist_session(state, session)
+    photo_offers = []
+    photo_summary = ""
+    try:
+        offers = session.photo_offers(index)
+        photo_offers = [o.to_dict() for o in offers]
+        if offers:
+            from foldok_role import summary as role_summary
+            photo_summary = role_summary(offers, lang=str(state.get("lang") or "no"))
+    except Exception:
+        pass
     return {
         "ok": True,
         "tasks_path": str(path),
         "task_count": len(tasks),
         "open_tasks": len([t for t in tasks if not t.done]),
         "gap_ids": [t.gap_id for t in tasks if not t.done],
+        "photo_offers": photo_offers,
+        "photo_offer_summary": photo_summary,
         "status": capture_status(folder),
     }
+
+
+def _load_index_soft(project: dict[str, Any], state: dict[str, Any]) -> list | None:
+    """Best-effort project index for photo candidate ranking."""
+    folders = project.get("folders") or []
+    if not folders:
+        return None
+    try:
+        # Prefer importing as sibling of this module when server is already loaded
+        from server import load_index  # type: ignore
+    except Exception:
+        try:
+            import sys
+            from pathlib import Path as _P
+            la = str(_P(__file__).resolve().parent)
+            eng = str(_P(__file__).resolve().parents[1])
+            for p in (la, eng):
+                if p not in sys.path:
+                    sys.path.insert(0, p)
+            from server import load_index  # type: ignore
+        except Exception:
+            return None
+    try:
+        return load_index(
+            folders,
+            state.get("lang") or "no",
+            user_facts=state.get("user_facts"),
+            project_name=project.get("name"),
+            cache_only=True,
+        )
+    except Exception:
+        return None
 
 
 def capture_ingest(

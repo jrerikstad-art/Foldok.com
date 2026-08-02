@@ -18,10 +18,14 @@ if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
 New-Item -ItemType Directory -Path $staging | Out-Null
 
 robocopy $root $staging /E `
-  /XD releases __pycache__ .git .pytest_cache .tmp_* temp-foldok-* _import_foldok12 _import_foldok13 _import_foldok14 _import_foldok_author86 `
+  /XD releases __pycache__ .git .pytest_cache .tmp_* temp-foldok-* `
   /XF *.pyc *.zip .env local_app\projects.json local_app\projects.json.bak formlayout-*.json RENAME_FOLDOK.md _tmp_svg.pdf *.apk `
   /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit $LASTEXITCODE" }
+
+# Never ship import scratch trees
+Get-ChildItem $staging -Directory -Filter "_import_*" -ErrorAction SilentlyContinue |
+  Remove-Item -Recurse -Force
 
 # Belt-and-suspenders: never ship formlayout / formimport contamination
 Get-ChildItem $staging -Recurse -File -Filter "formlayout-*.json" -ErrorAction SilentlyContinue |
@@ -61,7 +65,12 @@ $grepRoots = @(
   (Join-Path $staging "foldok_getapp"),
   (Join-Path $staging "foldok_learn"),
   (Join-Path $staging "foldok_console"),
-  (Join-Path $staging "foldok_shred")
+  (Join-Path $staging "foldok_shred"),
+  (Join-Path $staging "foldok_role"),
+  (Join-Path $staging "foldok_select"),
+  (Join-Path $staging "foldok_volume"),
+  (Join-Path $staging "foldok_budget"),
+  (Join-Path $staging "foldok_corpus")
 )
 $grepFiles = @()
 foreach ($dir in $grepRoots) {

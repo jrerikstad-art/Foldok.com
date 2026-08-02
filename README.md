@@ -7,8 +7,7 @@ Folder-compiler: sources in → manuals, forms, diagrams, and evidence packages 
 **Vision:** `PRODUCT_VISION.md` · **Direction:** `PRODUCT_DIRECTION.md`  
 **Claim boundary:** `COMPLIANCE_POLICY.md` — structural profiles only; no legal compliance stamps.
 
-**Latest release zip:** `releases/foldok-engine-v0.72.0.zip` (build locally via `make_release.ps1`)  
-Build: `.\scripts\make_release.ps1`  
+**Latest release:** see GitHub Releases (`v` + `VERSION`) · build zip: `.\scripts\make_release.ps1`  
 **Surface PRDs:** `docs/prd/README.md`  
 **Marketing deploy:** [Vercel import](https://vercel.com/new/import?s=https://github.com/jrerikstad-art/Foldok.com) · see `DEPLOY.md`
 
@@ -35,7 +34,21 @@ Static landing in `public/` — deploy to **Vercel** from GitHub (see `DEPLOY.md
 | Materials knowledge (steel + GFRP template) | **Shipped** — see `MATERIALS_SPEC.md` |
 | Diagram symbols (piping / mechanical) | **Shipped** — 20 symbols + shared graph schema |
 | Artifact / Form / Document engines | **Shipped** |
+| Corpus engines (role → select → volume → budget → corpus) | **Shipped** — see table below |
 | Production SaaS (Next.js + Stripe) | **Not started** |
+
+### Corpus / author packages (0.106–0.111)
+
+| Package | Role |
+|---|---|
+| `foldok_role` | Project vs reference vs ignore; photo offers |
+| `foldok_select` | Curate admissible figures; exclude sales shots |
+| `foldok_volume` | Uncovered themes widen fixed outlines |
+| `foldok_budget` | Per-section citation scope + pipeline health |
+| `foldok_corpus` | Non-factual claim types + «Fra mappen» on every doc |
+
+Generate always ends with corpus appendix injection (`foldok_corpus.integrate`) so
+document type is not a ceiling on what the folder can contribute.
 
 ---
 

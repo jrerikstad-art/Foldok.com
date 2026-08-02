@@ -766,8 +766,13 @@ def load_index(folders, lang, user_facts=None, project_name=None, *, cache_only=
                 continue
             try:
                 entry = fc.read_json_file(cache)
+                if not isinstance(entry, dict) or not entry:
+                    continue
                 entry["cached"] = True
                 entry.setdefault("file", rel)
+                entry.setdefault("caption", "")
+                entry.setdefault("facts", [])
+                entry.setdefault("kind", "document")
                 index.append(entry)
             except Exception:
                 continue
@@ -1772,6 +1777,34 @@ def run_artifact(job_id, folders, lang):
     job_update(job_id, done=1)
 
 
+def _apply_corpus_appendix(content, state, index, artifact, lang="no"):
+    """Append foldok_corpus «Fra mappen» to any assembled draft."""
+    try:
+        from foldok_corpus import (
+            compile_document_corpus_md,
+            headings_in,
+            inject_corpus_appendix,
+        )
+        art = artifact if isinstance(artifact, dict) else {}
+        art.pop("_document_corpus_md", None)
+        art.pop("_document_corpus_note", None)
+        corpus_md = compile_document_corpus_md(
+            index, art, lang=lang,
+            exclude_titles=headings_in(content or ""),
+        )
+        if not corpus_md:
+            state.pop("corpus_offer_note", None)
+            return content or ""
+        out = inject_corpus_appendix(content or "", corpus_md)
+        state["corpus_offer_note"] = art.get("_document_corpus_note") or ""
+        sec = (state.get("doc") or {}).setdefault("sections", {})
+        sec["_corpus_offer"] = {"md": corpus_md, "files": []}
+        return out
+    except Exception as e:
+        print(f"[foldok_corpus] skipped: {e}", flush=True)
+        return content or ""
+
+
 def run_form_fill(job_id, folders, template_file, lang):
     """WORKORDER_0.29 — form_fill: prefill from index, zero model calls."""
     import form_model as fm
@@ -1783,11 +1816,14 @@ def run_form_fill(job_id, folders, template_file, lang):
         raise RuntimeError(f"Ikke et form_fill-skjema: {template_file}")
     index = load_index(folders, lang, state.get("user_facts"),
                        project_name=Path(folder).name)
+    artifact = dict(state.get("artifact") or {})
+    artifact["_folders"] = list(folders or [])
     job_update(job_id, step="Forhåndsutfyller skjema", total=1, detail="0 tokens")
     tl.create_document_shell(state, template_file, template)
     pref = fm.prefill_form(state, template, index)
-    state["gaps"] = ds.gaps_for_document(state, template, index, state.get("artifact") or {}, fc)
-    content = ds.assemble_draft(state, template, state.get("artifact"))
+    state["gaps"] = ds.gaps_for_document(state, template, index, artifact, fc)
+    content = ds.assemble_draft(state, template, artifact)
+    content = _apply_corpus_appendix(content, state, index, artifact, lang=lang)
     export_path, export_name = sync_draft_files(folder, state, template, template_file, content)
     blocking = sum(1 for g in state["gaps"] if g.get("severity") == "blocking")
     stem = template_stem(template_file)
@@ -2009,6 +2045,7 @@ def run_generate(job_id, folders, template_file, lang):
     ensure_figures_in_doc(state, folders, template)
     state["gaps"] = ds.gaps_for_document(state, template, index, artifact, fc)
     content = ds.assemble_draft(state, template, artifact)
+    content = _apply_corpus_appendix(content, state, index, artifact, lang=lang)
     content = materialize_export_figures(folder, content)
     export_path, export_name = sync_draft_files(folder, state, template, template_file, content)
 

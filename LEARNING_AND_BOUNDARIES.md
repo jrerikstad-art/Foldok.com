@@ -39,7 +39,9 @@ ENGINE (deterministic code, owns all state):
   the index & facts store · templates-as-data · gap detection ·
   aggregation/arithmetic (BOM, totals) · citation validation &
   redaction · code-compiled tables/registers · versioning · rendering
-  & export · the ledger · suggestion rules · capabilities manifest.
+  & export · the ledger · suggestion rules · capabilities manifest ·
+  corpus packages (role, select, volume, budget, corpus market) —
+  including «Fra mappen» appendix injection on every generate.
 
 AI (stateless calls at the edges, no memory between calls):
   extraction (file → facts) · artifact modeling · mapping proposals ·

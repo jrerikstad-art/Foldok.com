@@ -379,9 +379,18 @@ def read_json_file(path: Path):
     """Read a JSON file as UTF-8, falling back to cp1252 for cache files
     written by older versions on Windows (write_text without encoding)."""
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        raw = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
-        return json.loads(path.read_text(encoding="cp1252"))
+        raw = path.read_text(encoding="cp1252")
+    except OSError:
+        return {}
+    raw = (raw or "").strip()
+    if not raw:
+        return {}
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
 
 
 def index_file(path: Path, lang: str, cache_dir: Path, rel_name: str = None):
@@ -821,7 +830,7 @@ All required_facts severity must be "warning"."""
 
 # ── 2. CHECKPOINT A — artifact model ─────────────────────────────────
 def build_artifact_model(index, lang):
-    captions = "\n".join(f"[{e['file']}] {e['caption']}" for e in index)
+    captions = "\n".join(f"[{e.get('file') or '?'}] {e.get('caption') or ''}" for e in index)
     facts = "\n".join(f"({f['id']}) {f['key']}={f['value']}{f.get('unit') or ''}"
                       for e in index for f in e.get("facts", []))
     return ask_json("artifact_model", SONNET, [{"role": "user", "content": f"""From these indexed project files, form a model of what physical artifact this project is about. Reply ONLY JSON:
@@ -963,7 +972,7 @@ def map_sections(template, index, artifact):
                   + ", ".join(h["file"] for h in held_back))
 
     caps = "\n".join(
-        f"[{e['file']}] roles={e.get('doc_role_hints', [])} :: {e['caption']}"
+        f"[{e['file']}] roles={e.get('doc_role_hints', [])} :: {e.get('caption') or ''}"
         for e in safe_index
     )
     secs = [{"section_key": s["section_key"], "title": s.get("title_no") or s.get("title"),
@@ -2826,6 +2835,28 @@ def ensure_min_figures(text, mapping, index, max_n=4):
     if count_figures(text) >= min_photos:
         return text
 
+    # foldok_select — exclude sales / supplier product shots from the pool
+    admissible: set[str] | None = None
+    ranked_prefer: list[str] = []
+    try:
+        from foldok_select import build_context, menu_for
+        ctx = build_context(index or [])
+        admissible = {a.file for a in ctx.all()}
+        sec_title = (
+            (section.get("title_no") or "") + " " + (section.get("title") or "")
+            or (mapping.get("section_key") or "")
+        ).strip()
+        menu = menu_for(
+            ctx, section=sec_title, kind="image",
+            purpose=str(section.get("notes") or ""),
+        )
+        ranked_prefer = [i.asset.file for i in menu.items]
+        for kind in ("drawing", "diagram"):
+            m2 = menu_for(ctx, section=sec_title, kind=kind, purpose=str(section.get("notes") or ""))
+            ranked_prefer.extend(i.asset.file for i in m2.items)
+    except Exception:
+        pass
+
     def score(rel):
         e = by_file.get(rel) or {}
         roles = set(e.get("doc_role_hints") or [])
@@ -2841,6 +2872,8 @@ def ensure_min_figures(text, mapping, index, max_n=4):
             roles & {"drawing", "site_plan", "overview"} or DRAWING_NAME.search(rel or "")
         ):
             s += 8
+        if ranked_prefer and rel in ranked_prefer:
+            s += max(0, 20 - ranked_prefer.index(rel))
         return s
 
     # Widen pool: mapped first, then every other visual in the index
@@ -2851,6 +2884,13 @@ def ensure_min_figures(text, mapping, index, max_n=4):
         and _is_usable_visual(e.get("file"))
     ]
     candidates = mapped + extra
+    if admissible is not None:
+        # Keep mapped even if curation is empty (mapper already chose them);
+        # filter extras to admissible corpus only.
+        candidates = [
+            c for c in candidates
+            if c in mapped_set or c in admissible
+        ]
 
     sec_text = (
         (section.get("title_no") or "") + " " + (section.get("title") or "")
@@ -3889,6 +3929,10 @@ def generate_section_with_structure(
             # Diagrams live only here (claim plan + overview)
             if isinstance(artifact, dict):
                 artifact.pop("_install_claim_plan", None)
+                artifact.pop("_install_volume_md", None)
+                artifact.pop("_install_volume_note", None)
+                artifact.pop("_install_corpus_md", None)
+                artifact.pop("_install_corpus_note", None)
             return normalise_markdown(
                 compile_install_overview_md(index, artifact, lang=lang)
             )

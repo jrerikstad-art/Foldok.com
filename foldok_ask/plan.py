@@ -56,32 +56,68 @@ STD_HINT_RX = re.compile(
 )
 
 
-def corpus_sketch(index, *, artifact=None) -> CorpusSketch:
+def corpus_sketch(index, *, artifact=None, project_name: str = "", folder: str = "") -> CorpusSketch:
+    """Corpus overview for planning — role-weighted when foldok_role is present.
+
+    Reference material (vendor brochures, standards) informs themes at low weight
+    so it cannot decide what the document is about. Title comes from the artifact
+    / project / folder — never from file sort order.
+    """
     art = artifact or {}
     usable = [e for e in (index or []) if e.get("kind") != "skipped" and e.get("file")]
-    title = str(art.get("name") or "").strip()
-    if not title and usable:
-        title = Path(usable[0].get("file") or "project").stem
 
-    tag_c: Counter = Counter()
-    captions = []
+    captions: list[str] = []
     has_std = False
-    for e in usable[:100]:
-        for t in e.get("content_tags") or []:
-            t = str(t).strip().lower().replace("-", " ")
-            if t and len(t) > 2 and t not in ("doc", "document", "pdf", "email"):
-                tag_c[t] += 1
-        cap = (e.get("caption") or "").strip()
-        if cap:
-            captions.append(cap[:160])
-            if STD_HINT_RX.search(cap):
-                has_std = True
-        for f in e.get("facts") or []:
-            blob = f"{f.get('key') or ''} {f.get('value') or ''}"
-            if STD_HINT_RX.search(blob):
-                has_std = True
+    themes: list[str] = []
+    title = ""
 
-    themes = [t for t, _ in tag_c.most_common(6)]
+    try:
+        from foldok_role import sketch_patch
+        pname = (
+            project_name
+            or str(art.get("project_name") or art.get("client") or art.get("owner") or "")
+        ).strip()
+        patch = sketch_patch(
+            usable, artifact=art, project_name=pname, folder=folder or "",
+        )
+        title = str(patch.get("title") or "").strip()
+        themes = list(patch.get("themes") or [])
+        captions = list(patch.get("sample_captions") or [])
+    except Exception:
+        title = str(art.get("name") or "").strip()
+        if not title and usable:
+            title = Path(usable[0].get("file") or "project").stem
+        tag_c: Counter = Counter()
+        for e in usable[:100]:
+            for t in e.get("content_tags") or []:
+                t = str(t).strip().lower().replace("-", " ")
+                if t and len(t) > 2 and t not in ("doc", "document", "pdf", "email"):
+                    tag_c[t] += 1
+            cap = (e.get("caption") or "").strip()
+            if cap:
+                captions.append(cap[:160])
+        themes = [t for t, _ in tag_c.most_common(6)]
+
+    if not captions:
+        for e in usable[:100]:
+            cap = (e.get("caption") or "").strip()
+            if cap:
+                captions.append(cap[:160])
+
+    for cap in captions:
+        if STD_HINT_RX.search(cap):
+            has_std = True
+            break
+    if not has_std:
+        for e in usable[:100]:
+            for f in e.get("facts") or []:
+                blob = f"{f.get('key') or ''} {f.get('value') or ''}"
+                if STD_HINT_RX.search(blob):
+                    has_std = True
+                    break
+            if has_std:
+                break
+
     if not themes:
         bag: Counter = Counter()
         for cap in captions[:40]:
