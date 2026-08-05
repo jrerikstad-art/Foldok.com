@@ -1,4 +1,5 @@
 .env
+.last_gen_job
 __pycache__/
 *.pyc
 .foldok_cache/

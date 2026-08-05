@@ -13,7 +13,7 @@ def build_compose_plan(
     project_name: str = "",
     folder: str = "",
     doc_sections: dict | None = None,
-    lang: str = "no",
+    lang: str = "en",
 ) -> dict[str, Any]:
     from foldok_director import direct
 

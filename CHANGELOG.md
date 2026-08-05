@@ -7,6 +7,105 @@ Versioning rules (semver, honestly applied):
   Templates carry their own `version` field (already in schema).
   The zip filename always carries the version: foldok-engine-vX.Y.Z.zip.
 
+## 0.114.12 — Sense chat no longer wiped by agent_truth
+- Chat reply for ``sense_folder`` is a short summary only; full markdown stays in
+  ``sense_md`` / editor (long lists/headings were replaced by honest_fallback)
+- ``sense_folder`` added to skip_truth alongside diagram tools
+- Scrub preserves markdown table rows (``|…|``) — no longer flattens B1 fact tables
+- Docs: ``docs/RELEASE_0.114.md``; README folder→draft package table; release zip
+  privacy roots include editorial/reflow/tier/sense
+
+## 0.114.11 — Sense draft visible in the editor
+- Sense topics were stored under non-template keys, so ``assemble_draft`` still
+  showed the old empty template sections — fixed via ``doc.sense_md``
+- Chat ``sense_folder`` sets ``reload_draft``; UI reloads after «forstå mappen»
+
+## 0.114.10 — foldok_sense audit + wire generate to the real chain
+- ``foldok_sense``: function-word / verb-stem filters; uncorroborated topics declared
+- ``python -m foldok_sense.audit FOLDER`` — stage yield (engine vs plumbing)
+- ``sense_from_folder``: scan→extract→reflow→tier→sense (not captions-only)
+- Chat «forstå mappen» persists draft + sets ``generate_mode=sense``
+- ``run_generate`` in sense mode uses the full chain (fixes empty fixed-outline path)
+- Sample: ``foldok_sense/fixtures/emc-draft-sample.md``
+
+## 0.114.9 — foldok_sense (make sense of this folder)
+- New package ``foldok_sense``: topics from cross-source recurrence, not template hunt
+- Strong passages lead; candidates marked ``^`` with honest provenance
+- Missing hoped-for topics (e.g. installasjon) reported as findings, not empty headings
+- Chat: «forstå mappen» / «make sense of this folder» → ``sense_folder``
+- API: ``GET /api/sense?id=…``
+- Kept existing ``foldok_tier`` integrate bridge (zip tier was older 0.113)
+
+## 0.114.8 — foldok_tier (strong / candidate / rejected)
+- New package ``foldok_tier``: pattern claims stay *strong*; well-formed descriptive
+  sentences become *candidates*; furniture is *rejected* (with reason)
+- Retrieve injects ``kind=candidate`` chunks (below claims, above captions)
+- Thin procedural sections fill from candidates via ``fill_section``
+- Provenance travels: strong = typed claim; candidate = «appears in source»
+
+## 0.114.7 — foldok_reflow (PDF rows → sentences + embedded figures)
+- New package ``foldok_reflow``: join visual PDF rows into sentences; drop TOC/furniture
+- ``foldok_index`` PDF extract reflows before chunking; registers embedded figures
+- ``foldok_claims`` sentence split prefers reflow (stops fragment claims)
+- ``extract_pdf_pages`` / Haiku PDF index dense text reflowed
+- Index entries may carry ``embedded_figures`` + ``table_note`` (pypdf flatten honesty)
+
+## 0.114.6 — Installation false-GAP + brochure paste
+- Empty section→file maps refill from roles/keywords after gate (install manuals bind)
+- ``installation`` / ``operation`` / ``maintenance`` role overrides keep manuals
+- Procedural sections author numbered steps from mapped corpus (not ``[GAP: claims]`` budget 0)
+- Marketing blurb filter; fact-dump no longer replaces real sources with false GAP
+- Figure/fact markers protected from bare-number redaction
+
+## 0.114.5 — Section mapping survives large corpora
+- Haiku ``section_mapping`` capped + higher token budget; JSON repair for truncation
+- On parse failure → deterministic keyword/role file map (generate continues)
+
+## 0.114.4 — Ban fictional job progress in chat
+- Progress verbs include «bygger nå», «er i gang», page-count / ETA claims
+- Job ids named in prose must match the same-turn tool receipt
+- Retry prompt no longer tells the model to «say you lack the tool»
+- «Fullstendig teknisk håndbok» chip → real ``run_generate``
+
+## 0.114.3 — Build document / job status without Haiku freestyle
+- ``build the document`` / ``bygg dokumentet`` → ``run_generate`` on open doc
+- ``are you working?`` → live job status (never «I don't have tools»)
+- Second generate while one runs → status only (no duplicate job)
+- ``start_generate_job`` tags kind=generate immediately
+
+## 0.114.2 — Chat language contract + hollow-document honesty
+- Chat lang locks to UI/document ``lang`` (not per-message detect) — stops EN↔NO flip
+- Context includes ``DOCUMENT_LANGUAGE`` + ``OPEN_DOCUMENT_STATUS``
+- Hollow / language-mix complaints → deterministic engine reply (no «I have no document»)
+- Ban + rewrite if the model still denies project access
+
+## 0.114.1 — Section author contract (claims → prose, else GAP)
+- Hard contract: retrieve (budget > 0) → write from claim *text*; else one
+  specific ``[GAP: claims]`` — never bridge-only bodies
+- ``finalize_authored_section`` after scrub on generate / assemble / topic brief
+- ``section_budget(0) → 0`` (no fake floor); cache ``claim-contract-v1``
+- Scrub only removes bridges — empty after scrub becomes a named GAP
+
+## 0.114.0 — Editorial QA engine (review only)
+- New package ``foldok_editorial``: deterministic publish gate — repeated
+  transitions, slug/Key:value body, mixed language, unused assets
+- Compose attaches ``plan.editorial``; Compose rail shows metrics + findings
+- ``assemble_draft`` persists ``doc._editorial``; export chip never says
+  «Klar for eksport» when editorial ``ok`` is false (false-green fix)
+- Design: ``EDITORIAL_QA.md`` — Transition Engine / deep KG deferred
+
+## 0.113.9 — Scrub-v4: EN path, sentence ban, generate scrub
+- Sentence-level scrub bans bridges, snake_case / claim_id / ``Key: value`` body
+- ``build_doc_from_generation`` + ``run_generate`` scrub every section before persist
+- Compose/topic-brief defaults ``lang=en``; cache key ``scrub-v4`` drops stale NO bodies
+- Empty claim sets → one MANGLER/GAP line (not meta lead); EMC EN regression test
+
+## 0.113.8 — Document-scoped agent chat
+- Editor assist transcript + ``chat_pending`` are per open document
+  (Temabrief ≠ Installasjonsmanual), not one project-wide thread
+- Switching documents reloads that document’s conversation only
+- Legacy unscoped pending is hidden from document chat (stops €19 install leak)
+
 ## 0.113.7 — Regenerate typos → open Temabrief, not Installasjonsmanual
 - `egaanerate` / `regaanerate` / bare `regenerate` now hit deterministic
   `run_generate` on the open document (clears stale €19 install pending)

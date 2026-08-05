@@ -25,13 +25,22 @@ COMPLETION_VERBS = re.compile(
 # («si ifra så starter jeg») are stripped before the check.
 PROGRESS_VERBS = re.compile(
     r"(?:"
-    r"\bjeg\s+(starter|kj[øo]rer|analyserer|genererer|indekserer)\b|"
+    r"\bjeg\s+(starter|kj[øo]rer|analyserer|genererer|indekserer|bygger)\b|"
     r"\b(starter|kj[øo]rer)\b|"
-    r"\b(jeg\s+)?skriver\s+n[åa]\b|"
-    r"\b(i('m|\s+am)\s+)?(starting|running|writing\s+now|analysing|analyzing|generating)\b|"
+    r"\b(jeg\s+)?(skriver|bygger)\s+n[åa]\b|"
+    r"\b(er\s+i\s+gang|jobben?\s+kj[øo]rer)\b|"
+    r"\bferdig\s+innen\b|\binnen\s+ca\.?\s*\d|"
+    r"\b~?\d+\s*[–\-]\s*\d+\s+(sider|pages)\b|"
+    r"\b(i('m|\s+am)\s+)?(starting|running|writing\s+now|building\s+now|analysing|analyzing|generating)\b|"
     r"\bklar\s+om\b|\bom\s+noen\s+minutter\b|\bstarter\s+straks\b|"
-    r"\bready\s+in\b|\bin\s+a\s+few\s+minutes\b"
+    r"\bready\s+in\b|\bin\s+a\s+few\s+minutes\b|\bwithin\s+\d+\s*min"
     r")",
+    re.I,
+)
+
+FAKE_JOB_ID = re.compile(
+    r"\bjobb(?:en)?\s*[`']?([a-f0-9]{6,12})[`']?|"
+    r"\bjob\s*[`']?([a-f0-9]{6,12})[`']?",
     re.I,
 )
 
@@ -176,12 +185,38 @@ def job_start_receipt(tools_run: list | None) -> bool:
     return False
 
 
+def claimed_job_ids(text: str) -> list[str]:
+    out = []
+    for m in FAKE_JOB_ID.finditer(text or ""):
+        jid = (m.group(1) or m.group(2) or "").lower()
+        if jid and jid not in out:
+            out.append(jid)
+    return out
+
+
+def receipt_job_ids(tools_run: list | None) -> set[str]:
+    ids: set[str] = set()
+    for t in tools_run or []:
+        if not isinstance(t, dict) or t.get("ok") is False:
+            continue
+        jid = t.get("job_id")
+        if jid:
+            ids.add(str(jid).lower())
+        job = t.get("job")
+        if isinstance(job, dict) and job.get("id"):
+            ids.add(str(job["id"]).lower())
+        elif isinstance(job, str) and job.strip():
+            ids.add(job.strip().lower())
+    return ids
+
+
 def validate_completion_claims(reply: str, tools_run: list | None = None,
                                *, lang: str = "no") -> tuple:
     """WORKORDER_0.22 B2 + 0.25 C — completion/progress verbs require tool receipts.
 
     Progress language (starter / kjører / skriver nå / klar om) requires a
     job-start receipt with job_id in the same turn — else the reply is rejected.
+    Named job ids in prose must match the receipt (no recycled/fictional ids).
 
     Returns (ok: bool, reply_or_fallback: str, reason: str|None).
     """
@@ -194,6 +229,11 @@ def validate_completion_claims(reply: str, tools_run: list | None = None,
 
     if TRIAGE_QUESTIONS.search(text):
         return False, honest_fallback(lang), "triage_question_forbidden"
+
+    claimed = claimed_job_ids(text)
+    receipt_ids = receipt_job_ids(tools_run)
+    if claimed and any(c not in receipt_ids for c in claimed):
+        return False, honest_fallback(lang), "fictional_job_id"
 
     needs_receipt = bool(COMPLETION_VERBS.search(text) or progress)
     if not needs_receipt:

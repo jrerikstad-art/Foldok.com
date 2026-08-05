@@ -84,7 +84,22 @@ def parse_json(text):
     except json.JSONDecodeError:
         m = re.search(r"[\[{].*[\]}]", text, re.S)
         if m:
-            return json.loads(m.group(0))
+            try:
+                return json.loads(m.group(0))
+            except json.JSONDecodeError:
+                pass
+        # Truncated object — close open braces/brackets best-effort
+        repaired = text.strip()
+        if repaired.startswith("{") or repaired.startswith("["):
+            # Drop trailing incomplete key/value
+            repaired = re.sub(r",\s*(\"[^\"]*\"?\s*:?)?\s*$", "", repaired)
+            open_b = repaired.count("{") - repaired.count("}")
+            open_a = repaired.count("[") - repaired.count("]")
+            repaired += "]" * max(0, open_a) + "}" * max(0, open_b)
+            try:
+                return json.loads(repaired)
+            except json.JSONDecodeError:
+                pass
         raise
 
 
@@ -98,8 +113,120 @@ def ask_json(purpose, model, messages, system=None, max_tokens=1500):
         print(f"  ⚠ JSON parse failed ({purpose}), retrying…")
         retry_system = ((system + "\n\n") if system else "") + \
             "IMPORTANT: Reply with COMPLETE valid JSON only. Keep lists brief so the whole reply fits."
-        raw = ask(purpose, model, messages, system=retry_system, max_tokens=max_tokens)
+        raw = ask(purpose, model, messages, system=retry_system,
+                  max_tokens=min(max_tokens + 1000, 8000))
         return parse_json(raw)
+
+
+def deterministic_section_file_map(template_sections, index, *, per_section: int = 10) -> dict:
+    """Fallback when Haiku section_mapping JSON fails — keyword/role overlap, no LLM."""
+    files = [e for e in (index or []) if e.get("file") and e.get("kind") != "skipped"]
+    all_names = [e["file"] for e in files]
+    out: dict[str, list] = {}
+    for s in template_sections or []:
+        sk = s.get("section_key") or ""
+        if not sk:
+            continue
+        if sk in ("source_register", "doc_control", "references", "appendix"):
+            out[sk] = list(all_names)
+            continue
+        out[sk] = _rank_files_for_section(sk, s, files, limit=per_section) or (
+            all_names[: min(4, len(all_names))] if all_names else []
+        )
+    return out
+
+
+# Topic needles when preferred_roles alone under-match (EMC / tray corpora).
+_SECTION_TOPIC_NEEDLES = {
+    "installation": (
+        "install", "assembly", "monter", "montage", "mounting", "tray",
+        "cable tray", "earthing", "jording", "bonding", "routing", "manual",
+        "best practice", "fixed installation", "reo_guide", "chalfant",
+        "installasjonsmanual", "installation_step",
+    ),
+    "operation": ("operation", "operate", "bruk", "drift", "commission"),
+    "maintenance": ("maintenance", "inspection", "vedlikehold", "inspeksjon", "service"),
+    "technical_data": ("technical", "spec", "datasheet", "attenuation", "db", "emc", "shield"),
+    "description": ("product", "component", "description", "overview", "cable tray"),
+    "safety": ("safety", "hazard", "warning", "ppe", "fare", "sikkerhet"),
+    "test_documentation": ("test", "mil-std", "attenuation", "emc-test", "result"),
+    "bom": ("bom", "part", "material", "catalogue", "catalog"),
+}
+
+
+def _rank_files_for_section(sec_key: str, section: dict, files: list, *, limit: int = 12) -> list[str]:
+    roles = set((section.get("required_media") or {}).get("preferred_roles") or [])
+    roles |= set(section.get("roles") or [])
+    needles = {
+        *(roles),
+        sec_key.replace("_", " "),
+        str(section.get("title") or "").lower(),
+        str(section.get("title_no") or "").lower(),
+        *(_SECTION_TOPIC_NEEDLES.get(sec_key) or ()),
+    }
+    needles = {n.strip().lower() for n in needles if n and len(str(n).strip()) >= 3}
+    scored = []
+    for e in files:
+        blob = " ".join([
+            str(e.get("file") or ""),
+            str(e.get("caption") or ""),
+            " ".join(e.get("doc_role_hints") or []),
+            " ".join(e.get("tags") or []),
+        ]).lower()
+        score = sum(1 for n in needles if n in blob)
+        hints = set(e.get("doc_role_hints") or [])
+        if roles & hints:
+            score += 5
+        # Strong boost for explicit install manuals / guides
+        if sec_key == "installation" and re.search(
+            r"(?i)installasjonsmanual|installation[_\s-]?manual|fixed_installation|"
+            r"reo_guide|install.*best\s*practice",
+            blob,
+        ):
+            score += 8
+        if score:
+            scored.append((score, e["file"]))
+    scored.sort(key=lambda x: -x[0])
+    # unique preserve order; skip pure marketing blurbs when better hits exist
+    seen, out, weak = set(), [], []
+    for score, fn in scored:
+        if fn in seen:
+            continue
+        seen.add(fn)
+        entry = next((e for e in files if e.get("file") == fn), {}) or {}
+        cap = str(entry.get("caption") or "")
+        if _is_marketing_blurb(cap) and score < 8:
+            weak.append(fn)
+            continue
+        out.append(fn)
+        if len(out) >= limit:
+            break
+    if len(out) < min(2, limit):
+        for fn in weak:
+            if fn not in out:
+                out.append(fn)
+            if len(out) >= limit:
+                break
+    return out
+
+
+def ensure_section_file_coverage(file_map: dict | None, template_sections, index) -> dict:
+    """Fill empty section→file lists from roles/keywords so GAP is not false."""
+    fm = dict(file_map or {})
+    files = [e for e in (index or []) if e.get("file") and e.get("kind") != "skipped"]
+    for s in template_sections or []:
+        sk = s.get("section_key") or ""
+        if not sk:
+            continue
+        cur = [f for f in (fm.get(sk) or []) if f]
+        if cur:
+            fm[sk] = cur
+            continue
+        ranked = _rank_files_for_section(sk, s, files, limit=10)
+        if ranked:
+            fm[sk] = ranked
+            print(f"  · filled empty map [{sk}] ← {len(ranked)} file(s)")
+    return fm
 
 
 def load_template_catalog():
@@ -240,7 +367,11 @@ MAX_VISION_PAGES = 12  # cost cap per PDF
 
 
 def extract_pdf_pages(path: Path) -> list[dict]:
-    """Per-page text extraction via PyMuPDF. Returns [{page, text, chars}, …]."""
+    """Per-page text extraction via PyMuPDF. Returns [{page, text, chars}, …].
+
+    Each page is reflowed (visual rows → sentences) so downstream claim/tip
+    harvest does not starve on hyphenated fragments.
+    """
     try:
         import fitz
     except ImportError:
@@ -248,8 +379,17 @@ def extract_pdf_pages(path: Path) -> list[dict]:
     doc = fitz.open(path)
     try:
         out = []
+        try:
+            from foldok_reflow import reflow as _reflow
+        except ImportError:
+            _reflow = None
         for i in range(len(doc)):
             text = doc[i].get_text("text") or ""
+            if _reflow is not None and text.strip():
+                try:
+                    text = _reflow(f"[page {i + 1}]\n{text}").text or text
+                except Exception:
+                    pass
             out.append({"page": i + 1, "text": text, "chars": len(text.strip())})
         return out
     finally:
@@ -313,12 +453,24 @@ def index_pdf_with_depth(path: Path, lang: str, rel_name: str, system: str) -> t
         stats["partial_index"] = True
         stats["partial_note"] = "delvis indeksert — PDF >200 sider; første 60 sider"
 
-    # Dense text for the primary Haiku text pass
+    # Dense text for the primary Haiku text pass (reflowed sentences, not visual rows)
     dense_parts = []
     for p in pages:
         if p["chars"] >= THIN_PAGE_CHARS:
             dense_parts.append(f"--- page {p['page']} ---\n{p['text']}")
     dense_text = "\n\n".join(dense_parts).strip()
+    if dense_text:
+        try:
+            from foldok_reflow import reflow as _reflow
+            # Full-doc pass catches running headers frequency better than per-page alone
+            joined = "\n\n".join(
+                f"[page {p['page']}]\n{p['text']}" for p in pages if p["chars"] >= THIN_PAGE_CHARS
+            )
+            flowed = _reflow(joined).text
+            if flowed and len(flowed.strip()) > 80:
+                dense_text = flowed
+        except Exception:
+            pass
 
     if not dense_text:
         # Whole PDF thin (scanned) — try MarkItDown then fall back to filename stub
@@ -507,6 +659,39 @@ def index_file(path: Path, lang: str, cache_dir: Path, rel_name: str = None):
     # assign stable fact ids
     for n, f in enumerate(entry.get("facts", [])):
         f["id"] = f"{sha[:8]}-{n}"
+
+    # Embedded PDF figures/tables — captions from reflowed text; tables from raw rows.
+    if ext == ".pdf":
+        try:
+            from foldok_reflow import harvest, reflow
+            from pypdf import PdfReader
+            reader = PdfReader(str(path))
+            raw_pages = [
+                f"[page {i + 1}]\n" + (page.extract_text() or "")
+                for i, page in enumerate(reader.pages)
+            ]
+            raw_blob = "\n\n".join(raw_pages)
+            flowed = reflow(raw_blob).text
+            assets = harvest(path, text=flowed, raw_text=raw_blob, max_figures=24)
+            figs = [fig.to_dict() for fig in assets.usable_figures()[:20]]
+            if figs:
+                entry["embedded_figures"] = figs
+                entry["embedded_figures_summary"] = assets.summary(lang=lang)
+                caps = [f.get("caption") for f in figs if f.get("caption")]
+                if caps and len(str(entry.get("caption") or "").strip()) < 40:
+                    entry["caption"] = str(caps[0])[:200]
+            if assets.note:
+                stats = dict(entry.get("extraction_stats") or {})
+                stats["table_note"] = assets.note
+                entry["extraction_stats"] = stats
+            if flowed:
+                qflags = list(entry.get("quality_flags") or [])
+                if "reflowed" not in qflags:
+                    qflags.append("reflowed")
+                entry["quality_flags"] = qflags
+        except Exception as e:
+            print(f"  ⚠ foldok_reflow harvest skipped for {path.name}: {e}")
+
     cache.write_text(json.dumps(entry, ensure_ascii=False), encoding="utf-8")
     return entry
 
@@ -1031,10 +1216,27 @@ def map_sections(template, index, artifact):
         shape = corpus_shape(safe_index, artifact)
         print(f"  · installation_manual: shape={shape} allowlist={len(allowed)} files")
     else:
-        file_map = ask_json("section_mapping", HAIKU, [{"role": "user", "content":
-            f"Map project files to document sections. Reply ONLY JSON: "
-            f'{{"<section_key>": ["filename", ...], ...}}. A file may appear in several sections; '
-            f"omit irrelevant files.\n\nSECTIONS:\n{json.dumps(secs)}\n\nFILES:\n{caps}"}], max_tokens=2500)
+        # Large corpora: Haiku JSON often truncates — try capped prompt, else deterministic.
+        brief_caps = "\n".join(
+            f"[{e['file']}] roles={e.get('doc_role_hints', [])} :: {(e.get('caption') or '')[:120]}"
+            for e in safe_index[:80]
+        )
+        try:
+            file_map = ask_json(
+                "section_mapping", HAIKU,
+                [{"role": "user", "content":
+                    f"Map project files to document sections. Reply ONLY JSON: "
+                    f'{{"<section_key>": ["filename", ...], ...}}. '
+                    f"Max 8 files per section. A file may appear in several sections; "
+                    f"omit irrelevant files.\n\nSECTIONS:\n{json.dumps(secs)}\n\n"
+                    f"FILES ({min(len(safe_index), 80)} of {len(safe_index)} shown):\n{brief_caps}"}],
+                max_tokens=4000,
+            )
+            if not isinstance(file_map, dict):
+                raise ValueError("section_mapping not a dict")
+        except Exception as e:
+            print(f"  ⚠ section_mapping failed ({e}) — deterministic keyword map")
+            file_map = deterministic_section_file_map(secs, safe_index)
 
     # ── relevance gate: computed score (foldok_intake) then role overlap ────────
     dropped: dict[str, list[str]] = {}
@@ -1050,6 +1252,8 @@ def map_sections(template, index, artifact):
         for sk, files in role_dropped.items():
             dropped.setdefault(sk, []).extend(files)
             print(f"  ⚠ Role gate dropped from [{sk}]: {', '.join(files)}")
+        # Haiku/gate often leave installation empty even when manuals exist — refill.
+        file_map = ensure_section_file_coverage(file_map, secs, safe_index)
     else:
         if is_install_manual:
             label = "installation_manual"
@@ -1302,6 +1506,11 @@ _SECTION_ROLE_OVERRIDE: dict[str, set[str]] = {
     "certificates": {"certificate", "test_result"},
     "declaration":  {"certificate", "deliverable", "contract_clause"},
     "bom":          {"overview", "technical_data", "nameplate"},
+    # Install manuals often tag overview/technical_data; do not role-empty the section.
+    "installation": {"installation_step", "overview", "technical_data", "drawing"},
+    "operation":    {"installation_step", "overview", "technical_data"},
+    "maintenance":  {"maintenance", "damage", "installation_step", "technical_data"},
+    "safety":       {"safety", "damage", "installation_step"},
 }
 
 
@@ -2352,6 +2561,163 @@ def compile_supplier_manual_gaps(gaps, lang="no"):
 
 # ── Section fact context + structure enforcement (WORKORDER 0.48) ─────
 
+_MARKETING_BLURB_RX = re.compile(
+    r"(?i)\b("
+    r"track record|most common|excellent|dependability|world[\s-]?class|"
+    r"leading (supplier|manufacturer)|trusted by|award[\s-]?winning|"
+    r"industry[\s-]?leading|proven performance|years of experience"
+    r")\b"
+)
+_PROCEDURE_HINT_RX = re.compile(
+    r"(?i)\b("
+    r"install|installation|assembly|mount|monter|montage|torque|bolt|"
+    r"connect|earthing|jord|fasten|wiring|tray|clearance|tighten|secure|"
+    r"shall|must|step|trinn|commission|inspect|maintain"
+    r")\b"
+)
+_TECH_PROCEDURE_KEYS = frozenset({
+    "installation", "operation", "maintenance", "safety",
+    "install_sequence", "sequence", "commissioning",
+})
+
+
+def _is_marketing_blurb(val: str) -> bool:
+    v = (val or "").strip()
+    if len(v) < 40:
+        return False
+    if _MARKETING_BLURB_RX.search(v):
+        return True
+    # Brochure paste walls often hammer the same product phrase
+    low = v.lower()
+    if len(v) > 180 and low.count("cable tray") >= 3:
+        return True
+    if len(v) > 220 and re.search(r"(?i)(\b\w+\b)(?:\W+\1){3,}", v):
+        return True
+    return False
+
+
+def _looks_like_marketing_paste(text: str) -> bool:
+    t = text or ""
+    if not t.strip():
+        return False
+    if _is_marketing_blurb(t):
+        return True
+    low = t.lower()
+    return low.count("cable tray") >= 4 or low.count("cable tray wiring") >= 2
+
+
+def compile_tech_procedure_md(
+    sec_key,
+    mapping,
+    index,
+    artifact=None,
+    *,
+    lang: str = "en",
+    max_steps: int = 12,
+) -> str:
+    """Numbered steps from mapped install sources — no invented procedure.
+
+    Used by technical_doc_package (and peers) when intent is instruct_procedure
+    so empty claim budgets do not falsely GAP sections that have manuals.
+    """
+    mapped = [f for f in (mapping.get("files") or []) if f]
+    if not mapped:
+        return ""
+    by_file = {e.get("file"): e for e in (index or []) if e.get("file")}
+    steps: list[str] = []
+    seen: set[str] = set()
+
+    def _add(val: str, cite: str = "") -> bool:
+        v = re.sub(r"\s+", " ", (val or "")).strip()
+        if len(v) < 30 or _is_marketing_blurb(v):
+            return False
+        if not _PROCEDURE_HINT_RX.search(v):
+            return False
+        sig = v.lower()[:110]
+        if sig in seen:
+            return False
+        seen.add(sig)
+        short = v if len(v) <= 320 else v[:317] + "…"
+        steps.append(f"{short}{cite}")
+        return True
+
+    for fn in mapped:
+        e = by_file.get(fn) or {}
+        for f in e.get("facts") or []:
+            if f.get("provenance") == "reference":
+                continue
+            blob = f"{f.get('key') or ''} {f.get('value') or ''}"
+            cite = f" {{{{fact:{f['id']}}}}}" if f.get("id") else ""
+            if _add(blob if len(str(f.get("value") or "")) < 20 else str(f.get("value") or ""), cite):
+                if len(steps) >= max_steps:
+                    break
+        if len(steps) >= max_steps:
+            break
+
+    if len(steps) < 3:
+        folders = (artifact or {}).get("_folders") or []
+        try:
+            from install_manual_compile import harvest_page_guidance
+        except Exception:
+            harvest_page_guidance = None
+        if harvest_page_guidance:
+            for fn in mapped[:8]:
+                e = by_file.get(fn) or {}
+                try:
+                    rows = harvest_page_guidance(e, folders, limit=8)
+                except Exception:
+                    rows = []
+                for row in rows:
+                    cite = f" ({row.get('_page_cite')})" if row.get("_page_cite") else ""
+                    if _add(str(row.get("value") or ""), cite) and len(steps) >= max_steps:
+                        break
+                if len(steps) >= max_steps:
+                    break
+
+    if len(steps) < 2:
+        for fn in mapped:
+            e = by_file.get(fn) or {}
+            cap = str(e.get("caption") or "").strip()
+            if _add(cap, f" ({Path(fn).name})") and len(steps) >= min(5, max_steps):
+                break
+
+    # Tier fill: descriptive candidates when pattern-matched facts starve the section
+    if len(steps) < 3:
+        try:
+            from foldok_tier.integrate import fill_for_section, tier_from_prose
+            for fn in mapped[:6]:
+                e = by_file.get(fn) or {}
+                prose = "\n".join([
+                    str(e.get("detail_summary") or ""),
+                    str(e.get("caption") or ""),
+                    *(str(f.get("value") or "") for f in (e.get("facts") or [])[:20]),
+                ]).strip()
+                if len(prose) < 40:
+                    continue
+                report = tier_from_prose(prose, source=Path(fn).name)
+                for sent in fill_for_section(report, sec_key or "installation", want=max_steps):
+                    cite = f" ({sent.provenance(lang=lang or 'en')})"
+                    if _add(sent.text, cite) and len(steps) >= max_steps:
+                        break
+                if len(steps) >= max_steps:
+                    break
+        except Exception:
+            pass
+
+    if not steps:
+        return ""
+
+    banner = (
+        "> **AI-foreslått rekkefølge — bekreft mot leverandørens anvisning**"
+        if (lang or "").startswith("n") else
+        "> **AI-proposed sequence — confirm against supplier instructions**"
+    )
+    lines = [banner, ""]
+    for i, step in enumerate(steps, 1):
+        lines.append(f"{i}. {step}")
+    return "\n".join(lines)
+
+
 def _fact_confidence(f):
     try:
         return float(f.get("confidence") if f.get("confidence") is not None else 0.7)
@@ -2402,6 +2768,9 @@ def build_section_fact_context(mapping, index, artifact, cap=120, exclude_ids=No
             by_id.pop(fid, None)
             continue
         if re.search(r"\b(follow|subscribe|call now|limited offer)\b", val, re.I):
+            by_id.pop(fid, None)
+            continue
+        if _is_marketing_blurb(val):
             by_id.pop(fid, None)
             continue
         if install_mode and re.search(
@@ -3131,6 +3500,9 @@ def _strict_missing_keys_for_research(section: dict, artifact: dict, by_id: dict
 
 def _looks_like_fact_dump(text: str) -> bool:
     t = text or ""
+    # Numbered procedures are intentional structure, not dumps
+    if re.search(r"(?m)^\s*\d+\.\s+\S", t) and t.count("\n") >= 2:
+        return False
     # key:value walls and repeated "X er Y" tuples
     kv = re.findall(r"(?im)\b[a-z0-9_æøå][a-z0-9_æøå .-]{1,40}:\s+[^.\n]{1,80}", t)
     er = re.findall(r"(?im)\b[a-z0-9_æøå][a-z0-9_æøå .-]{1,40}\s+er\s+[^.\n]{1,80}", t)
@@ -3675,7 +4047,15 @@ def write_section_prose(sec_key, mapping, index, artifact, lang, fact_ids, ctx,
                 if lang == "no" else
                 "[AUTHOR: write procedure / warning here — not generated from facts.]"
             )
-        return ""
+        try:
+            from foldok_ask.author_doc import no_claims_gap
+            return no_claims_gap(sec_key, heading=title, lang=lang)
+        except Exception:
+            return (
+                f"**[MANGLER: claims]** — «{title}»: ingen skrivbare claims (budget 0)."
+                if lang == "no" else
+                f"**[GAP: claims]** — “{title}”: no writable claims (budget 0)."
+            )
 
     # 0.86: procedural intents are authored, not generated
     if intent in AUTHORED_NOT_GENERATED:
@@ -3693,6 +4073,15 @@ def write_section_prose(sec_key, mapping, index, artifact, lang, fact_ids, ctx,
                     bits.append(f"- {f.key}: {f.value}{(' ' + f.unit) if f.unit else ''} {cite}".rstrip())
             bits.append(fallback_safe())
             return "\n".join(bits)
+        # technical_doc_package etc.: write numbered steps from mapped manuals
+        sk_l = (sec_key or "").strip().lower()
+        structure = _structure_kind(s)
+        if sk_l in _TECH_PROCEDURE_KEYS or structure in ("numbered_steps", "numbered_list", "list"):
+            proc = compile_tech_procedure_md(
+                sec_key, mapping, index, artifact, lang=lang or "en",
+            )
+            if proc:
+                return proc
         text = fallback_safe()
         if content_hints and "[AUTHOR:" not in text:
             text = text + "\n\n" + "\n".join(content_hints[:2])
@@ -4014,9 +4403,38 @@ def generate_section_with_structure(
     # 3. WRITE PROSE — always for prose-like structures (even if partition preferred tables)
     prose = ""
     want_prose = structure in PROSE_LIKE_STRUCTURES or bool(prose_ids)
+    ids_for_prose = prose_ids or list(ctx["available_ids"])
+    claim_n = len(ids_for_prose)
+    sk_l = (sec_key or "").strip().lower()
     if want_prose:
-        ids_for_prose = prose_ids or list(ctx["available_ids"])
-        # Prose sections must still run with zero facts (placeholders / structure).
+        # Procedural sections: prefer corpus steps over empty-claim GAP
+        if claim_n <= 0 and (
+            sk_l in _TECH_PROCEDURE_KEYS
+            or structure in ("numbered_steps", "numbered_list")
+        ):
+            proc = compile_tech_procedure_md(
+                sec_key, mapping, index, artifact, lang=lang or "en",
+            )
+            if proc:
+                text = place_section_figures(proc, mapping, index)
+                try:
+                    from foldok_ask.author_doc import finalize_authored_section
+                    title = s.get("title_no" if lang == "no" else "title") or s.get("title") or sec_key
+                    text = finalize_authored_section(
+                        text, section_key=sec_key, heading=title, lang=lang,
+                        claim_count=max(claim_n, 1),
+                    )
+                except Exception:
+                    pass
+                return normalise_markdown(text)
+        # Prose sections must still run with zero facts → one specific GAP (not bridge).
+        if claim_n <= 0 and structure in PROSE_LIKE_STRUCTURES and not _wants_fact_table(s, structure):
+            try:
+                from foldok_ask.author_doc import no_claims_gap
+                title = s.get("title_no" if lang == "no" else "title") or s.get("title") or sec_key
+                return normalise_markdown(no_claims_gap(sec_key, heading=title, lang=lang))
+            except Exception:
+                pass
         if ids_for_prose or structure in PROSE_LIKE_STRUCTURES:
             prose = write_section_prose(
                 sec_key, mapping, index, artifact, lang,
@@ -4049,11 +4467,53 @@ def generate_section_with_structure(
         else (prose or "")
     )
     text = place_section_figures(text, mapping, index)
-    # Default prose safety: never ship fact-dump walls.
-    if structure in PROSE_LIKE_STRUCTURES and _looks_like_fact_dump(text):
-        if strict_missing:
+    # Dump / brochure paste → rewrite from corpus; never replace real sources with false GAP
+    if structure in PROSE_LIKE_STRUCTURES and (
+        _looks_like_fact_dump(text) or _looks_like_marketing_paste(text)
+    ):
+        if sk_l in _TECH_PROCEDURE_KEYS or structure in ("numbered_steps", "numbered_list"):
+            rewritten = compile_tech_procedure_md(
+                sec_key, mapping, index, artifact, lang=lang or "en",
+            )
+            if rewritten:
+                text = place_section_figures(rewritten, mapping, index)
+            elif strict_missing:
+                return normalise_markdown(_mangler_lines(strict_missing, lang=lang, max_n=5))
+            # else keep rewritten empty → finalize may GAP with claim_count
+        elif strict_missing:
             return normalise_markdown(_mangler_lines(strict_missing, lang=lang, max_n=5))
-        return normalise_markdown("")
+        else:
+            # Strip dump walls; keep figures if any
+            figs = FIGURE_MARK.findall(text or "")
+            fig_md = "\n\n".join(
+                f"{{{{figure:{a}:{b}|{c or ''}}}}}" for a, b, c in figs
+            )
+            # Prefer short non-marketing available facts as bullets
+            bullets = []
+            for a in (ctx.get("available") or [])[:8]:
+                val = str(a.get("value") or "").strip()
+                if not val or _is_marketing_blurb(val) or len(val) > 160:
+                    continue
+                fid = a.get("id")
+                cite = f" {{{{fact:{fid}}}}}" if fid else ""
+                bullets.append(f"- {val}{cite}")
+            rebuilt = "\n".join(bullets)
+            if fig_md:
+                rebuilt = (rebuilt + "\n\n" + fig_md).strip() if rebuilt else fig_md
+            if rebuilt.strip():
+                text = rebuilt
+            else:
+                # Do not ship brochure paste walls as "prose"
+                text = fig_md or ""
+            # If nothing usable, fall through to finalize → specific GAP
+    try:
+        from foldok_ask.author_doc import finalize_authored_section
+        title = s.get("title_no" if lang == "no" else "title") or s.get("title") or sec_key
+        text = finalize_authored_section(
+            text, section_key=sec_key, heading=title, lang=lang, claim_count=claim_n,
+        )
+    except Exception:
+        pass
     return normalise_markdown(text)
 
 
@@ -4072,6 +4532,11 @@ def regenerate_one_section(sec_key, mapping, index, artifact, lang, instruction=
             text, cited, violations = text2, cited2, violations2
         if violations:
             text = redact_uncited(text)
+    try:
+        from foldok_ask.author_doc import finalize_authored_section
+        text = finalize_authored_section(text or "", section_key=sec_key, lang=lang)
+    except Exception:
+        pass
     return {"md": text, "cited": cited, "violations": violations}
 
 
@@ -4079,18 +4544,22 @@ SPEC_SECTIONS = {"technical_data", "tech", "circuit_schedule", "test_results", "
 BARE_NUM = re.compile(r"\b\d+[.,]?\d*\b")
 # spans exempt from the bare-number rule: resolved facts (bold), MANGLER
 # placeholders, markdown headers, table separator rows
-PROTECTED_SPAN = re.compile(r"\*\*[^*]+\*\*|`\[MANGLER[^\]]*\]`|^#+ .*$|^\|[-: |]+\|$", re.M)
+PROTECTED_SPAN = re.compile(
+    r"\*\*[^*]+\*\*|`\[MANGLER[^\]]*\]`|^#+ .*$|^\|[-: |]+\|$"
+    r"|\{\{figure:[^}]+\}\}|\{\{fig:[^}]+\}\}|\{\{fact:[^}]+\}\}",
+    re.M,
+)
 
 
 def redact_uncited(text):
     """Contract §4: after a failed regeneration, uncited numbers become
     placeholders instead of shipping unverified values."""
     out, last = [], 0
-    for m in PROTECTED_SPAN.finditer(text):
+    for m in PROTECTED_SPAN.finditer(text or ""):
         out.append(BARE_NUM.sub("`[MANGLER: uverifisert verdi]`", text[last:m.start()]))
         out.append(m.group(0))
         last = m.end()
-    out.append(BARE_NUM.sub("`[MANGLER: uverifisert verdi]`", text[last:]))
+    out.append(BARE_NUM.sub("`[MANGLER: uverifisert verdi]`", (text or "")[last:]))
     return "".join(out)
 
 

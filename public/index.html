@@ -617,6 +617,8 @@
   .compose-bars .fill { height:100%; background:var(--ink); border-radius:99px; }
   .compose-sug { font-size:11px; color:var(--steel); margin:4px 0 0; padding-left:14px; }
   .compose-sug li { margin:2px 0; }
+  .compose-sug.ed-list .ed-fail { color:var(--gap, #b42318); }
+  .compose-sug.ed-list .ed-warn { color:var(--warn, #b78105); }
   .know-block { margin:0 0 12px; }
   .know-block h4 { margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--steel); }
   .know-chip {
@@ -1666,6 +1668,7 @@
 let BOOT = null, POLL = null, ACTIVE_DOC = null, LAST_PID = null, PROJECT = null;
 let PENDING_REGEN = null;
 let REGEN_POLL = null;
+let LAST_ASSIST_DOC = null;
 let MANGler_CTX = null;
 let CHAT_SCOPE = { type: "document", section: null };
 let CHAT_TURNS = 0;
@@ -4018,7 +4021,7 @@ async function renderProject(id) {
     CHAT_HTML = "";
     // BUGFIX 0.19 — Checkpoint-A chat must not leak across projects
     A_CHAT_HTML = "";
-    A_PENDING_PATCH = null;
+    LAST_ASSIST_DOC = null;    A_PENDING_PATCH = null;
     A_SHOW_MODEL = false;
     A_USER_TURNS = [];
     INTENT_RESULT_HTML = "";
@@ -4039,6 +4042,12 @@ async function renderProject(id) {
     p = await api("/api/project?id=" + id + "&template=" + encodeURIComponent(ACTIVE_DOC));
   }
   PROJECT = p;
+  // Assist transcript is per document — wipe UI when switching Temabrief ↔ Installasjonsmanual.
+  if (LAST_ASSIST_DOC !== ACTIVE_DOC) {
+    LAST_ASSIST_DOC = ACTIVE_DOC;
+    CHAT_HTML = "";
+    CHAT_TURNS = 0;
+  }
   // Folder-less is OK — do not treat empty folders as missing
   if (p.missing && (p.missing_folders || []).length) {
     $("#main").innerHTML = `<div class="err">Mappe(r) finnes ikke lenger: ${(p.missing_folders || []).map(esc).join(", ")}</div>`;
@@ -6883,7 +6892,15 @@ async function loadComposePlan() {
   } catch (err) {
     const body = $("#rail-body");
     if (body && EDITOR_RAIL === "compose") {
-      body.innerHTML = `<div class="mono" style="font-size:12px;color:var(--gap)">${esc(err.message || String(err))}</div>`;
+      let msg = err.message || String(err);
+      if (msg === "not found") {
+        msg = "Compose API not loaded — restart workbench (scripts/workbench.ps1).";
+      } else if (msg === "no_template") {
+        msg = "Velg et dokument først.";
+      } else if (err.payload?.detail) {
+        msg = err.payload.detail;
+      }
+      body.innerHTML = `<div class="mono" style="font-size:12px;color:var(--gap)">${esc(msg)}</div>`;
     }
     const narr = $("#narr-body");
     if (narr) narr.innerHTML = `<div class="mono" style="font-size:11px;color:var(--steel)">Kunne ikke laste narrative.</div>`;
@@ -6913,6 +6930,20 @@ function renderComposeKnowledge(plan) {
   const assetLines = Object.entries(lib).filter(([k]) => k !== "excluded")
     .map(([k, v]) => `<div class="pub-row"><span>${esc(k)}</span><span class="mono">${v}</span></div>`).join("");
   const notes = (plan.notes || []).map(n => `<li>${esc(n)}</li>`).join("");
+  const ed = plan.editorial || {};
+  const edFindings = (ed.findings || []).slice(0, 6).map(f =>
+    `<li class="${f.severity === "fail" ? "ed-fail" : "ed-warn"}"><b>${esc(f.code)}</b> ${esc(f.message || "")}</li>`
+  ).join("");
+  const edMetrics = ed.metrics || {};
+  const edBlock = ed.findings ? `
+    <div class="know-block">
+      <h4>Editorial QA ${ed.ok ? "✓" : "●"}</h4>
+      <div class="pub-row"><span>Språk</span><span class="mono">${Math.round((edMetrics.language_consistency || 1) * 100)}%</span></div>
+      <div class="pub-row"><span>Gjentatte fraser</span><span class="mono">${edMetrics.repeated_phrases || 0}</span></div>
+      <div class="pub-row"><span>Slug-linjer</span><span class="mono">${edMetrics.slug_body_lines || 0}</span></div>
+      <div class="pub-row"><span>Ubrukte assets</span><span class="mono">${edMetrics.unused_relevant_assets || 0}</span></div>
+      ${edFindings ? `<ul class="compose-sug ed-list">${edFindings}</ul>` : "<div class='mono' style='font-size:11px;color:var(--ok)'>Ingen blokkerende funn</div>"}
+    </div>` : "";
   body.innerHTML = `
     <div class="cov-overall">
       Evidens ${Math.round((cov.evidence || 0) * 100)}% ·
@@ -6936,6 +6967,7 @@ function renderComposeKnowledge(plan) {
       <div class="pub-row"><span>Filer</span><span class="mono">${kn.source_count || 0}</span></div>
       <div class="pub-row"><span>Fakta</span><span class="mono">${kn.fact_total || 0}</span></div>
     </div>
+    ${edBlock}
     ${notes ? `<ul class="compose-sug">${notes}</ul>` : ""}
     <button type="button" class="btn" style="width:100%;margin-top:8px"
       onclick="composeDraft()">${plan.ready_to_draft ? "Render utkast →" : "Generer utkast (siste 10%) →"}</button>
@@ -8474,6 +8506,9 @@ function initAssistWelcome() {
   const log = $("#assist-log");
   if (!log) return;
   const conv = PROJECT?.conversation || [];
+  const docLabel = ACTIVE_DOC
+    ? (ACTIVE_DOC.replace(/\.json$/i, "").replace(/_/g, " "))
+    : "";
   log.innerHTML = "";
   if (conv.length) {
     for (const t of conv) {
@@ -8484,6 +8519,11 @@ function initAssistWelcome() {
       div.innerHTML = html;
       log.appendChild(div);
     }
+  } else if (docLabel) {
+    const empty = document.createElement("div");
+    empty.className = "assist-bubble bot hint";
+    empty.innerHTML = `Assistent for <b>${esc(docLabel)}</b> — denne samtalen følger dokumentet, ikke hele prosjektet.`;
+    log.appendChild(empty);
   }
   // One-time hint bubble — never as an answer to a user message
   if (!PROJECT?.assist_hint_shown) {
@@ -8623,6 +8663,12 @@ async function chatSend() {
         await loadDraft(PROJECT.id, ACTIVE_DOC);
       } catch (_) {}
       renderGapPill(PROJECT);
+    }
+    if (r.tool?.tool === "sense_folder" && r.tool?.ok) {
+      try {
+        await loadDraft(PROJECT.id, ACTIVE_DOC);
+        showToast(r.tool?.summary || L("Mappeutkast klart", "Folder draft ready"));
+      } catch (_) {}
     }
     if (r.tool?.tool === "regenerate_section" && r.tool.needs_confirm && r.tool.section) {
       await regenSection(PROJECT.id, ACTIVE_DOC, r.tool.section, r.tool.instruction || text);

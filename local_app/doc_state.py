@@ -26,6 +26,7 @@ def default_state():
         "violations": [],
         "conversation": [],
         "chat_pending": None,
+        "chat_pendings": {},
         "assist_hint_shown": False,
         # Phase 1 compliance context — frameworks suggested, user confirms
         "compliance": {
@@ -49,6 +50,7 @@ def migrate_state(state, template=None):
     state.setdefault("versions", [])
     state.setdefault("conversation", [])
     state.setdefault("chat_pending", None)
+    state.setdefault("chat_pendings", {})
     state.setdefault("assist_hint_shown", False)
     if "compliance" not in state or not isinstance(state.get("compliance"), dict):
         state["compliance"] = {
@@ -140,12 +142,29 @@ def gaps_from_md(md, section_key, severity_by_key=None):
 
 def assemble_draft(state, template, artifact=None, full_index=None):
     """Join sections in editorial order → full markdown with furniture (0.49)."""
+    doc = state.get("doc") or {}
+    # Sense drafts are topic-grouped, not template-section-keyed — show them whole.
+    if doc.get("sense"):
+        sense_md = (doc.get("sense_md") or "").strip()
+        if sense_md:
+            return sense_md
+        # Reconstruct from any stored section bodies (legacy persist)
+        parts = []
+        for sk, sec in (doc.get("sections") or {}).items():
+            if sk.startswith("_"):
+                continue
+            md = (sec.get("md") or "").strip()
+            if md:
+                title = sk.replace("_", " ").strip().title()
+                parts.append(f"## {title}\n\n{md}")
+        if parts:
+            title = (artifact or {}).get("name") or "Utkast"
+            return f"# {title}\n\n" + "\n\n".join(parts) + "\n"
     import form_model as fm
     if fm.is_form_fill(template):
         return fm.assemble_form_markdown(state, template, artifact)
     import source_citations as sc
     import editorial_layer as ed
-    doc = state.get("doc") or {}
     sections = doc.get("sections") or {}
     title = artifact.get("name") if artifact else "Utkast"
     lang = "no" if str((state or {}).get("lang") or "en").lower().startswith("n") else "en"
@@ -166,19 +185,21 @@ def assemble_draft(state, template, artifact=None, full_index=None):
             stitle = s.get("title_no") or s.get("title") or sk
         else:
             stitle = s.get("title") or s.get("title_en") or s.get("title_no") or sk
-        # Strip recursive bridges + TOC-title pseudo-claims left in older drafts.
+        # Claim→prose contract: scrub removes bridges; empty → specific GAP.
         try:
-            from foldok_ask.author_doc import scrub_authored_prose
-            md = scrub_authored_prose(md)
+            from foldok_ask.author_doc import finalize_authored_section
+            md = finalize_authored_section(
+                md, section_key=sk, heading=stitle, lang=lang,
+            )
             if md != (sec.get("md") or ""):
-                sec["md"] = md  # persist clean text so reload stays clean
+                sec["md"] = md
         except Exception:
             pass
         if not (md or "").strip():
             md = (
-                "**[MANGLER: innhold]** — seksjonen hadde bare brotekst eller kapittelnavn, ikke teknisk underlag."
+                "**[MANGLER: claims]** — seksjonen: ingen skrivbare claims (budget 0)."
                 if lang == "no" else
-                "**[GAP: content]** — this section only had bridge text or chapter titles, not technical substance."
+                "**[GAP: claims]** — section: no writable claims (budget 0)."
             )
         body_parts.append(f"\n## {stitle}\n\n{md}\n")
         files = sec.get("files")
@@ -210,7 +231,7 @@ def assemble_draft(state, template, artifact=None, full_index=None):
         body += f"\n## {stitle}\n\n{sec.get('md') or ''}\n"
     cover = (state.get("cover_image") or {}).get("file")
     index = full_index if full_index is not None else (state.get("index_cache") or [])
-    return ed.apply_editorial_furniture(
+    furnished = ed.apply_editorial_furniture(
         body,
         artifact=artifact or {"name": title},
         template=template or {},
@@ -226,6 +247,31 @@ def assemble_draft(state, template, artifact=None, full_index=None):
             "company": (artifact or {}).get("manufacturer") or "",
         },
     )
+    # Editorial QA — review only; persist report for export chip / Compose UI.
+    try:
+        from foldok_editorial import review_markdown
+        img_kinds = {"image", "photo", "drawing", "figure", "cad", "diagram", "scan"}
+        assets_available = sum(
+            1 for e in (index or [])
+            if str(e.get("kind") or "").lower() in img_kinds
+            or str(e.get("media_type") or "").startswith("image/")
+        )
+        assets_used = len(re.findall(
+            r"(?i)(?:!\[[^\]]*\]\([^)]+\)|<img\b|figure\s+\d+|fig\.?\s*\d+)",
+            furnished or "",
+        ))
+        report = review_markdown(
+            furnished,
+            language=lang,
+            sections=sections,
+            assets_available=assets_available or None,
+            assets_used=assets_used if assets_available else None,
+        )
+        doc = state.setdefault("doc", {})
+        doc["_editorial"] = report.to_dict()
+    except Exception:
+        pass
+    return furnished
 
 
 def next_user_fact_id(state):
@@ -775,18 +821,40 @@ def resolve_mangler(state, key, value, unit, template, index, artifact, fc,
     return {"sections_updated": updated_keys, "gaps": all_gaps, "fact": fact}
 
 
-def build_doc_from_generation(template_file, sections_data):
+def build_doc_from_generation(template_file, sections_data, *, sense_md: str | None = None):
+    """Build doc.sections from generate loop; enforce claim→prose / GAP contract."""
     now = iso_now()
     sections = {}
+    try:
+        from foldok_ask.author_doc import finalize_authored_section
+    except Exception:
+        finalize_authored_section = None
     for sec_key, md, cited, violations, files in sections_data:
+        # Sense bodies are already authored passages — do not GAP-scrub them.
+        if sense_md is not None:
+            clean = md or ""
+        elif finalize_authored_section is not None:
+            clean = finalize_authored_section(
+                md or "",
+                section_key=sec_key,
+                heading=sec_key,
+                lang="en",
+                claim_count=len(cited or []) or None,
+            )
+        else:
+            clean = md or ""
         sections[sec_key] = {
-            "md": md,
+            "md": clean,
             "cited": cited,
             "cited_fact_ids": cited,
-            "gaps": gaps_from_md(md, sec_key),
+            "gaps": gaps_from_md(clean, sec_key),
             "violations": violations,
             "updated": now,
         }
         if files:
             sections[sec_key]["files"] = files
-    return {"template_file": template_file, "sections": sections, "generated_at": now}
+    out = {"template_file": template_file, "sections": sections, "generated_at": now}
+    if sense_md is not None:
+        out["sense"] = True
+        out["sense_md"] = sense_md
+    return out

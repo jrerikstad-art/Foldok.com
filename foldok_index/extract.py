@@ -138,12 +138,37 @@ def _pdf(p: Path) -> Extraction:
     pages = []
     for i, page in enumerate(reader.pages):
         pages.append(f"[page {i + 1}]\n" + (page.extract_text() or ""))
+    raw = "\n\n".join(pages)
     title = ""
     try:
         title = (reader.metadata or {}).get("/Title", "") or ""
     except Exception:                                     # noqa: BLE001
         title = ""
-    return Extraction("\n\n".join(pages), "ok", title=str(title) or p.stem)
+
+    # pypdf emits one line per visual row — reflow into sentences before index/claims.
+    text = raw
+    try:
+        from foldok_reflow import harvest, reflow
+        flowed = reflow(raw)
+        text = flowed.text or raw
+        # Caption-bearing figures from the same PDF (text was never enough).
+        try:
+            assets = harvest(p, text=text, raw_text=raw)
+            if assets.figures:
+                # Append a machine-readable figure register; chunks stay searchable.
+                lines = ["", "## Embedded figures", ""]
+                for fig in assets.figures:
+                    if not fig.usable and not fig.captioned:
+                        continue
+                    lines.append(f"- {fig.menu_line()}")
+                if len(lines) > 3:
+                    text = text.rstrip() + "\n" + "\n".join(lines) + "\n"
+        except Exception:  # noqa: BLE001 - figures must not fail text ingest
+            pass
+    except ImportError:
+        pass
+
+    return Extraction(text, "ok", title=str(title) or p.stem)
 
 
 _HANDLERS: dict[str, Callable[[Path], Extraction]] = {

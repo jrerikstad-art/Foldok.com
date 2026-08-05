@@ -1,14 +1,14 @@
 """Compose topic_brief: Narrative → Author → Validator → Critic → appendix."""
 from __future__ import annotations
 
-from .author_doc import author_document, scrub_authored_prose
+from .author_doc import author_document, finalize_authored_section, scrub_authored_prose
 from .critic import review_document
 from .model import Question
 from .narrative import plan_narrative
 from .suggest import suggest_questions
 
 
-def default_brief_questions(index, *, lang: str = "no", limit: int = 4) -> list[Question]:
+def default_brief_questions(index, *, lang: str = "en", limit: int = 4) -> list[Question]:
     return suggest_questions(index, lang=lang, limit=limit)
 
 
@@ -17,7 +17,7 @@ def compose_topic_brief(
     questions: list[str | Question] | None = None,
     *,
     artifact=None,
-    lang: str = "no",
+    lang: str = "en",
     audience: str = "engineer",
 ) -> dict:
     """Document = engineering story with evidence under it.
@@ -62,7 +62,7 @@ def compose_topic_brief(
     body_parts = []
     gaps = ""
     sources = ""
-    no = (lang or "no").startswith("no")
+    no = (lang or "en").startswith("no")
     for d in drafts:
         if d.kind == "framing":
             overview = scrub_authored_prose(d.prose or "", lang=lang) if d.prose else ""
@@ -72,18 +72,17 @@ def compose_topic_brief(
             gaps = d.prose
         else:
             block = f"### {d.heading}\n\n"
-            body = scrub_authored_prose(d.prose or "", lang=lang)
-            if d.gap and not body:
+            body = finalize_authored_section(
+                d.prose or "",
+                section_key=getattr(d, "key", "") or "",
+                heading=d.heading or "",
+                lang=lang,
+            )
+            if d.gap and (not body or body.lstrip().startswith(("**[MANGLER:", "**[GAP:"))):
                 block += d.gap
-            elif not body:
-                block += (
-                    f"**[MANGLER: dekkende tekst]** — «{d.heading}» i valgte kilder."
-                    if no else
-                    f"**[GAP: covering text]** — “{d.heading}” in selected sources."
-                )
             else:
                 block += body
-                if d.gap:
+                if d.gap and "MANGLER" not in body and "GAP:" not in body:
                     block += f"\n\n*{d.gap}*"
             body_parts.append(block)
 
@@ -125,6 +124,36 @@ def compose_topic_brief(
     except Exception:
         pipeline = None
 
+    editorial = None
+    try:
+        from foldok_editorial import review_markdown
+        assembled = "\n\n".join(
+            p for p in (
+                overview,
+                "\n\n".join(body_parts),
+                gaps_body,
+            ) if p
+        )
+        editorial = review_markdown(
+            assembled,
+            language=lang,
+            sections=[
+                {"heading": d.heading, "prose": d.prose or ""}
+                for d in drafts
+                if not d.omitted and (d.prose or d.gap)
+            ],
+        ).to_dict()
+        if editorial and not editorial.get("ok"):
+            fail_n = sum(1 for f in editorial.get("findings") or [] if f.get("severity") == "fail")
+            note = (
+                f"Editorial QA: {fail_n} blocking finding(s) — see _editorial."
+                if not no else
+                f"Redaksjonell QA: {fail_n} blokkerende funn — se _editorial."
+            )
+            gaps_body = f"{note}\n\n{gaps_body}" if gaps_body else note
+    except Exception:
+        editorial = None
+
     return {
         "overview": overview or (
             "Ingen innledning kunne skrives." if no else "No introduction could be written."
@@ -145,6 +174,7 @@ def compose_topic_brief(
         "_volume_note": narrative.volume_note,
         "_pipeline": pipeline.to_dict() if pipeline is not None else None,
         "_cite_stats": cites.stats() if hasattr(cites, "stats") else None,
+        "_editorial": editorial,
     }
 
 

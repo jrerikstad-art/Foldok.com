@@ -204,6 +204,24 @@ def document_status(doc_entry: dict | None, *, blocking_gaps: int = 0, state: di
             "class": "st-gaps",
             "paid": False,
         }
+    # Editorial QA fail → never green "Klar for eksport" (false-green fix).
+    editorial = None
+    if state is not None:
+        editorial = ((state.get("doc") or {}).get("_editorial")
+                     or state.get("_editorial"))
+    if isinstance(editorial, dict) and editorial.get("ok") is False:
+        fails = [
+            f for f in (editorial.get("findings") or [])
+            if (f or {}).get("severity") == "fail"
+        ]
+        n = len(fails) or 1
+        return {
+            "key": "editorial",
+            "label": f"● {n} redaksjonelle funn",
+            "class": "st-gaps",
+            "paid": False,
+            "editorial_ok": False,
+        }
     # Has content / generated → ready; else draft
     has_export = bool(d.get("export_path"))
     generated = bool(d.get("generated_at")) or has_export

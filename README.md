@@ -8,6 +8,7 @@ Folder-compiler: sources in → manuals, forms, diagrams, and evidence packages 
 **Claim boundary:** `COMPLIANCE_POLICY.md` — structural profiles only; no legal compliance stamps.
 
 **Latest release:** see GitHub Releases (`v` + `VERSION`) · build zip: `.\scripts\make_release.ps1`  
+**0.114 notes:** `docs/RELEASE_0.114.md`  
 **Surface PRDs:** `docs/prd/README.md`  
 **Marketing deploy:** [Vercel import](https://vercel.com/new/import?s=https://github.com/jrerikstad-art/Foldok.com) · see `DEPLOY.md`
 
@@ -49,6 +50,18 @@ Static landing in `public/` — deploy to **Vercel** from GitHub (see `DEPLOY.md
 | `foldok_identity` | Project Identity + NarrativeBlueprint before the market |
 | `foldok_evidence` | Project evidence assets (depicts / relevance / stage) |
 | `foldok_director` | Content Director → composition plan + coverage |
+
+### Folder → draft stack (0.114)
+
+| Package | Role |
+|---|---|
+| `foldok_editorial` | Review-only publish gate (transitions, language, unused assets) — see `EDITORIAL_QA.md` |
+| `foldok_reflow` | PDF visual rows → sentences; embedded figures; stops fragment claims |
+| `foldok_tier` | Strong claims / descriptive candidates / rejected furniture |
+| `foldok_sense` | Topics from folder recurrence («forstå mappen» / `sense_folder`) |
+
+Chat **«make sense of this folder»** → short summary in chat; full draft in the editor (`doc.sense_md`).  
+CLI audit: `python -m foldok_sense.audit FOLDER`.
 
 Workbench **Compose** tab (`GET /api/compose`): Knowledge | Narrative | Live draft.
 Generate remains the last ~10% (render draft into slots).

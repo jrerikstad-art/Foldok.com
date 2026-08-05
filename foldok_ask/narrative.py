@@ -299,12 +299,12 @@ def plan_narrative(
     artifact=None,
     audience: str = "engineer",
     user_questions: list[str] | None = None,
-    lang: str = "no",
+    lang: str = "en",
     intent_override: DocumentIntent | None = None,
 ) -> NarrativePlan:
     """Build DocumentIntent + thesis + arc from corpus coverage."""
     sketch = corpus_sketch(index, artifact=artifact)
-    no = (lang or "no").lower().startswith("no")
+    no = (lang or "en").lower().startswith("no")
     dtype = (document_type or "topic_brief").strip().lower()
     title = sketch.title or ("Prosjekt" if no else "Project")
 

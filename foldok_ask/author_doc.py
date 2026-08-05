@@ -616,8 +616,16 @@ def section_summary(prose: str, *, max_sents: int = 2) -> str:
 _TOPIC_SLUG_RX = re.compile(
     r"(?i)^[a-zæøå][a-zæøå0-9]*(?:_[a-zæøå0-9]+)+$"
 )
+# Slug line with or without cite marks: Electromagnetic_compatibility. [20]
 _HOLLOW_LINE_RX = re.compile(
-    r"(?im)^\s*[A-Za-zÆØÅæøå][\w]*(?:_[A-Za-zÆØÅæøå0-9]+)+\.?\s*(?:\[\d+\]\s*)+\s*$"
+    r"(?im)^\s*[A-Za-zÆØÅæøå][\w]*(?:_[A-Za-zÆØÅæøå0-9]+)+\.?\s*(?:\[\d+\]\s*)*\s*$"
+)
+# Fact-printer: electromagnetic_compatibility: something / Installation_guide: …
+_KEY_VALUE_LINE_RX = re.compile(
+    r"(?im)^\s*[A-Za-zÆØÅæøå][\w]*(?:_[A-Za-zÆØÅæøå0-9]+)+\s*:\s+\S"
+)
+_CLAIM_ID_LINE_RX = re.compile(
+    r"(?im)^\s*(?:claim_[a-z0-9_-]+|[a-f0-9]{8,})\.?\s*(?:\[\d+\]\s*)*\s*$"
 )
 _BRIDGE_RUN_RX = re.compile(
     r"(?i)(?:Etter\s+dette\s*[—–\-]+\s*)+"
@@ -625,27 +633,71 @@ _BRIDGE_RUN_RX = re.compile(
 _BRIDGE_TAIL_RX = re.compile(
     r"(?i)\s*[—–\-]*\s*følger\s+neste\s+ledd\s+i\s+argumentet\.?\s*"
 )
+_META_ARG_RX = re.compile(
+    r"(?i)\b("
+    r"reglene\s+forankres|med\s+tesen\s+lagt|rolle\s+i\s+(?:hoved)?argumentet|"
+    r"følger\s+neste\s+ledd|neste\s+ledd\s+i\s+argumentet|"
+    r"the\s+rules\s+are\s+anchored|having\s+established|"
+    r"next\s+(?:step|topic)\s+in\s+the\s+argument|with\s+the\s+thesis\s+laid"
+    r")\b"
+)
 _META_OPENER_RX = re.compile(
     r"(?i)^(Reglene\s+forankres\b|Med\s+tesen\s+lagt\b|"
     r"Having\s+established\b|The\s+rules\s+are\s+anchored\b|"
-    r"Neste\s+ledd\b|The\s+next\s+step\s+in\s+the\s+argument\b)"
+    r"Neste\s+ledd\b|The\s+next\s+step\s+in\s+the\s+argument\b|"
+    r"Etter\s+dette\b)"
 )
+
+
+def _strip_cite_marks(text: str) -> str:
+    q = (text or "").strip()
+    q = re.sub(r"^(?:\[\d+\]\s*)+", "", q)
+    q = re.sub(r"\s*(?:\[\d+\])+\s*$", "", q)
+    return q.strip().strip("\"'").rstrip(".")
 
 
 def _is_topic_slug(text: str) -> bool:
     """True for Electromagnetic_compatibility / Corrosion_protection — not prose."""
-    q = (text or "").strip().strip("\"'").rstrip(".")
-    # Drop trailing cite marks for the test.
-    q = re.sub(r"\s*(?:\[\d+\])+\s*$", "", q).strip().rstrip(".")
+    q = _strip_cite_marks(text)
     if not q or " " in q:
         return False
     return bool(_TOPIC_SLUG_RX.match(q)) or ("_" in q and q.count(" ") == 0)
+
+
+def _is_bad_body_sentence(text: str) -> bool:
+    """Ban slug / claim_id / Key: value / argument-meta as section body."""
+    ln = (text or "").strip().strip(" —–-\t")
+    if not ln or len(ln) < 3:
+        return True
+    # Leading cite-only remnants after split: "[20]" / "[17]"
+    if re.match(r"^(?:\[\d+\]\s*)+$", ln):
+        return True
+    if _HOLLOW_LINE_RX.match(ln) or _is_topic_slug(ln):
+        return True
+    if _KEY_VALUE_LINE_RX.match(ln) or _CLAIM_ID_LINE_RX.match(ln):
+        return True
+    bare = _strip_cite_marks(ln)
+    if _is_topic_slug(bare) or _HOLLOW_LINE_RX.match(bare):
+        return True
+    # "[20] Installation_guide" / "Installation_guide [17]"
+    if re.match(
+        r"(?i)^(?:\[\d+\]\s*)*[A-Za-z][\w]*(?:_[A-Za-z0-9]+)+\.?(?:\s*\[\d+\])*\s*$",
+        ln,
+    ):
+        return True
+    if _META_ARG_RX.search(ln):
+        return True
+    if _META_OPENER_RX.match(ln):
+        return True
+    return False
 
 
 def _usable_evidence_quote(quote: str) -> bool:
     """Reject filename stems, TOC labels, and topic slugs; keep real sentences."""
     q = (quote or "").strip().strip("\"'")
     if len(q) < 28:
+        return False
+    if _is_bad_body_sentence(q):
         return False
     if _is_topic_slug(q):
         return False
@@ -672,70 +724,165 @@ def bridge_opening(
     prev_beat: str = "",
     next_beat: str = "",
     next_purpose: str = "",
-    lang: str = "no",
+    lang: str = "en",
     heading: str = "",
 ) -> str:
     """Continuity bridges are disabled — they stacked into «Etter dette —» spam."""
     return ""
 
 
-def scrub_authored_prose(prose: str, *, lang: str = "no") -> str:
-    """Three guards: one bridge, no topic slugs as body, no empty cite spam.
+def scrub_authored_prose(prose: str, *, lang: str = "en") -> str:
+    """Guards: no stacked bridges, no topic slugs / claim ids / Key:value as body.
 
     Removes::
 
         Etter dette — Etter dette — Reglene forankres…
         Electromagnetic_compatibility. [20]
-        Electromagnetic_compatibility. [21]
+        Installation_guide. [17]
+
+    Scrub only *removes* junk — it must not be the only writer. Call
+    ``finalize_authored_section`` after authoring so empty bodies become a
+    specific GAP.
+
+    Numbered / bullet / checklist / markdown-table lines are preserved intact
+    (sentence-split would peel ``1.`` off steps and flatten ``|`` rows into one line).
     """
     text = (prose or "").strip()
     if not text:
         return ""
 
-    # (1) Peel stacked bridge prefixes anywhere in the text.
+    # Peel stacked bridge prefixes anywhere.
     text = _BRIDGE_RUN_RX.sub("", text)
     text = _BRIDGE_TAIL_RX.sub(" ", text)
     text = re.sub(r"(?i)(?:Etter\s+dette\s*[—–\-]+\s*)+", "", text)
+    text = re.sub(r"(?i)\bfølger\s+neste\s+ledd\s+i\s+argumentet\.?\b", " ", text)
+
+    _STRUCT_LINE = re.compile(
+        r"^(?:"
+        r">\s|"                          # blockquote / banners
+        r"\d+\.\s+\S|"                   # numbered steps
+        r"[-*•]\s+\S|"                   # bullets
+        r"□\s|"                          # checklist
+        r"-\s*\[[ xX]\]\s|"              # md checkbox
+        r"\||"                           # markdown table rows / separators
+        r"\{\{figure:|"                  # figure markers
+        r"\{\{fig:"
+        r")"
+    )
 
     kept: list[str] = []
-    seen_slugs: set[str] = set()
     for para in re.split(r"\n\s*\n", text):
         p = para.strip(" —–-\t")
         if not p:
             continue
-        lines_out: list[str] = []
-        for line in p.splitlines():
-            ln = line.strip()
+        # Keep structured blocks line-by-line (do not sentence-split).
+        raw_lines = p.splitlines()
+        if any(_STRUCT_LINE.match(ln.strip()) for ln in raw_lines):
+            good_lines = []
+            for ln in raw_lines:
+                s = ln.strip()
+                if not s:
+                    continue
+                if _STRUCT_LINE.match(s):
+                    # Drop only if the payload after the marker is pure slug junk
+                    payload = re.sub(
+                        r"^(?:>\s*|\d+\.\s+|[-*•]\s+|□\s+|-\s*\[[ xX]\]\s+)",
+                        "",
+                        s,
+                    ).strip()
+                    if payload and _is_bad_body_sentence(payload) and len(payload) < 40:
+                        continue
+                    good_lines.append(s)
+                elif not _is_bad_body_sentence(s):
+                    good_lines.append(s)
+            if good_lines:
+                kept.append("\n".join(good_lines))
+            continue
+        # Sentence-level filter so slug lines glued to meta openers still die.
+        pieces = re.split(r"(?<=[.!?])\s+|\n+", p)
+        good: list[str] = []
+        for piece in pieces:
+            ln = piece.strip(" —–-\t")
             if not ln:
                 continue
-            # (2) Ban snake_case / topic ids as body lines (with or without cites).
-            if _HOLLOW_LINE_RX.match(ln) or _is_topic_slug(ln):
-                slug = re.sub(r"\s*(?:\[\d+\])+\s*$", "", ln).strip().rstrip(".").lower()
-                seen_slugs.add(slug)
+            if _is_bad_body_sentence(ln):
                 continue
-            # Same slug repeated as "Title_case. [n]" variants
-            bare = re.sub(r"\s*(?:\[\d+\])+\s*$", "", ln).strip().rstrip(".")
-            if _is_topic_slug(bare):
-                seen_slugs.add(bare.lower())
-                continue
-            lines_out.append(line.rstrip())
-        if not lines_out:
+            good.append(ln)
+        if not good:
             continue
-        chunk = "\n".join(lines_out).strip(" —–-\t")
-        # Pure meta openers with no substance after scrub → drop.
-        if _META_OPENER_RX.match(chunk) and len(chunk) < 120:
-            continue
-        if re.match(
-            r"(?i)^(følger\s+neste\s+ledd|neste\s+ledd\s+i\s+argumentet)\.?$",
-            chunk,
-        ):
+        chunk = " ".join(good).strip(" —–-\t")
+        if _is_bad_body_sentence(chunk):
             continue
         kept.append(chunk)
 
     out = "\n\n".join(kept).strip()
     out = re.sub(r"[ \t]{2,}", " ", out)
     out = re.sub(r"\n{3,}", "\n\n", out)
+    # Absolute ban — if any residual bridge/slug token remains, drop the block.
+    if re.search(r"(?i)\better\s+dette\b", out):
+        out = re.sub(r"(?i)(?:Etter\s+dette\s*[—–\-]*\s*)+", "", out).strip(" —–-\t")
+    if re.search(r"(?i)\b[a-z]+(?:_[a-z0-9]+)+\.?\s*(?:\[\d+\])*\s*$", out, re.M):
+        lines = [ln for ln in out.splitlines() if not _is_bad_body_sentence(ln)]
+        out = "\n".join(lines).strip()
     return out.strip()
+
+
+def no_claims_gap(
+    section_key: str = "",
+    *,
+    heading: str = "",
+    lang: str = "en",
+) -> str:
+    """One specific GAP when retrieve budget found nothing writable."""
+    no = (lang or "en").startswith("n")
+    label = (heading or section_key or "").strip() or ("seksjonen" if no else "this section")
+    if no:
+        return (
+            f"**[MANGLER: claims]** — «{label}»: ingen skrivbare claims "
+            f"(budget 0). Ikke brotekst — legg til kilder med faktisk tekst om temaet."
+        )
+    return (
+        f"**[GAP: claims]** — “{label}”: no writable claims "
+        f"(budget 0). Not bridge text — add sources with real text on the topic."
+    )
+
+
+def finalize_authored_section(
+    prose: str,
+    *,
+    section_key: str = "",
+    heading: str = "",
+    lang: str = "en",
+    claim_count: int | None = None,
+) -> str:
+    """Section author contract after retrieve/write:
+
+    ```
+    for each section:
+      retrieve claims (budget > 0)
+      if claims: write prose/table from claim *text*, not ids
+      else: one specific GAP (no claims for this section)
+      never emit bridge-only body
+    scrub only removes bridges — must not be the only thing that ran
+    ```
+    """
+    cleaned = scrub_authored_prose(prose or "", lang=lang)
+    if cleaned.strip():
+        return cleaned
+    no = (lang or "en").startswith("n")
+    label = (heading or section_key or "").strip() or ("seksjonen" if no else "this section")
+    if claim_count and claim_count > 0:
+        # Retrieve returned candidates, but none were writable claim *text*.
+        if no:
+            return (
+                f"**[MANGLER: skrivbar claim-tekst]** — «{label}»: {claim_count} treff, "
+                f"men bare emnenøkler / brotekst — ikke claim-tekst å skrive fra."
+            )
+        return (
+            f"**[GAP: writable claim text]** — “{label}”: {claim_count} hit(s), "
+            f"but only topic keys / bridge text — nothing to write from."
+        )
+    return no_claims_gap(section_key, heading=heading, lang=lang)
 
 
 def strip_nested_bridges(prose: str) -> str:
@@ -812,22 +959,14 @@ def write_volume_section(
 
     # Never prepend bridges — bridge_opening is disabled; keep call sites quiet.
     prose = _merged_volume_prose(usable, cites, heading=heading, lang=lang) if usable else ""
-    prose = scrub_authored_prose(prose, lang=lang)
-
-    if not prose:
-        theme = heading or "topic"
-        gap = (
-            f"**[MANGLER: dekkende tekst]** — «{theme}» fant bare emnenøkler "
-            f"(f.eks. Electromagnetic_compatibility) eller brotekst, ikke påstander. "
-            f"Slett seksjonen, eller legg til kilder med faktisk tekst om temaet."
-            if no else
-            f"**[GAP: covering text]** — “{theme}” only found topic keys "
-            f"(e.g. Electromagnetic_compatibility) or bridge text, not claims. "
-            f"Delete the section, or add sources with real text on the topic."
-        )
+    prose = finalize_authored_section(
+        prose, section_key=getattr(section, "key", "") or "",
+        heading=heading, lang=lang, claim_count=len(usable),
+    )
+    if prose.lstrip().startswith("**[MANGLER:") or prose.lstrip().startswith("**[GAP:"):
         return SectionDraft(
             heading=section.heading, purpose=purpose, kind=section.kind,
-            gap=gap, prose="", fidelity_ok=False,
+            gap=prose, prose="", fidelity_ok=False,
             author_intent="explain", arc_beat=arc_beat,
         )
 
@@ -894,7 +1033,18 @@ def write_teach(
         pick_n = 1 if author_intent == "conclude" else 2
         n_avail = len(claimset) if claimset is not None else 0
         if author_intent != "conclude":
-            pick_n = _section_budget(max(n_avail, 1), floor=2, ceiling=8)
+            pick_n = _section_budget(n_avail, floor=2, ceiling=8)
+        if pick_n <= 0:
+            return SectionDraft(
+                heading=section.heading, purpose=purpose, kind=section.kind,
+                gap=no_claims_gap(
+                    getattr(section, "key", "") or "",
+                    heading=section.heading or "",
+                    lang=lang,
+                ),
+                prose="", fidelity_ok=False,
+                author_intent=author_intent, arc_beat=arc_beat, hits=hits,
+            )
         picked = _pick_foldok_claims(
             claimset, cites,
             purpose=purpose, heading=section.heading,
@@ -923,7 +1073,7 @@ def write_teach(
         if author_intent == "conclude":
             pick_n = 1
         else:
-            pick_n = _section_budget(max(len(claims), 1), floor=2, ceiling=8)
+            pick_n = _section_budget(len(claims), floor=2, ceiling=8)
         if need and not _claims_satisfy(claims, need):
             gap = _fidelity_gap(section.heading, need, no=no)
             return SectionDraft(
@@ -931,16 +1081,21 @@ def write_teach(
                 gap=gap, prose="", fidelity_ok=False,
                 author_intent=author_intent, arc_beat=arc_beat, hits=hits,
             )
-        if not claims and author_intent != "conclude":
-            if optional:
+        if pick_n <= 0 or (not claims and author_intent != "conclude"):
+            if optional and not claims:
                 return SectionDraft(
                     heading=section.heading, purpose=purpose, kind=section.kind,
                     omitted=True, author_intent=author_intent, arc_beat=arc_beat,
                 )
             return SectionDraft(
                 heading=section.heading, purpose=purpose, kind=section.kind,
-                gap=("MANGLER: for tynt treffgrunnlag" if no else "MISSING: too thin to ground"),
-                fidelity_ok=False, author_intent=author_intent, arc_beat=arc_beat,
+                gap=no_claims_gap(
+                    getattr(section, "key", "") or "",
+                    heading=section.heading or "",
+                    lang=lang,
+                ),
+                prose="", fidelity_ok=False,
+                author_intent=author_intent, arc_beat=arc_beat, hits=hits,
             )
         if author_intent == "conclude":
             picked = _pick_claims(claims, cites, n=1, prefer=need or {"shield"}, roles=roles)
@@ -988,18 +1143,17 @@ def write_teach(
 
     prose = validate_prose(prose, hits) or prose
     prose = _strip_banned(prose)
-    prose = scrub_authored_prose(prose, lang=lang)
-    if not prose.strip():
-        gap = (
-            f"**[MANGLER: dekkende tekst]** — «{section.heading}» uten skrivbar claim-tekst "
-            f"(kun emnenøkler / tomme treff)."
-            if no else
-            f"**[GAP: covering text]** — “{section.heading}” has no writable claim text "
-            f"(topic keys / empty hits only)."
-        )
+    prose = finalize_authored_section(
+        prose,
+        section_key=getattr(section, "key", "") or "",
+        heading=section.heading or "",
+        lang=lang,
+        claim_count=len(picked),
+    )
+    if prose.lstrip().startswith("**[MANGLER:") or prose.lstrip().startswith("**[GAP:"):
         return SectionDraft(
             heading=section.heading, purpose=purpose, kind=section.kind,
-            gap=gap, prose="", fidelity_ok=False,
+            gap=prose, prose="", fidelity_ok=False,
             author_intent=author_intent, arc_beat=arc_beat, hits=hits,
         )
     return SectionDraft(
@@ -1081,23 +1235,30 @@ def _write_explain(heading, claims: list[Claim], cites, *, lang) -> str:
     if not claims:
         if _is_install_context(heading):
             return (
-                f"{lead} MANGLER: underlaget har bare fil-/kapittelnavn, ikke monteringssteg."
+                f"**[MANGLER: installasjonsprosedyre]** — «{heading}» fant bare "
+                f"fil-/kapittelnavn, ikke monteringssteg."
                 if no else
-                f"{lead} MISSING: sources only have file/TOC titles, not mounting steps."
+                f"**[GAP: installation procedure]** — “{heading}” only found "
+                f"file/TOC titles, not mounting steps."
             )
-        return lead
-    parts = [lead]
+        return (
+            f"**[MANGLER: dekkende tekst]** — «{heading}» i valgte kilder."
+            if no else
+            f"**[GAP: covering text]** — “{heading}” in selected sources."
+        )
+    # One grounded sentence + cites (no meta lead when we have real claims).
+    parts = []
     c0 = claims[0]
     if no:
-        parts.append(f"Konkret: {c0.text_no} {cites.mark(c0.file_id)}.")
+        parts.append(f"{c0.text_no} {cites.mark(c0.file_id)}.")
     else:
-        parts.append(f"Specifically: {c0.text_en} {cites.mark(c0.file_id)}.")
+        parts.append(f"{c0.text_en} {cites.mark(c0.file_id)}.")
     if len(claims) > 1:
         c1 = claims[1]
         if no:
-            parts.append(f"Videre gjelder at {c1.text_no} {cites.mark(c1.file_id)}.")
+            parts.append(f"{c1.text_no} {cites.mark(c1.file_id)}.")
         else:
-            parts.append(f"Further, {c1.text_en} {cites.mark(c1.file_id)}.")
+            parts.append(f"{c1.text_en} {cites.mark(c1.file_id)}.")
     return " ".join(parts)
 
 
@@ -1106,9 +1267,9 @@ def _write_argue(heading, claims: list[Claim], cites, *, lang) -> str:
     claims = [c for c in (claims or []) if _usable_evidence_quote(
         getattr(c, "text_no", None) or getattr(c, "text_en", None) or getattr(c, "text", "") or ""
     )]
-    lead = _purpose_lead(heading, no=no, author_intent="argue")
     if not claims:
-        return lead
+        return no_claims_gap(heading=heading or "", lang=lang)
+    lead = _purpose_lead(heading, no=no, author_intent="argue")
     c0 = claims[0]
     if no:
         body = f"{lead} Når {c0.text_no} {cites.mark(c0.file_id)}, er det ikke et periferikrav."
@@ -1128,9 +1289,9 @@ def _write_recommend(heading, claims: list[Claim], cites, *, lang) -> str:
     claims = [c for c in (claims or []) if _usable_evidence_quote(
         getattr(c, "text_no", None) or getattr(c, "text_en", None) or getattr(c, "text", "") or ""
     )]
-    lead = _purpose_lead(heading, no=no, author_intent="recommend")
     if not claims:
-        return lead
+        return no_claims_gap(heading=heading or "", lang=lang)
+    lead = _purpose_lead(heading, no=no, author_intent="recommend")
     c0 = claims[0]
     if no:
         parts = [lead, f"En praktisk retning er at {c0.text_no} {cites.mark(c0.file_id)}."]

@@ -296,17 +296,16 @@ NotebookLM stops at a good draft from sources. Foldok’s path with authoring do
 
 That’s a **package**, not a chat export. Do not chase “sounds like NotebookLM”; chase **“I’d hand this to the customer.”**
 
-### Next cycle (editor polish — foundation shipped in 0.113)
+### Next cycle (Editorial QA — 0.114)
 
-1. ~~**Document Composer UI**~~ — Compose tab: Knowledge | Narrative | Live page.  
-2. ~~**Content Director**~~ — `foldok_director` + `GET /api/compose`.  
-3. ~~**Project Asset object**~~ — `foldok_evidence`.  
-4. ~~**Section coverage**~~ — evidence / figures / standards bars on clips.  
-5. Drag-reorder narrative clips; bind/unbind assets from the timeline.  
-6. Raise the bar on slot prose; ban “findings list” voice when facts exist.  
-7. After write: verification — unsourced sentence → gap or rewrite.
+1. ~~**Editorial QA engine**~~ — `foldok_editorial`: review-only gate (transitions, slugs, language, unused assets).
+2. ~~Wire report into Compose rail + block false-green «Klar for eksport».~~
+3. Drag-reorder narrative clips; bind/unbind assets from the timeline.
+4. Raise the bar on slot prose; ban “findings list” voice when facts exist.
+5. After write: verification — unsourced sentence → gap or rewrite.
+6. Defer Transition Engine until editorial metrics are trusted weekly.
 
-**Shipped:** `foldok_author` **0.86** — fact-shaped intents compose (and verify) from facts; procedural intents (`instruct_procedure`, `warn_hazard`, `troubleshoot`, `explain_process`) are **refused by name** and authored via `Procedure` instead of invented. `write_section_prose` uses compose/verify and falls back to the fact ledger for refused intents. **`foldok_identity` 0.112** — Project Identity before the section market.
+**Shipped:** `foldok_author` **0.86** — fact-shaped intents compose (and verify) from facts; procedural intents (`instruct_procedure`, `warn_hazard`, `troubleshoot`, `explain_process`) are **refused by name** and authored via `Procedure` instead of invented. `write_section_prose` uses compose/verify and falls back to the fact ledger for refused intents. **`foldok_identity` 0.112** — Project Identity before the section market. **`foldok_editorial` 0.114** — publish gate that only reviews.
 
 Success test: open a composed manual and ask only — *Would I give this to a customer?* If no, fix authoring or coverage — not another extraction feature.
 

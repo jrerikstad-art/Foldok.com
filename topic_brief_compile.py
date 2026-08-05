@@ -25,15 +25,19 @@ def _cache_key(index, artifact, lang) -> str:
         if e.get("kind") != "skipped"
     )[:80]
     art = artifact or {}
-    blob = "|".join(files) + "|" + str(art.get("name") or "") + "|" + (lang or "no") + "|" + ver + "|scrub-v3"
+    blob = "|".join(files) + "|" + str(art.get("name") or "") + "|" + (lang or "en") + "|" + ver + "|claim-contract-v1"
     return hashlib.sha1(blob.encode("utf-8", errors="replace")).hexdigest()[:20]
 
 
 def _parts_for(index, artifact, lang):
     key = _cache_key(index, artifact, lang)
+    # Drop stale keys from older scrub generations so EN regenerate cannot reuse NO junk.
+    stale = [k for k in list(_CACHE) if k != key]
+    for k in stale[:4]:
+        _CACHE.pop(k, None)
     if key not in _CACHE:
         _CACHE[key] = compose_topic_brief(
-            index, questions=None, artifact=artifact, lang=lang,
+            index, questions=None, artifact=artifact, lang=lang or "en",
         )
         # Bound cache size
         if len(_CACHE) > 8:
@@ -43,7 +47,7 @@ def _parts_for(index, artifact, lang):
     return _CACHE[key]
 
 
-def compile_topic_brief_section(sec_key, mapping, index, artifact, lang="no"):
+def compile_topic_brief_section(sec_key, mapping, index, artifact, lang="en"):
     """Map template section keys to ask-composed bodies."""
     sk = (sec_key or "").strip().lower()
     # Legacy facet section keys — no longer generated
@@ -51,11 +55,17 @@ def compile_topic_brief_section(sec_key, mapping, index, artifact, lang="no"):
         return ""
     parts = _parts_for(index, artifact, lang)
     if sk in ("overview", "answers", "gaps", "source_register"):
-        return parts.get(sk) or ""
+        body = parts.get(sk) or ""
+        try:
+            from foldok_ask.author_doc import finalize_authored_section
+            body = finalize_authored_section(body, section_key=sk, lang=lang)
+        except Exception:
+            pass
+        return body
     return None
 
 
-def blueprint_for(index, artifact, lang="no") -> dict | None:
+def blueprint_for(index, artifact, lang="en") -> dict | None:
     """NarrativeBlueprint dict for persistence on the document."""
     parts = _parts_for(index, artifact, lang)
     return parts.get("_blueprint")

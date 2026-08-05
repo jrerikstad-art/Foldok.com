@@ -228,7 +228,20 @@ def extract_many(documents: Iterable[tuple[str, str]]) -> ClaimSet:
 
 # ----------------------------------------------------------------------
 def _sentences(text: str) -> list[str]:
+    """Split into claim candidates.
+
+    Prefer ``foldok_reflow``: PDF extractors emit visual rows, and a newline-based
+    splitter turns one sentence into four unusable fragment claims.
+    """
     raw = (text or "").replace("\r\n", "\n")
+    try:
+        from foldok_reflow import reflow, split_sentences as reflow_split
+        body = reflow(raw).text or raw
+        sents = [s.strip() for s in reflow_split(body) if len(s.strip()) >= 25]
+        if sents:
+            return sents
+    except Exception:  # noqa: BLE001 - fall through to legacy splitter
+        pass
     out: list[str] = []
     for line in raw.split("\n"):
         stripped = line.strip(" \t*-•")

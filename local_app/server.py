@@ -333,9 +333,11 @@ def build_project_chat_context(p, folders, primary, state, index=None, *,
     inv_txt = ", ".join(f"{x['key']}:{x['count']}" for x in inv) or "(ingen fakta i indeks)"
     brief = edchat.corpus_brief(index, file_count)
 
-    # BUGFIX_0.19 §A extended — conversation scoped to this project_id only
+    # Conversation for the active document only (editor) — not the whole project.
     pid = p.get("id")
-    conv = edchat.conversation_for_project(state or {}, pid)
+    conv = edchat.conversation_for_document(state or {}, pid, active_tf) if active_tf else (
+        edchat.conversation_for_project(state or {}, pid)
+    )
     if conversation_limit and len(conv) > conversation_limit:
         conv = conv[-conversation_limit:]
     hist_lines = []
@@ -350,8 +352,11 @@ def build_project_chat_context(p, folders, primary, state, index=None, *,
     hist_txt = "\n".join(hist_lines) if hist_lines else "(tom samtale)"
 
     folder_list = " | ".join(str(f) for f in folders)
+    doc_status = edchat.open_document_status(state or {})
+    doc_lang = "no" if str(lang or "en").lower().startswith("n") else "en"
     text = (
         "=== PROJECT CHAT CONTEXT (engine-owned; always attached) ===\n"
+        f"DOCUMENT_LANGUAGE: {doc_lang}  ← reply ONLY in this language\n"
         f"PROJECT: {p.get('name') or p.get('id')}\n"
         f"PROJECT_ID: {p.get('id')}\n"
         f"FOLDER: {primary}\n"
@@ -359,13 +364,18 @@ def build_project_chat_context(p, folders, primary, state, index=None, *,
         f"FILE_COUNT: {file_count}\n"
         f"INDEXED_COUNT: {indexed_count}\n"
         f"ACTIVE_DOCUMENT: {active_tf or '(none)'}\n"
+        f"OPEN_DOCUMENT_STATUS: sections={doc_status['section_total']} "
+        f"substance={doc_status['with_substance']} empty={doc_status['empty']} "
+        f"gap_only={doc_status['gap_only']} editorial_ok={doc_status.get('editorial_ok')}\n"
+        f"EMPTY_OR_GAP_KEYS: {', '.join(doc_status['empty_keys'] + doc_status['gap_keys']) or '(none)'}\n"
         f"CORPUS BRIEF: {brief}\n\n"
         f"ARTIFACT MODEL (full JSON, incl. confidence):\n{art_json}\n\n"
         f"DOCUMENTS (+ gap counts; ← ACTIVE marks current):\n" + "\n".join(doc_lines) + "\n\n"
         f"FACT KEY INVENTORY (keys only, top {min(40, len(inv) or 40)} by count — NO values):\n"
         f"{inv_txt}\n\n"
         f"CONVERSATION HISTORY:\n{hist_txt}\n"
-        "=== END PROJECT CHAT CONTEXT ==="
+        "=== END PROJECT CHAT CONTEXT ===\n"
+        "You HAVE this context. Never claim you lack a document or project files."
     )
     return {
         "text": text,
@@ -377,6 +387,8 @@ def build_project_chat_context(p, folders, primary, state, index=None, *,
         "artifact": art,
         "active_template": active_tf,
         "index": index,
+        "document_status": doc_status,
+        "document_language": doc_lang,
     }
 
 
@@ -613,8 +625,10 @@ def load_state(folder, template_file=None, project_id=None):
     return state
 
 
-def isolated_conversation(state, project_id):
-    """Return conversation turns belonging only to this project (BUGFIX_0.19 §A)."""
+def isolated_conversation(state, project_id, template_file=None):
+    """Return conversation turns for this project, optionally one document."""
+    if template_file:
+        return edchat.conversation_for_document(state or {}, project_id, template_file)
     return edchat.conversation_for_project(state or {}, project_id)
 
 
@@ -1452,6 +1466,17 @@ def start_job(target, *args, **job_extra):
     return job_id
 
 
+def start_generate_job(folders, template_file, lang):
+    """Generate jobs are queryable immediately (kind=generate before thread runs)."""
+    folder0 = folders[0] if folders else ""
+    return start_job(
+        run_generate, folders, template_file, lang,
+        kind="generate",
+        template=template_file,
+        current_folder=folder0,
+    )
+
+
 def _job_wrapper(job_id, target, *args):
     ledger_start = len(fc.LEDGER)
     try:
@@ -1806,6 +1831,87 @@ def _apply_corpus_appendix(content, state, index, artifact, lang="no"):
         return content or ""
 
 
+def run_sense_generate(job_id, folders, template_file, lang):
+    """Folder → topics draft via the full sense chain (not template section hunt).
+
+    This is the path ``foldok_sense.audit`` measures. Capions-only index sense
+    cannot invent page-text topics; generate must call extract→reflow→tier→sense.
+    """
+    folder = folders[0]
+    lang = "no" if str(lang or "").lower().startswith("n") else "en"
+    job_update(
+        job_id,
+        kind="generate",
+        current_folder=folder,
+        template=template_file,
+        step="Leser mappen (sense)" if lang != "en" else "Reading folder (sense)",
+        lang=lang,
+    )
+    state = load_state(folder, template_file)
+    state["lang"] = lang
+    artifact = dict(state.get("artifact") or {})
+    artifact["_folders"] = list(folders or [])
+    title = str(artifact.get("name") or Path(folder).name)
+    job_update(job_id, step="scan → extract → reflow → tier → sense", total=1)
+    from foldok_sense import sense_from_folder
+    draft = sense_from_folder(
+        folder,
+        lang=lang,
+        expected=["installasjon", "montering"],
+        title=title,
+        max_files=200,
+    )
+    content = draft.markdown(lang=lang)
+    template = load_template(template_file, folder) or {
+        "name": "Folder sense",
+        "name_no": "Mappeutkast",
+        "sections": [],
+        "template_key": "folder_sense",
+    }
+    # Persist as doc sections (topic headings) + draft files
+    sec_map = ds.split_draft_to_sections(content, template)
+    sections_data = [
+        (sk, (row.get("md") or ""), [], [], [])
+        for sk, row in sec_map.items()
+    ]
+    if not sections_data:
+        sections_data = [("body", content, [], [], [])]
+    state["doc"] = ds.build_doc_from_generation(
+        template_file, sections_data, sense_md=content,
+    )
+    state["doc"]["sense"] = True
+    state["doc"]["corroborated"] = bool(getattr(draft, "corroborated", True))
+    state["sense_draft"] = draft.to_dict()
+    state["generate_mode"] = "sense"
+    state["gaps"] = []
+    content = _apply_corpus_appendix(content, state, [], artifact, lang=lang)
+    export_path, export_name = sync_draft_files(
+        folder, state, template, template_file, content,
+    )
+    stem = template_stem(template_file)
+    doc = {
+        "template": template_file, "key": stem,
+        "name_no": template.get("name_no") or template.get("name") or stem,
+        "document_species": "folder_sense",
+        "export_name": export_name, "export_path": str(export_path),
+        "gaps": 0, "blocking": 0, "gap_list": [],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "sense_summary": draft.summary(lang=lang),
+    }
+    docs = [d for d in state.get("documents", []) if d.get("template") != template_file]
+    docs.append(doc)
+    state["template"] = template_file
+    state["active_template"] = template_file
+    state["documents"] = docs
+    state["artifact"] = artifact
+    ds.add_version(
+        state, "system", "doc",
+        f"Sense draft {export_name}: {draft.summary(lang=lang)}", section=None,
+    )
+    job_update(job_id, done=1, detail=draft.summary(lang=lang))
+    save_state(folder, state)
+
+
 def run_form_fill(job_id, folders, template_file, lang):
     """WORKORDER_0.29 — form_fill: prefill from index, zero model calls."""
     import form_model as fm
@@ -1867,6 +1973,17 @@ def run_generate(job_id, folders, template_file, lang):
     import form_model as fm
     if fm.is_form_fill(template):
         return run_form_fill(job_id, folders, template_file, lang)
+    # Sense-first: full folder chain, not fixed-outline section hunt
+    tpl_key_sense = str(template.get("template_key") or "").strip().lower()
+    tf_sense = Path(template_file).name.lower()
+    want_sense = (
+        state.get("generate_mode") == "sense"
+        or str((state.get("artifact") or {}).get("generate_mode") or "") == "sense"
+        or tpl_key_sense in ("folder_sense", "sense")
+        or tf_sense in ("folder_sense.json", "sense.json")
+    )
+    if want_sense:
+        return run_sense_generate(job_id, folders, template_file, lang)
     if not artifact:
         raise RuntimeError("Artefaktmodellen mangler — beskriv prosjektet i chatten først")
     if not state.get("confirmed"):
@@ -1956,6 +2073,14 @@ def run_generate(job_id, folders, template_file, lang):
             if violations:
                 text = fc.redact_uncited(text)
                 all_violations.append(sec_key)
+        try:
+            from foldok_ask.author_doc import finalize_authored_section
+            text = finalize_authored_section(
+                text or "", section_key=sec_key, heading=title, lang=lang,
+                claim_count=len(cited or []) or None,
+            )
+        except Exception:
+            pass
         sections_data.append((sec_key, text, cited, violations, mapping.get("files", [])))
         # One fact → one primary home (except safety-critical repeats)
         for fid in (cited or []):
@@ -3261,7 +3386,8 @@ class Handler(BaseHTTPRequestHandler):
                     "blocking_dismissed": ds.blocking_dismissed(state),
                     "reference_facts": ds.reference_facts(state),
                     "empty_folder": True,
-                    "conversation": isolated_conversation(state, p.get("id")),
+                    "conversation": isolated_conversation(state, p.get("id"), view_tpl),
+                    "chat_pending": edchat.get_chat_pending(state, view_tpl),
                     "template": state.get("template") or view_tpl,
                     "active_template": view_tpl or state.get("active_template"),
                     "documents": documents,
@@ -3407,8 +3533,8 @@ class Handler(BaseHTTPRequestHandler):
                                     "blocking_dismissed": ds.blocking_dismissed(state),
                                     "reference_facts": ds.reference_facts(state),
                                     "empty_folder": len([f for f in rows if f.get("kind") != "skipped"]) == 0,
-                                    "conversation": isolated_conversation(state, p.get("id")),
-                                    "chat_pending": state.get("chat_pending"),
+                                    "conversation": isolated_conversation(state, p.get("id"), view_tpl),
+                                    "chat_pending": edchat.get_chat_pending(state, view_tpl),
                                     "assist_hint_shown": bool(state.get("assist_hint_shown")),
                                     "template": state.get("template"),
                                     "active_template": active, "documents": documents,
@@ -3495,12 +3621,80 @@ class Handler(BaseHTTPRequestHandler):
                 )
             except Exception as exc:
                 return self._send(500, {"error": "compose_failed", "detail": str(exc)})
+            # Attach Editorial QA when a draft exists (review only — never rewrite).
+            editorial = (doc.get("_editorial") if isinstance(doc, dict) else None)
+            if sections and isinstance(sections, dict):
+                try:
+                    md = get_draft_md(folder, state, template, tpl)
+                    editorial = ((state.get("doc") or {}).get("_editorial") or editorial)
+                    if md and not editorial:
+                        from foldok_editorial import review_markdown
+                        editorial = review_markdown(md, language=lang, sections=sections).to_dict()
+                        state.setdefault("doc", {})["_editorial"] = editorial
+                except Exception:
+                    pass
+            if editorial:
+                plan["editorial"] = editorial
+                fails = [
+                    f for f in (editorial.get("findings") or [])
+                    if (f or {}).get("severity") == "fail"
+                ]
+                if fails:
+                    plan.setdefault("notes", []).insert(
+                        0,
+                        f"Editorial QA: {len(fails)} blocking finding(s) — not ready to publish.",
+                    )
             state["compose_plan"] = plan
             try:
                 save_state(folder, state)
             except Exception:
                 pass
             return self._send(200, plan)
+
+        if path == "/api/sense":
+            # Folder → topics (no template). Missing expected topics = findings.
+            p = get_project(params.get("id", ""))
+            if not p:
+                return self._send(404, {"error": "unknown project"})
+            if not p.get("folders"):
+                return self._send(404, {"error": "no_folder"})
+            folder = Path(p["folders"][0])
+            if not folder.is_dir():
+                return self._send(404, {"error": "folder_missing"})
+            lang = str(params.get("lang") or "no")
+            state = load_state(folder)
+            index = load_index(
+                p["folders"], lang, state.get("user_facts"),
+                project_name=folder.name, cache_only=True,
+            )
+            expected = [
+                x.strip() for x in str(params.get("expected") or "").split(",")
+                if x.strip()
+            ]
+            try:
+                from foldok_sense import sense_from_folder
+                draft = sense_from_folder(
+                    folder,
+                    lang=lang,
+                    expected=expected or ["installasjon", "montering"],
+                    title=str(
+                        (state.get("artifact") or {}).get("name") or folder.name
+                    ),
+                )
+                state["sense_draft"] = draft.to_dict()
+                state["generate_mode"] = "sense"
+                try:
+                    save_state(folder, state)
+                except Exception:
+                    pass
+                return self._send(200, {
+                    "summary": draft.summary(lang=lang),
+                    "markdown": draft.markdown(lang=lang),
+                    "draft": draft.to_dict(),
+                    "corroborated": bool(getattr(draft, "corroborated", True)),
+                })
+            except Exception as exc:
+                return self._send(500, {"error": "sense_failed", "detail": str(exc)})
 
         if path == "/api/doc/versions":
             p = get_project(params.get("id", "") or params.get("project", ""))
@@ -4916,17 +5110,12 @@ class Handler(BaseHTTPRequestHandler):
                         p, ctx["folders"], ctx["primary"], state, ctx["index"],
                         lang=(body.get("lang") or "en"))["text"]
                     file_count = (ctx.get("chat_context_meta") or {}).get("file_count")
-                extras = chat_turn_extras(msg, ctx["index"], art, file_count,
-                                          lang=body.get("lang") or "en")
-                offer_line = ""
-                if extras["open_ended"]:
-                    offer_line = (
-                        f"\nThis is an open-ended create ask. End by offering to build a document "
-                        f"from what is already here (~€{extras['estimate_eur']:.2f}). "
-                        f"At most two questions, only for facts the index cannot contain.\n"
-                    )
                 # WORKORDER_0.20 A — code-first grounded reply (never "helt nytt")
-                lang = hub.detect_lang(msg)
+                lang = edchat.resolve_chat_lang(
+                    body=body, state=state, msg=msg, detect_fn=hub.detect_lang,
+                )
+                state["lang"] = lang
+                extras = chat_turn_extras(msg, ctx["index"], art, file_count, lang=lang)
                 index_n = len(ctx.get("index") or [])
                 # Wiring / connect asks — don't send to Haiku (it invents "no tool")
                 try:
@@ -5028,6 +5217,13 @@ class Handler(BaseHTTPRequestHandler):
                         "offer_document": True, "estimate_eur": extras["estimate_eur"],
                         "corpus_brief": extras["corpus_brief"], "kind": "open_ended_grounded",
                     })
+                offer_line = ""
+                if extras["open_ended"]:
+                    offer_line = (
+                        f"\nThis is an open-ended create ask. End by offering to build a document "
+                        f"from what is already here (~€{extras['estimate_eur']:.2f}). "
+                        f"At most two questions, only for facts the index cannot contain.\n"
+                    )
                 prompt = (
                     f"{chat_block}\n\n"
                     f"{extras['known_block']}\n\n"
@@ -5035,9 +5231,11 @@ class Handler(BaseHTTPRequestHandler):
                     f"{offer_line}\n"
                     f"{ctx['banner']}\n"
                     f"You are Foldok's ONE project assistant (Checkpoint A / continuous thread).\n"
+                    f"DOCUMENT_LANGUAGE={lang} — reply ONLY in this language; never mix EN/NO.\n"
                     f"Ground answers in PROJECT CHAT CONTEXT and ALREADY KNOWN FROM INDEX. "
                     f"If SOURCES are empty, CONTEXT is still authoritative — never pretend the project is unknown. "
                     f"NEVER invent measurements not in CONTEXT/SOURCES/user. NEVER use other projects.\n"
+                    f"Never say you lack a document or need the user to paste files.\n"
                     f"When the user clarifies the artifact, include a JSON patch. Merge intelligently.\n"
                     f"When answering about drawings/sources, cite file names from SOURCES.\n\n"
                     f"SOURCES (indexed captions for THIS project only):\n{ctx['captions'] or '(none)'}\n\n"
@@ -5239,7 +5437,7 @@ class Handler(BaseHTTPRequestHandler):
             if generate and KEY_SET and not fm_is_form(template) and folder:
                 try:
                     acct.precheck_ai()
-                    job = start_job(run_generate, p["folders"], tf, (body.get("lang") or "en"))
+                    job = start_generate_job( p["folders"], tf, (body.get("lang") or "en"))
                 except acct.MeterDenied:
                     job = None
             return self._send(200, {
@@ -5549,7 +5747,7 @@ class Handler(BaseHTTPRequestHandler):
             qtext = (body.get("question") or body.get("q") or "").strip()
             if not qtext:
                 return self._send(400, {"error": "question mangler"})
-            lang = body.get("lang") or "no"
+            lang = body.get("lang") or "en"
             index = load_index(
                 folders, lang, load_state(folders[0]).get("user_facts"),
                 project_name=p.get("name") or Path(folders[0]).name,
@@ -5567,7 +5765,7 @@ class Handler(BaseHTTPRequestHandler):
             folders = list(p.get("folders") or [])
             if not folders or not Path(folders[0]).is_dir():
                 return self._send(400, {"error": "Prosjektet mangler mappe"})
-            lang = body.get("lang") or "no"
+            lang = body.get("lang") or "en"
             index = load_index(
                 folders, lang, load_state(folders[0]).get("user_facts"),
                 project_name=p.get("name") or Path(folders[0]).name,
@@ -5596,7 +5794,7 @@ class Handler(BaseHTTPRequestHandler):
             folder = p["folders"][0]
             if not tf or not load_template(tf, folder):
                 return self._send(400, {"error": "Velg en mal"})
-            return self._send(200, {"job": start_job(run_generate, p["folders"], tf, body.get("lang") or "en")})
+            return self._send(200, {"job": start_generate_job( p["folders"], tf, body.get("lang") or "en")})
 
         if path == "/api/export":
             p = get_project(body.get("id", ""))
@@ -6195,7 +6393,7 @@ class Handler(BaseHTTPRequestHandler):
                     "code": getattr(e, "code", "insufficient_balance"),
                     "need_topup": True,
                 })
-            job_id = start_job(run_generate, p["folders"], tf, (body.get("lang") or "en"))
+            job_id = start_generate_job( p["folders"], tf, (body.get("lang") or "en"))
             return self._send(200, {"job_id": job_id, "template": tf})
 
         if path == "/api/doc/extract-targeted":
@@ -6365,8 +6563,15 @@ class Handler(BaseHTTPRequestHandler):
             scope = body.get("section")
             annotations = body.get("annotations") or []
             annot_execute = bool(body.get("annot_execute"))
-            edchat.append_turn(state, "user", msg, project_id=p.get("id"))
-            lang = hub.detect_lang(msg)
+            # Document-scoped assist: pending + turns belong to this template only.
+            state.setdefault("chat_pendings", {})
+            state["_chat_template"] = tf
+            state["chat_pending"] = edchat.get_chat_pending(state, tf)
+            edchat.append_turn(state, "user", msg, project_id=p.get("id"), template=tf)
+            lang = edchat.resolve_chat_lang(
+                body=body, state=state, msg=msg, detect_fn=hub.detect_lang,
+            )
+            state["lang"] = lang
 
             # Session state machine (index + pending job + last error)
             agent_state = state.setdefault("agent_state", {})
@@ -6384,6 +6589,30 @@ class Handler(BaseHTTPRequestHandler):
                     pending_job["error"] = last_gen.get("error") or "Generering feilet."
                     agent_state["last_error"] = pending_job["error"]
                     state["pending_job"] = pending_job
+
+            # «Are you working?» — report live generate job; never freestyle tool denial.
+            if edchat.is_job_status_ask(msg):
+                job = last_gen or _latest_job_for("generate", folder=primary)
+                pend = state.get("pending_job") or {}
+                if (not job or job.get("status") not in ("running", "queued")) and pend.get("job_id"):
+                    job = JOBS.get(pend["job_id"]) or job
+                reply = edchat.format_job_status_reply(job, lang=lang, pending=pend)
+                reply = edchat.scrub_chat_voice(reply)
+                tool_result = {
+                    "tool": "job_status",
+                    "ok": True,
+                    "job": {"id": (job or {}).get("id"), "status": (job or {}).get("status")},
+                }
+                edchat.append_turn(state, "bot", reply, meta=tool_result, project_id=p.get("id"), template=tf)
+                edchat.set_chat_pending(state, tf, state.get("chat_pending"))
+                save_state(primary, state)
+                return self._send(200, {
+                    "reply": reply, "kind": "tool", "tool": tool_result,
+                    "conversation": isolated_conversation(state, p.get("id"), tf),
+                    "chat_pending": edchat.get_chat_pending(state, tf),
+                    "gaps": state.get("gaps") or [],
+                    "gap_summary": ds.gaps_summary(state.get("gaps") or []),
+                })
 
             # Hard command: index / reindex status machine (no model freestyle)
             if re.search(r"^\s*(index|indeks|indekser|reindex|reindeks)\s*$", msg, re.I):
@@ -6405,7 +6634,7 @@ class Handler(BaseHTTPRequestHandler):
                     if pend and pend.get("status") in (None, "pending", "queued"):
                         # Rule: on index complete, run/offer pending job (no capability dump)
                         if state.get("confirmed"):
-                            job_id = start_job(run_generate, folders, pend.get("template"), lang)
+                            job_id = start_generate_job( folders, pend.get("template"), lang)
                             pend["status"] = "running"
                             pend["job_id"] = job_id
                             state["pending_job"] = pend
@@ -6443,12 +6672,13 @@ class Handler(BaseHTTPRequestHandler):
                         job_id = start_job(run_index, folders, lang if lang else "no")
                         reply = ("Starter indeksering…" if lang != "en" else "Starting indexing…")
                         tool_result = {"tool": "reindex", "ok": True, "job_id": job_id}
-                edchat.append_turn(state, "bot", reply, meta=tool_result, project_id=p.get("id"))
+                edchat.append_turn(state, "bot", reply, meta=tool_result, project_id=p.get("id"), template=tf)
+                edchat.set_chat_pending(state, tf, state.get("chat_pending"))
                 save_state(primary, state)
                 return self._send(200, {
                     "reply": reply, "kind": "tool", "tool": tool_result,
-                    "conversation": isolated_conversation(state, p.get("id")),
-                    "chat_pending": state.get("chat_pending"),
+                    "conversation": isolated_conversation(state, p.get("id"), tf),
+                    "chat_pending": edchat.get_chat_pending(state, tf),
                     "gaps": state.get("gaps") or [],
                     "gap_summary": ds.gaps_summary(state.get("gaps") or []),
                 })
@@ -6467,14 +6697,14 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     save_state(primary, state)
                 reply = f"Lagt inn som ubekreftet referanse ~ for `{pend['key']}`."
-                state["chat_pending"] = None
+                edchat.set_chat_pending(state, tf, None)
                 tool_result = {"tool": "resolve_mangler", "provenance": "reference",
                                "gap_summary": ds.gaps_summary(result["gaps"])}
-                edchat.append_turn(state, "bot", reply, meta=tool_result, project_id=p.get("id"))
+                edchat.append_turn(state, "bot", reply, meta=tool_result, project_id=p.get("id"), template=tf)
                 save_state(primary, state)
                 return self._send(200, {
                     "reply": reply, "kind": "tool", "tool": tool_result,
-                    "conversation": isolated_conversation(state, p.get("id")),
+                    "conversation": isolated_conversation(state, p.get("id"), tf),
                     "chat_pending": None,
                     "gaps": state.get("gaps") or [],
                     "gap_summary": ds.gaps_summary(state.get("gaps") or []),
@@ -6539,9 +6769,9 @@ class Handler(BaseHTTPRequestHandler):
                     }
 
             if route.get("set_pending") is not None:
-                state["chat_pending"] = route["set_pending"]
+                edchat.set_chat_pending(state, tf, route["set_pending"])
             if route.get("clear_pending"):
-                state["chat_pending"] = None
+                edchat.set_chat_pending(state, tf, None)
 
             reply = route.get("reply") or ""
             tool_result = None
@@ -7014,9 +7244,103 @@ class Handler(BaseHTTPRequestHandler):
                          f"{row.get('caption') or Path(row.get('file') or '').name}.")
                 tool_result = {"tool": "add_bom_component", "ok": True, "part_no": pn}
 
+            elif execute and execute.get("tool") == "sense_folder":
+                lang = edchat.resolve_chat_lang(
+                    body=body, state=state, msg=msg, detect_fn=hub.detect_lang,
+                )
+                try:
+                    from foldok_sense import sense_from_folder
+                    expected = list(execute.get("expected") or []) or [
+                        "installasjon", "montering",
+                    ]
+                    draft = sense_from_folder(
+                        primary,
+                        lang=lang,
+                        expected=expected,
+                        title=str(
+                            (state.get("artifact") or {}).get("name")
+                            or Path(primary).name
+                        ),
+                    )
+                    # Full draft belongs in the editor — chat only gets a short
+                    # summary. Pasting markdown here trips agent_truth (lists /
+                    # headings) and replaces the reply with honest_fallback.
+                    sense_md = draft.markdown(lang=lang)
+                    topics = [g.title for g in draft.justified()]
+                    summary = draft.summary(lang=lang)
+                    if lang.startswith("no"):
+                        topic_bit = (
+                            f" Tema: {', '.join(topics[:8])}."
+                            if topics else ""
+                        )
+                        reply = (
+                            f"Sense klar. {summary}.{topic_bit} "
+                            f"Fullt utkast ligger i editoren."
+                        )
+                    else:
+                        topic_bit = (
+                            f" Topics: {', '.join(topics[:8])}."
+                            if topics else ""
+                        )
+                        reply = (
+                            f"Sense done. {summary}.{topic_bit} "
+                            f"Full draft is in the editor."
+                        )
+                    state["sense_draft"] = draft.to_dict()
+                    state["generate_mode"] = "sense"
+                    # Persist as draft.md so the editor shows the folder draft
+                    open_tf = (
+                        edchat.open_document_template(state)
+                        or state.get("active_template")
+                        or state.get("template")
+                        or "topic_brief.json"
+                    )
+                    if not Path(str(open_tf)).name.lower().endswith(".json"):
+                        open_tf = template_file_for_key(open_tf) or "topic_brief.json"
+                    template = load_template(open_tf, primary) or {
+                        "name": "Folder sense", "sections": [],
+                        "template_key": "folder_sense",
+                    }
+                    sec_map = ds.split_draft_to_sections(sense_md, template)
+                    sections_data = [
+                        (sk, (row.get("md") or ""), [], [], [])
+                        for sk, row in sec_map.items()
+                    ] or [("body", sense_md, [], [], [])]
+                    state["doc"] = ds.build_doc_from_generation(
+                        open_tf, sections_data, sense_md=sense_md,
+                    )
+                    state["doc"]["sense"] = True
+                    state["doc"]["corroborated"] = bool(
+                        getattr(draft, "corroborated", True)
+                    )
+                    state["active_template"] = open_tf
+                    state["template"] = open_tf
+                    sync_draft_files(primary, state, template, open_tf, sense_md)
+                    save_state(primary, state)
+                    tool_result = {
+                        "tool": "sense_folder",
+                        "ok": True,
+                        "summary": summary,
+                        "topics": topics,
+                        "absent": list(draft.absent),
+                        "corroborated": bool(getattr(draft, "corroborated", True)),
+                        "persisted": True,
+                        "reload_draft": True,
+                        "template": open_tf,
+                    }
+                except Exception as exc:
+                    reply = (
+                        f"Klarte ikke å lese mappen: {exc}"
+                        if lang != "en" else
+                        f"Could not make sense of the folder: {exc}"
+                    )
+                    tool_result = {"tool": "sense_folder", "ok": False, "error": str(exc)}
+
             elif execute and execute.get("tool") == "run_generate":
                 # WORKORDER_0.25 B — «ja» / imperative dispatches generate in this turn
-                lang = hub.detect_lang(msg)
+                lang = edchat.resolve_chat_lang(
+                    body=body, state=state, msg=msg, detect_fn=hub.detect_lang,
+                )
                 tkey = execute.get("template_key")
                 gen_tf = (
                     execute.get("template")
@@ -7029,14 +7353,29 @@ class Handler(BaseHTTPRequestHandler):
                     or (load_template(gen_tf, primary) or {}).get("name")
                     or template_stem(gen_tf or "")
                 ) if gen_tf else "dokumentjobb"
-                if not gen_tf:
-                    reply = ("Ukjent dokumentmal — åpne Contract Review først."
+                handled = False
+                # Already running → report status; do not spawn a second job.
+                running = _latest_job_for("generate", folder=primary)
+                if running and running.get("status") == "running":
+                    same = (not gen_tf) or running.get("template") in (gen_tf, None, "")
+                    if same:
+                        reply = edchat.format_job_status_reply(
+                            running, lang=lang, pending=state.get("pending_job") or {},
+                        )
+                        tool_result = {
+                            "tool": "run_generate", "ok": True, "already_running": True,
+                            "job_id": running.get("id"), "template": running.get("template"),
+                        }
+                        handled = True
+                if not handled and not gen_tf:
+                    reply = ("Ukjent dokumentmal — åpne dokumentet først."
                              if lang != "en" else
-                             "Unknown template — open Contract Review first.")
+                             "Unknown template — open the document first.")
                     tool_result = {"tool": "run_generate", "ok": False}
                     state["agent_state"] = state.get("agent_state") or {}
                     state["agent_state"]["last_error"] = reply
-                elif not state.get("confirmed"):
+                    handled = True
+                if not handled and not state.get("confirmed"):
                     reply = ("Bekreft artefaktmodellen først (steg 2), så starter jeg genereringen."
                              if lang != "en" else
                              "Confirm the artifact model first (step 2), then I'll start generation.")
@@ -7046,7 +7385,8 @@ class Handler(BaseHTTPRequestHandler):
                         "name": pending_name,
                         "status": "pending",
                     }
-                else:
+                    handled = True
+                if not handled:
                     try:
                         acct.precheck_ai()
                     except acct.MeterDenied as e:
@@ -7064,7 +7404,7 @@ class Handler(BaseHTTPRequestHandler):
                         state["agent_state"] = state.get("agent_state") or {}
                         state["agent_state"]["last_error"] = reply
                     else:
-                        job_id = start_job(run_generate, folders, gen_tf, lang)
+                        job_id = start_generate_job( folders, gen_tf, lang)
                         state["chat_pending"] = None
                         state["pending_job"] = {
                             "template": gen_tf,
@@ -7072,7 +7412,6 @@ class Handler(BaseHTTPRequestHandler):
                             "status": "running",
                             "job_id": job_id,
                         }
-                        # System event joins conversation (A1)
                         edchat.append_turn(
                             state, "system",
                             f"[job_started] generate job_id={job_id} template={gen_tf}",
@@ -7926,7 +8265,7 @@ class Handler(BaseHTTPRequestHandler):
                     else:
                         idx_state = _index_state_for_project(folders, state)
                         if idx_state.get("status") == "ready" and state.get("confirmed"):
-                            job_id = start_job(run_generate, folders, pend_job.get("template"), lang)
+                            job_id = start_generate_job( folders, pend_job.get("template"), lang)
                             pend_job["status"] = "running"
                             pend_job["job_id"] = job_id
                             state["pending_job"] = pend_job
@@ -7950,14 +8289,39 @@ class Handler(BaseHTTPRequestHandler):
                     # Same agent — full project chat context + §7 policy
                     index = load_index(folders, "no", state.get("user_facts"), project_name=p.get("name"))
                     ctx_pack = build_project_chat_context(
-                        p, folders, primary, state, index, lang=(body.get("lang") or "en"))
+                        p, folders, primary, state, index, lang=lang)
                     chat_block = ctx_pack["text"]
                     extras = chat_turn_extras(
                         msg, index, state.get("artifact") or {}, ctx_pack["file_count"],
-                        lang=body.get("lang") or "en",
+                        lang=lang,
                     )
                     chat_extras = extras
-                    lang = hub.detect_lang(msg)
+                    # lang already resolved at handler entry; keep sticky
+                    state["lang"] = lang
+                    # Hollow / language-mix complaints — honest engine reply, no Haiku denial.
+                    if edchat.is_hollow_document_complaint(msg) or edchat.is_language_mix_complaint(msg):
+                        st = ctx_pack.get("document_status") or edchat.open_document_status(state)
+                        bits = []
+                        if edchat.is_language_mix_complaint(msg):
+                            bits.append(edchat.language_contract_reply(lang=lang))
+                        if edchat.is_hollow_document_complaint(msg) or (
+                            int(st.get("with_substance") or 0) == 0
+                            and int(st.get("section_total") or 0) > 0
+                        ):
+                            bits.append(edchat.hollow_document_reply(
+                                lang=lang,
+                                indexed_count=int(ctx_pack.get("indexed_count") or 0),
+                                file_count=int(ctx_pack.get("file_count") or 0),
+                                status=st,
+                                template=tf or "",
+                            ))
+                        if bits:
+                            reply = edchat.scrub_chat_voice(" ".join(bits))
+                            tool_result = {
+                                "tool": "document_honesty",
+                                "ok": True,
+                                "document_status": st,
+                            }
                     annot_ctx = (route.get("_annot_ctx")
                                  or edchat.format_annotations_context(annotations))
                     # WORKORDER 0.56 §C5 — no open-ended create-offer while marks pending
@@ -7966,84 +8330,99 @@ class Handler(BaseHTTPRequestHandler):
                         extras = dict(extras)
                         extras["open_ended"] = False
                         chat_extras = extras
-                # Attach last photo caption for perception discipline
-                last = state.get("last_indexed_media") or {}
-                photo_hint = ""
-                if last.get("file"):
-                    photo_hint = (
-                        f"\nLAST INDEXED MEDIA: file={last.get('file')} "
-                        f"caption={last.get('caption') or '(none)'} — "
-                        f"quote only this; never invent visual details.\n"
-                    )
-                if edchat.is_index_coverage_ask(msg):
-                    report = prescan.scan_folders(
-                        folders,
-                        skip_dir_names=SKIP_DIR_NAMES,
-                        last_throughput=state.get("index_last_throughput"),
-                        check_cache=False,
-                    )
-                    reply = edchat.index_coverage_reply(report, lang=lang)
-                    reply = edchat.scrub_chat_voice(reply)
-                    tool_result = {
-                        "tool": "index_coverage",
-                        "coverage": report.get("coverage"),
-                        "biggest_win": report.get("biggest_win"),
-                    }
-                elif extras["open_ended"] and (ctx_pack["file_count"] or 0) > 0:
-                    reply = edchat.open_ended_grounded_reply(
-                        project_name=p.get("name") or "",
-                        brief=extras["corpus_brief"],
-                        artifact=state.get("artifact") or {},
-                        known_block=extras["known_block"],
-                        estimate_eur=extras["estimate_eur"],
-                        lang=lang,
-                    )
-                    reply = edchat.scrub_chat_voice(reply)
-                elif edchat.is_source_summary_request(msg) and (ctx_pack["file_count"] or 0) > 0:
-                    reply = edchat.source_summary_reply(
-                        project_name=p.get("name") or "",
-                        brief=extras["corpus_brief"],
-                        index=index,
-                        lang=lang,
-                    )
-                    reply = edchat.scrub_chat_voice(reply)
-                else:
-                    offer_line = ""
-                    if extras["open_ended"]:
-                        offer_line = (
-                            f"\nOpen-ended create ask: end with document offer (~€{extras['estimate_eur']:.2f}). "
-                            f"At most two questions; never ask what the index already knows.\n"
+                    # Attach last photo caption for perception discipline
+                    last = state.get("last_indexed_media") or {}
+                    photo_hint = ""
+                    if last.get("file"):
+                        photo_hint = (
+                            f"\nLAST INDEXED MEDIA: file={last.get('file')} "
+                            f"caption={last.get('caption') or '(none)'} — "
+                            f"quote only this; never invent visual details.\n"
                         )
-                    annot_line = f"\n{annot_ctx}\n" if annot_ctx else ""
-                    if KEY_SET:
-                        prompt = (
-                            f"{chat_block}\n\n"
-                            f"{extras['known_block']}\n\n"
-                            f"{extras['policy']}\n"
-                            f"{photo_hint}"
-                            f"{annot_line}"
-                            f"{offer_line}\n"
-                            f"You are Foldok's ONE project assistant (same agent as checkpoint A).\n"
-                            f"Scope focus (UI chip only — does NOT change identity): {scope or 'document'}.\n"
-                            f"Ground in sentence 1. Never invent numbers. NEVER use other projects.\n"
-                            f"Never claim file writes without tools. Never invent part numbers.\n"
-                            f"You DO have tools to regenerate the open document and sections — "
-                            f"never say you lack a regenerate tool or cannot access project files.\n"
-                            f"Deictics (denne/her/dette) resolve to PENDING ANNOTATIONS when present — "
-                            f"never invent or create a document unless the user explicitly names one.\n\n"
-                            f"USER: {msg}\n\n"
-                            f"Do NOT output a feature menu. Do NOT list capabilities unless asked."
+                    if reply:
+                        pass  # honesty / pending-job already answered
+                    elif edchat.is_index_coverage_ask(msg):
+                        report = prescan.scan_folders(
+                            folders,
+                            skip_dir_names=SKIP_DIR_NAMES,
+                            last_throughput=state.get("index_last_throughput"),
+                            check_cache=False,
                         )
-                        raw = fc.ask("chat_edit", fc.HAIKU, [{"role": "user", "content": prompt}], max_tokens=500)
-                        reply = edchat.scrub_chat_voice((raw or "").strip())
-                        if edchat.reply_violates_policy(reply):
-                            raw2 = fc.ask("chat_edit", fc.HAIKU, [{"role": "user", "content":
-                                prompt + "\n\nRewrite without emoji / 'helt nytt' / Kult! / fictional writes."
-                            }], max_tokens=400)
-                            reply = edchat.scrub_chat_voice((raw2 or "").strip())
+                        reply = edchat.index_coverage_reply(report, lang=lang)
+                        reply = edchat.scrub_chat_voice(reply)
+                        tool_result = {
+                            "tool": "index_coverage",
+                            "coverage": report.get("coverage"),
+                            "biggest_win": report.get("biggest_win"),
+                        }
+                    elif extras["open_ended"] and (ctx_pack["file_count"] or 0) > 0:
+                        reply = edchat.open_ended_grounded_reply(
+                            project_name=p.get("name") or "",
+                            brief=extras["corpus_brief"],
+                            artifact=state.get("artifact") or {},
+                            known_block=extras["known_block"],
+                            estimate_eur=extras["estimate_eur"],
+                            lang=lang,
+                        )
+                        reply = edchat.scrub_chat_voice(reply)
+                    elif edchat.is_source_summary_request(msg) and (ctx_pack["file_count"] or 0) > 0:
+                        reply = edchat.source_summary_reply(
+                            project_name=p.get("name") or "",
+                            brief=extras["corpus_brief"],
+                            index=index,
+                            lang=lang,
+                        )
+                        reply = edchat.scrub_chat_voice(reply)
                     else:
-                        reply = ("Jeg forsto ikke helt — prøv «hva mangler?», beskriv mangelen "
-                                 "(f.eks. registreringsnummer), eller velg en seksjon og si «skriv om strengere».")
+                        offer_line = ""
+                        if extras["open_ended"]:
+                            offer_line = (
+                                f"\nOpen-ended create ask: end with document offer (~€{extras['estimate_eur']:.2f}). "
+                                f"At most two questions; never ask what the index already knows.\n"
+                            )
+                        annot_line = f"\n{annot_ctx}\n" if annot_ctx else ""
+                        if KEY_SET:
+                            prompt = (
+                                f"{chat_block}\n\n"
+                                f"{extras['known_block']}\n\n"
+                                f"{extras['policy']}\n"
+                                f"{photo_hint}"
+                                f"{annot_line}"
+                                f"{offer_line}\n"
+                                f"You are Foldok's ONE project assistant (same agent as checkpoint A).\n"
+                                f"DOCUMENT_LANGUAGE={lang} — reply ONLY in this language; never mix EN/NO.\n"
+                                f"Scope focus (UI chip only — does NOT change identity): {scope or 'document'}.\n"
+                                f"Ground in sentence 1. Never invent numbers. NEVER use other projects.\n"
+                                f"Never claim file writes without tools. Never invent part numbers.\n"
+                                f"PROJECT CHAT CONTEXT is attached — you HAVE the project and open document. "
+                                f"Never say you lack a document or need the user to paste files.\n"
+                                f"If the draft is hollow (OPEN_DOCUMENT_STATUS), say so and offer regenerate.\n"
+                                f"You DO have tools to regenerate the open document and sections.\n"
+                                f"Deictics (denne/her/dette) resolve to PENDING ANNOTATIONS when present — "
+                                f"never invent or create a document unless the user explicitly names one.\n\n"
+                                f"USER: {msg}\n\n"
+                                f"Do NOT output a feature menu. Do NOT list capabilities unless asked."
+                            )
+                            raw = fc.ask("chat_edit", fc.HAIKU, [{"role": "user", "content": prompt}], max_tokens=500)
+                            reply = edchat.scrub_chat_voice((raw or "").strip())
+                            if edchat.reply_violates_policy(reply) or edchat.denies_project_context(reply):
+                                raw2 = fc.ask("chat_edit", fc.HAIKU, [{"role": "user", "content":
+                                    prompt + "\n\nRewrite without emoji / 'helt nytt' / Kult! / fictional writes. "
+                                    "Do NOT deny project access — use PROJECT CHAT CONTEXT. Stay in DOCUMENT_LANGUAGE."
+                                }], max_tokens=400)
+                                reply = edchat.scrub_chat_voice((raw2 or "").strip())
+                                if edchat.denies_project_context(reply):
+                                    st = ctx_pack.get("document_status") or edchat.open_document_status(state)
+                                    reply = edchat.hollow_document_reply(
+                                        lang=lang,
+                                        indexed_count=int(ctx_pack.get("indexed_count") or 0),
+                                        file_count=int(ctx_pack.get("file_count") or 0),
+                                        status=st,
+                                        template=tf or "",
+                                    )
+                        else:
+                            reply = ("Jeg forsto ikke helt — prøv «hva mangler?», beskriv mangelen "
+                                     "(f.eks. registreringsnummer), eller velg en seksjon og si «skriv om strengere».")
 
 
             if not reply:
@@ -8060,7 +8439,7 @@ class Handler(BaseHTTPRequestHandler):
                 # regenerate-document ask (that must stay on the open draft).
                 recent = " ".join(
                     (t.get("text") or "") for t in (state.get("conversation") or [])[-8:])
-                recent_user = edchat.recent_user_blob(state)
+                recent_user = edchat.recent_user_blob(state, template=tf)
                 regen_intent = (
                     edchat.is_regenerate_document_ask(msg)
                     or edchat.is_regenerate_document_ask(recent_user)
@@ -8140,21 +8519,25 @@ class Handler(BaseHTTPRequestHandler):
             tools_log = [tool_result] if tool_result else []
             # Diagram / connection tools own their chat confirmations — don't
             # replace a real propose with "I don't have a tool".
-            _DIAGRAM_TOOLS = {
+            # Tools that own their chat confirmation / put the artifact in the
+            # editor — don't replace a real result with honest_fallback.
+            _SKIP_TRUTH_TOOLS = {
                 "propose_connection_spec", "confirm_connection_spec",
                 "create_diagram", "create_wiring_diagram", "draw_wiring_diagram",
+                "sense_folder",
             }
             tool_name = (tool_result or {}).get("tool") or ""
-            skip_truth = tool_name in _DIAGRAM_TOOLS and (tool_result or {}).get("ok") is not False
+            skip_truth = tool_name in _SKIP_TRUTH_TOOLS and (tool_result or {}).get("ok") is not False
             ok_claim, reply, reason = (True, reply, None) if skip_truth else atruth.validate_completion_claims(
                 reply, tools_log, lang=lang)
             if not ok_claim and KEY_SET and route.get("need_model"):
                 # one retry naming the violation
                 try:
                     raw3 = fc.ask("chat_edit", fc.HAIKU, [{"role": "user", "content":
-                        f"Your previous reply claimed a completed action without a tool receipt "
-                        f"({reason}). Rewrite honestly: either report only what tools did, or say "
-                        f"you lack the tool. USER: {msg}"
+                        f"Your previous reply claimed work in progress or a job id without a "
+                        f"tool receipt ({reason}). Rewrite honestly in ≤3 lines: only report "
+                        f"what tools actually did this turn. Never invent job ids, page counts, "
+                        f"TOCs, or ETAs. Never say you lack tools. USER: {msg}"
                     }], max_tokens=300)
                     reply2 = edchat.scrub_chat_voice((raw3 or "").strip())
                     ok2, reply2, _ = atruth.validate_completion_claims(reply2, tools_log, lang=lang)
@@ -8215,14 +8598,16 @@ class Handler(BaseHTTPRequestHandler):
                 if not ok_p:
                     reply = reply_p
 
-            edchat.append_turn(state, "bot", reply, meta=tool_result, project_id=p.get("id"))
+            edchat.append_turn(state, "bot", reply, meta=tool_result, project_id=p.get("id"), template=tf)
+            edchat.set_chat_pending(state, tf, state.get("chat_pending"))
+            state.pop("_chat_template", None)
             save_state(primary, state)
             out = {
                 "reply": reply,
                 "kind": route.get("kind"),
                 "tool": tool_result,
-                "conversation": isolated_conversation(state, p.get("id")),
-                "chat_pending": state.get("chat_pending"),
+                "conversation": isolated_conversation(state, p.get("id"), tf),
+                "chat_pending": edchat.get_chat_pending(state, tf),
                 "gaps": state.get("gaps") or [],
                 "gap_summary": ds.gaps_summary(state.get("gaps") or []),
             }

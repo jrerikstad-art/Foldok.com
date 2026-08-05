@@ -28,9 +28,17 @@ GAP_SYNONYMS = {
 
 # ONE_AGENT_SPEC §7 / WORKORDER_0.20 A2–A4 / 0.21 length+act
 CHAT_AGENT_POLICY = """
-VOICE (HARD): Warm but professional. Mirror the USER'S LANGUAGE (NO/EN).
-No emoji. No exclamatory openers ("Kult!", "Supert!", "Flott!", "Nice!").
-Write like a competent field engineer, not a chatbot.
+VOICE (HARD): Warm but professional. LANGUAGE CONTRACT is absolute:
+reply ONLY in DOCUMENT_LANGUAGE (en or nb-NO) from context — never mirror
+a single user message into the other language, never mix EN/NO in one reply.
+Keep standards IDs and product names as-is. No emoji. No exclamatory openers
+("Kult!", "Supert!", "Flott!", "Nice!"). Write like a competent field engineer.
+
+CONTEXT (HARD): PROJECT CHAT CONTEXT is always attached by the engine.
+You ARE inside an open Foldok project with indexed files and (when marked)
+an ACTIVE document. NEVER say you lack a document, cannot access files, or
+need the user to paste the PDF. If the draft is hollow, say that honestly
+and offer regenerate — do not deny the project exists.
 
 LENGTH (HARD — WORKORDER_0.21):
 - Default ≤120 words. Hard ceiling 200 unless user asks for list/overview/forklar.
@@ -53,7 +61,7 @@ as a question. Confidence <0.80 → say «usikker» explicitly.
 CONNECTION DIAGRAMS (WORKORDER_0.24/0.26): Free-text schematic/wiring asks
 trigger propose_connection_spec → confirm rows (plain text) → create_diagram
 → SVG in the DOCUMENT. Never paste <svg> or markdown tables into chat.
-Mirror USER LANGUAGE.
+Mirror DOCUMENT_LANGUAGE from context (not per-message guessing).
 FORBIDDEN substitutes: wiring_specification.md, "feed into Fritzing/KiCad",
 invented designer prices (€8…), "I only have text / no drawing tools".
 We DO draw interconnection/wiring/block diagrams. We do NOT claim full
@@ -121,6 +129,13 @@ FORBIDDEN_REPLY = re.compile(
     r"klar for innlevering|skal vi gj[øo]re det\s*\?|"
     r"klar til [åa] starte\s*\?|si fra n[åa]r du er klar|"
     r"lag en ny mappe|dra inn (alle )?fil|"
+    r"don'?t have access to (any )?(document|file)|"
+    r"haven'?t shared a document|"
+    r"no (access|tool) to (retrieve|access|read)|"
+    r"don'?t have tools|"
+    r"outside this conversation|"
+    r"access the internet|"
+    r"jeg har ikke (tilgang|noe dokument)|"
     r"[\U0001F300-\U0001FAFF\u2600-\u27BF]",
     re.I,
 )
@@ -147,8 +162,153 @@ def _iso():
     return datetime.now(timezone.utc).isoformat()
 
 
-def append_turn(state, role, text, *, html=None, meta=None, project_id=None):
-    """Append a chat turn. project_id stamps the turn (BUGFIX_0.19 §A extended)."""
+def resolve_chat_lang(*, body=None, state=None, msg: str = "",
+                      detect_fn=None) -> str:
+    """UI / document language wins — never flip per message (stops EN↔NO mixing)."""
+    for candidate in (
+        (body or {}).get("lang") if isinstance(body, dict) else None,
+        (state or {}).get("lang") if isinstance(state, dict) else None,
+    ):
+        if candidate is not None and str(candidate).strip():
+            return "no" if str(candidate).lower().startswith("n") else "en"
+    if detect_fn is not None:
+        return "en" if detect_fn(msg or "") == "en" else "no"
+    return "en"
+
+
+def open_document_status(state: dict | None) -> dict:
+    """Substance vs empty/GAP-only sections on the open draft."""
+    doc = (state or {}).get("doc") or {}
+    sections = doc.get("sections") or {}
+    nonempty, empty, gap_only = [], [], []
+    for key, sec in sections.items():
+        if str(key).startswith("_"):
+            continue
+        md = ((sec or {}).get("md") or "").strip()
+        if not md:
+            empty.append(key)
+        elif re.search(r"\[(?:GAP|MANGLER)\s*:", md, re.I) and len(md) < 500:
+            gap_only.append(key)
+        else:
+            nonempty.append(key)
+    editorial = doc.get("_editorial") if isinstance(doc.get("_editorial"), dict) else {}
+    return {
+        "section_total": len(nonempty) + len(empty) + len(gap_only),
+        "with_substance": len(nonempty),
+        "empty": len(empty),
+        "gap_only": len(gap_only),
+        "empty_keys": empty[:12],
+        "gap_keys": gap_only[:12],
+        "editorial_ok": editorial.get("ok"),
+        "template": (state or {}).get("active_template") or (state or {}).get("template"),
+    }
+
+
+def is_hollow_document_complaint(message: str) -> bool:
+    return bool(re.search(
+        r"(?i)\b("
+        r"no information|nothing in (the )?(doc|document)|empty (doc|document|draft)|"
+        r"document is empty|hollow|no content|"
+        r"ingen informasjon|tomt dokument|dokumentet er tomt|mangler innhold|"
+        r"bare (gap|mangler)|ingen innhold"
+        r")\b",
+        message or "",
+    ))
+
+
+def is_sense_folder_ask(message: str) -> bool:
+    """«Make sense of this folder» — discover topics, do not force a template."""
+    return bool(re.search(
+        r"(?i)\b("
+        r"make sense of (this |the )?folder|"
+        r"what('?s| is) in (this |the )?folder|"
+        r"sense of (the )?folder|folder sense|"
+        r"draft from (the )?folder|mappeutkast|"
+        r"forst[åa]\s+(denne\s+)?mappen|"
+        r"hva (er|finnes|ligger) i mappen|"
+        r"hva handler mappen om|"
+        r"temaer i mappen|topics in (the )?folder|"
+        r"les mappen|read the folder|"
+        r"bygg (fra |utkast fra )?mappen"
+        r")\b",
+        message or "",
+    ))
+
+
+def is_language_mix_complaint(message: str) -> bool:
+    return bool(re.search(
+        r"(?i)(mixin[g]?\s+language|mixed\s+language|language\s+mix|"
+        r"blander\s+spr|feil\s+spr[åa]k|wrong\s+language)",
+        message or "",
+    ))
+
+
+def denies_project_context(reply: str) -> bool:
+    return bool(re.search(
+        r"(?i)("
+        r"don'?t have access to (any )?(document|file)|"
+        r"haven'?t shared a document|"
+        r"no (access|tool) to (retrieve|access|read)|"
+        r"don'?t have tools|"
+        r"outside this conversation|"
+        r"you haven'?t shared|"
+        r"jeg har ikke (tilgang|noe dokument)|"
+        r"kan ikke (åpne|hente|lese) (dokument|fil)"
+        r")",
+        reply or "",
+    ))
+
+
+def hollow_document_reply(
+    *,
+    lang: str = "en",
+    indexed_count: int = 0,
+    file_count: int = 0,
+    status: dict | None = None,
+    template: str = "",
+) -> str:
+    """Deterministic honesty: corpus exists; draft is hollow — offer regenerate."""
+    st = status or {}
+    tpl = template or st.get("template") or "(none)"
+    substance = int(st.get("with_substance") or 0)
+    empty_n = int(st.get("empty") or 0) + int(st.get("gap_only") or 0)
+    total = int(st.get("section_total") or 0)
+    if (lang or "en").startswith("n"):
+        return (
+            f"Korpuset er der ({indexed_count} indeksert av {file_count} filer), "
+            f"men det åpne dokumentet **{tpl}** har lite skrivbar tekst "
+            f"({substance}/{total} seksjoner med innhold; {empty_n} tomme/GAP). "
+            f"Språk for dette dokumentet er norsk — jeg bytter ikke midt i samtalen. "
+            f"Si **regenerer** for å skrive på nytt fra claims, eller velg én seksjon."
+        )
+    return (
+        f"The corpus is loaded ({indexed_count} indexed of {file_count} files), "
+        f"but the open document **{tpl}** has little writable text "
+        f"({substance}/{total} sections with substance; {empty_n} empty/GAP). "
+        f"Document language stays **English** for this session — I will not mix NO/EN. "
+        f"Say **regenerate** to rewrite from claims, or name one section."
+    )
+
+
+def language_contract_reply(*, lang: str = "en") -> str:
+    if (lang or "en").startswith("n"):
+        return (
+            "Språkkontrakt: hele dokumentet og agenten svarer på **norsk (bokmål)**. "
+            "Standardnavn og produktnavn beholdes. Si ifra om dokumentet skal være engelsk i stedet."
+        )
+    return (
+        "Language contract: this document and the agent reply in **English** only. "
+        "Standards IDs and product names stay as-is. Say if the document should be Norwegian instead."
+    )
+
+
+def append_turn(state, role, text, *, html=None, meta=None, project_id=None,
+                 template=None):
+    """Append a chat turn. project_id + template stamp isolation.
+
+    Editor turns must pass ``template`` (active document file) so Temabrief and
+    Installasjonsmanual do not share one transcript.
+    """
     conv = state.setdefault("conversation", [])
     entry = {"role": role, "text": text or "", "t": _iso()}
     if html:
@@ -160,11 +320,18 @@ def append_turn(state, role, text, *, html=None, meta=None, project_id=None):
     if pid:
         entry["project_id"] = pid
         state["project_id"] = pid
+    tf = template if template is not None else state.get("_chat_template")
+    if tf:
+        entry["template"] = normalize_doc_key(tf)
     conv.append(entry)
     # keep last 200 turns
     if len(conv) > 200:
         del conv[:-200]
     return entry
+
+
+def normalize_doc_key(template_file: str | None) -> str:
+    return (template_file or "").strip() or "_project"
 
 
 def conversation_for_project(state, project_id: str | None) -> list:
@@ -187,6 +354,91 @@ def conversation_for_project(state, project_id: str | None) -> list:
             continue
         out.append(t)
     return out
+
+
+def conversation_for_document(
+    state,
+    project_id: str | None,
+    template_file: str | None,
+) -> list:
+    """Editor assist: only turns stamped for this document template.
+
+    Pre-document / hub chat uses ``conversation_for_project`` (no template filter).
+    Unstamped legacy turns are excluded from document chat so Installasjonsmanual
+    confirmations cannot leak into Temabrief.
+    """
+    base = conversation_for_project(state, project_id)
+    if not template_file:
+        return base
+    key = normalize_doc_key(template_file)
+    out = []
+    for t in base:
+        tt = t.get("template") or t.get("document")
+        if not tt:
+            continue
+        if normalize_doc_key(tt) == key:
+            out.append(t)
+    return out
+
+
+def get_chat_pending(state, template_file: str | None):
+    """Pending confirm for this document only (None if another doc owns it)."""
+    st = state or {}
+    key = normalize_doc_key(template_file) if template_file else None
+    buckets = st.get("chat_pendings")
+    if isinstance(buckets, dict) and key:
+        if key in buckets:
+            return buckets.get(key)
+    pend = st.get("chat_pending")
+    if not pend or not isinstance(pend, dict):
+        return None
+    pt = pend.get("template")
+    if not pt:
+        # Legacy unscoped pending — hide from document chat (prevents cross-doc €19 confirms)
+        return None if key and key != "_project" else pend
+    if key and normalize_doc_key(pt) != key:
+        return None
+    return pend
+
+
+def set_chat_pending(state, template_file: str | None, pending) -> None:
+    """Store pending under the document key; do not wipe another document's pending."""
+    st = state or {}
+    key = normalize_doc_key(template_file) if template_file else "_project"
+    buckets = st.setdefault("chat_pendings", {})
+    if not isinstance(buckets, dict):
+        buckets = {}
+        st["chat_pendings"] = buckets
+    if pending is None:
+        buckets.pop(key, None)
+        # Clear flat alias only if it belonged to this doc
+        flat = st.get("chat_pending")
+        if isinstance(flat, dict):
+            ft = flat.get("template")
+            if not ft or normalize_doc_key(ft) == key:
+                st["chat_pending"] = None
+        elif flat:
+            st["chat_pending"] = None
+        return
+    entry = dict(pending)
+    entry["template"] = key if key != "_project" else (template_file or key)
+    buckets[key] = entry
+    st["chat_pending"] = entry
+
+
+def recent_user_blob(state: dict | None, *, n: int = 6, template: str | None = None) -> str:
+    if template:
+        conv = conversation_for_document(state, (state or {}).get("project_id"), template)
+    else:
+        conv = (state or {}).get("conversation") or []
+    parts = []
+    for t in reversed(conv):
+        if (t.get("role") or "") != "user":
+            continue
+        parts.append(t.get("text") or "")
+        if len(parts) >= n:
+            break
+    return " ".join(reversed(parts))
 
 
 def corpus_brief(index, file_count: int) -> str:
@@ -938,11 +1190,10 @@ def is_regenerate_document_ask(text: str) -> bool:
     ):
         return True
     if re.search(
-        r"\b(generer|bygg|kj[øo]r)\b.*\b(dokumentet|utkastet|hele\s+dokumentet|draft|temabrief)\b.*"
-        r"\b(p[åa]\s*nytt|igjen|again)\b|"
-        r"\b(p[åa]\s*nytt|igjen|again)\b.*\b(generer|bygg)\b.*\b(dokument|utkast|draft|temabrief)\b|"
-        r"\b(generate|rebuild|improve|forbedre)\b.*\b(the\s+)?(document|draft|manual|temabrief|topic\s*brief)\b|"
-        r"\b(skriv|bygg)\s+(hele\s+)?(dokumentet|utkastet|temabrief)\s+(p[åa]\s*nytt|om)\b",
+        r"\b(generer|bygg|kj[øo]r|build)\b.*\b(dokumentet|utkastet|hele\s+dokumentet|draft|temabrief|the\s+document|document)\b|"
+        r"\b(generate|rebuild|improve|forbedre|build)\b.*\b(the\s+)?(document|draft|manual|temabrief|topic\s*brief)\b|"
+        r"\b(skriv|bygg|build)\s+(hele\s+)?(dokumentet|utkastet|temabrief|the\s+document)\b|"
+        r"\b(bygg|build)\s+(it|det|dette|denne)\b",
         lower,
     ):
         return True
@@ -964,6 +1215,68 @@ def is_regenerate_document_ask(text: str) -> bool:
     return not leftover or bool(re.search(rf"\b{doc}\b", lower))
 
 
+def is_job_status_ask(text: str) -> bool:
+    """User asking whether generate/index is running — not a capability quiz."""
+    raw = (text or "").strip()
+    if not raw:
+        return False
+    return bool(re.search(
+        r"^\s*("
+        r"are you working|are you (still )?running|is it (still )?running|"
+        r"jobb(en)?\s*(kj[øo]rer|status)|hva skjer|status|"
+        r"ferdig|done|working"
+        r")\s*\??\s*$"
+        r"|"
+        r"\b("
+        r"are you working|still running|job status|jobbstatus|"
+        r"kj[øo]rer (jobben|generering)|generering(en)?\s*(ferdig|status)|"
+        r"jobben\s*kj[øo]rer"
+        r")\b",
+        raw,
+        re.I,
+    ))
+
+
+def format_job_status_reply(job: dict | None, *, lang: str = "en",
+                            pending: dict | None = None) -> str:
+    """Honest status from in-memory job / pending_job — never invent tools."""
+    j = job or {}
+    pend = pending or {}
+    status = (j.get("status") or pend.get("status") or "").lower()
+    jid = j.get("id") or pend.get("job_id") or "?"
+    name = pend.get("name") or j.get("template") or "document"
+    done = j.get("done")
+    total = j.get("total")
+    detail = (j.get("detail") or j.get("step") or "").strip()
+    progress = ""
+    if done is not None and total:
+        progress = f" ({done}/{total})"
+    if status in ("running", "queued", "pending") or (
+        status == "" and pend.get("job_id")
+    ):
+        if (lang or "en").startswith("n"):
+            return (
+                f"Ja — generering kjører{progress}. Jobb `{jid}` "
+                f"({name}){(': ' + detail) if detail else ''}."
+            )
+        return (
+            f"Yes — generation is running{progress}. Job `{jid}` "
+            f"({name}){(': ' + detail) if detail else ''}."
+        )
+    if status == "done":
+        if (lang or "en").startswith("n"):
+            return f"Generering er ferdig (jobb `{jid}`). Last dokumentet på nytt om utkastet ser gammelt ut."
+        return f"Generation finished (job `{jid}`). Reload the document if the draft looks stale."
+    if status in ("error", "failed"):
+        err = j.get("error") or pend.get("error") or "unknown error"
+        if (lang or "en").startswith("n"):
+            return f"Generering feilet (jobb `{jid}`): {err}. Si **regenerer** for å prøve igjen."
+        return f"Generation failed (job `{jid}`): {err}. Say **regenerate** to retry."
+    if (lang or "en").startswith("n"):
+        return "Ingen genereringsjobb kjører nå. Si **bygg dokumentet** / **regenerer** for å starte."
+    return "No generate job is running now. Say **build the document** / **regenerate** to start."
+
+
 def open_document_template(state: dict | None) -> str | None:
     """Template file for the document currently open in the editor."""
     st = state or {}
@@ -976,18 +1289,6 @@ def open_document_template(state: dict | None) -> str | None:
         if cand:
             return cand
     return None
-
-
-def recent_user_blob(state: dict | None, *, n: int = 6) -> str:
-    conv = (state or {}).get("conversation") or []
-    parts = []
-    for t in reversed(conv):
-        if (t.get("role") or "") != "user":
-            continue
-        parts.append(t.get("text") or "")
-        if len(parts) >= n:
-            break
-    return " ".join(reversed(parts))
 
 
 def reply_offers_form_create(reply: str) -> bool:
@@ -1179,6 +1480,22 @@ def route_editor_message(message: str, state: dict, gaps: list, scope_section=No
             "execute": {"tool": "resolve_mangler", "key": key, "value": text.strip(), "unit": None},
             "clear_pending": True,
             "kind": "resolve_value",
+        }
+
+    # Make sense of the folder — topics from corpus, not template hunt
+    if is_sense_folder_ask(text):
+        expected = []
+        if re.search(r"(?i)\b(install|installasjon|monter|assembly)\b", text):
+            expected.append("installasjon")
+        if re.search(r"(?i)\b(vedlikehold|maintenance)\b", text):
+            expected.append("vedlikehold")
+        return {
+            "execute": {
+                "tool": "sense_folder",
+                "expected": expected,
+            },
+            "kind": "sense_folder",
+            "clear_pending": False,
         }
 
     # Installation manual — set system_under_install before generate
@@ -1604,6 +1921,29 @@ def route_editor_message(message: str, state: dict, gaps: list, scope_section=No
         return {
             "execute": {"tool": "update_document_from_sources", "mode": mode},
             "kind": "update_from_sources",
+        }
+
+    # Handbook / package direction chips from a prior (invalid) menu → just generate.
+    if re.search(
+        r"(?i)^\s*("
+        r"fullstendig(\s+teknisk)?\s+h[åa]ndbok|"
+        r"skjermingsanalyse|"
+        r"m[åa]lrettet\s+rapport|"
+        r"complete\s+technical\s+(handbook|manual)|"
+        r"full\s+handbook|"
+        r"[123]\s*[.)]?\s*(fullstendig|skjerming|m[åa]lrettet)"
+        r")\s*$",
+        text or "",
+    ):
+        open_tf = open_document_template(state)
+        execute = {"tool": "run_generate"}
+        if open_tf:
+            execute["template"] = open_tf
+            execute["template_key"] = open_tf.replace(".json", "")
+        return {
+            "execute": execute,
+            "kind": "run_generate",
+            "clear_pending": True,
         }
 
     # Full document regenerate — BEFORE section regener (also catches "re generate")

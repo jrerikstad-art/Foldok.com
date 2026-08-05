@@ -170,6 +170,17 @@ def index_to_chunks(index) -> list[dict]:
         chunks.extend(as_chunks(indexed.claims, paths=paths))
     except Exception:
         pass
+    # Descriptive candidates — fill thin sections when patterns alone starve
+    try:
+        from foldok_tier import candidate_chunks, tier_report_from_index
+        report = tier_report_from_index(index)
+        paths = {
+            Path(e.get("file") or "").name: (e.get("file") or "")
+            for e in (index or []) if e.get("file")
+        }
+        chunks.extend(candidate_chunks(report, paths=paths, limit=120))
+    except Exception:
+        pass
     return chunks
 
 
@@ -203,6 +214,8 @@ def _lexical_score(question: str, chunk: dict) -> float:
         score += 0.18
         if chunk.get("claim_binding"):
             score += 0.07          # a requirement beats a loose statement
+    elif chunk.get("kind") == "candidate":
+        score += 0.12              # descriptive prose — below claims, above captions
     elif chunk.get("kind") in ("caption", "detail"):
         score += 0.05
     if len(q_core) >= 2 and cover < 0.34:
@@ -249,6 +262,8 @@ def answer_relevance(question: str, chunk: dict) -> float:
     # A claim that matches the question's intent is the best possible hit.
     if kind == "claim" and intent_boost > 0:
         intent_boost += 0.14
+    elif kind == "candidate" and intent_boost > 0:
+        intent_boost += 0.10
     elif kind in ("caption", "detail") and intent_boost > 0:
         intent_boost += 0.08
 

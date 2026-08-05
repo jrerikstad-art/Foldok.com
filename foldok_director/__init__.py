@@ -147,7 +147,7 @@ def direct(
     project_name: str = "",
     folder: str = "",
     existing_sections: Mapping[str, Any] | None = None,
-    lang: str = "no",
+    lang: str = "en",
 ) -> CompositionPlan:
     """Build a composition plan. No LLM. Identity first, then assets, then slots."""
     art = dict(artifact or {})
